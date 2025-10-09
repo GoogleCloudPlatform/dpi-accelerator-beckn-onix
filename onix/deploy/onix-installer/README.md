@@ -236,7 +236,7 @@ go to any browser, and open localhost:4200
 Before proceeding with the application deployment step in the installer, if either a BAP (Buyer Application Provider) or BPP (Seller Application Provider) is being deployed, ensure that the `adapter_artifacts` folder contains the necessary artifacts.
 
 -   **`schemas` folder**: This folder is needed if you want to enable schema validation. It should contain all required schema files.
--   **`routing_configs` folder**: This folder must contain the routing configuration files specific to your deployment:
+-   **`routing_configs` folder**: This folder must contain the routing configuration files specific to your deployment. For detailed information on configuring routing rules, please refer to the [routing configuration documentation](adapter_artifacts/routing_configs/README.md).
     -   `bapTxnReceiver-routing.yaml`: Required if a BAP is being deployed.
     -   `bapTxnCaller-routing.yaml`: Required if a BAP is being deployed.
     -   `bppTxnReceiver-routing.yaml`: Required if a BPP is being deployed.
