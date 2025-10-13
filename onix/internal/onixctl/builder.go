@@ -79,18 +79,19 @@ func (b *Builder) Build() error {
 }
 
 // buildPluginsInDocker builds the Go plugins inside a Docker container.
+// buildPluginsInDocker builds the Go plugins inside a Docker container.
 func (b *Builder) buildPluginsInDocker() error {
-	var script strings.Builder
-	script.WriteString("#!/bin/sh\n")
-	script.WriteString("set -e\n")
-	script.WriteString("export GOOS=linux\n")
-	script.WriteString("export GOARCH=amd64\n")
-	script.WriteString("echo '--- Starting plugin build script ---\n'")
+    var script strings.Builder
+    script.WriteString("#!/bin/sh\n")
+    script.WriteString("set -e\n")
+    script.WriteString("export GOOS=linux\n")
+    script.WriteString("export GOARCH=amd64\n")
+    script.WriteString("echo '--- Starting plugin build script ---\n'")
 
-	pluginOutputDir := "/workspace/plugins_out"
-	script.WriteString(fmt.Sprintf("mkdir -p %s\n", pluginOutputDir))
+    pluginOutputDir := "/workspace/plugins_out"
+    script.WriteString(fmt.Sprintf("mkdir -p %s\n", pluginOutputDir))
 
-	for _, module := range b.config.Modules {
+    for _, module := range b.config.Modules {
 		modulePath := filepath.Join("/workspace", module.DirName)
 		for id, pluginPath := range module.Plugins {
 			fullPluginPath := filepath.Join(modulePath, pluginPath)
@@ -100,23 +101,20 @@ func (b *Builder) buildPluginsInDocker() error {
 		}
 	}
 	script.WriteString("echo '--- Plugin build script finished ---\n'")
+	
+    cmd := exec.Command("docker", "run", "-i", "--rm",
+        "--platform", "linux/amd64",
+        "-v", fmt.Sprintf("%s:/workspace", b.workspacePath),
+        "-w", "/workspace",
+        fmt.Sprintf("golang:%s-bullseye", b.config.GoVersion),
+        "sh", "-s",
+    )
 
-	scriptPath := filepath.Join(b.workspacePath, "build_plugins.sh")
-	if err := os.WriteFile(scriptPath, []byte(script.String()), 0755); err != nil {
-		return fmt.Errorf("failed to write plugin build script: %w", err)
-	}
+    cmd.Stdin = strings.NewReader(script.String())
+    cmd.Stdout = os.Stdout
+    cmd.Stderr = os.Stderr
 
-	cmd := exec.Command("docker", "run", "--rm",
-	    "--platform", "linux/amd64",
-		"-v", fmt.Sprintf("%s:/workspace", b.workspacePath),
-		"-w", "/workspace",
-		fmt.Sprintf("golang:%s-bullseye", b.config.GoVersion),
-		"sh", "./build_plugins.sh",
-	)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return b.runner.Run(cmd)
+    return b.runner.Run(cmd)
 }
 
 // buildImagesLocally builds the Docker images on the host machine.
