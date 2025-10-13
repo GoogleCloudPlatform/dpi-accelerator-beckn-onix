@@ -67,8 +67,8 @@ jobs:
         push: false
         tags: ${{ matrix.service }}:latest
 
-  test-python-installer:
-    name: Test Python Installer Backend
+  build-python-installer:
+    name: Build Python Installer Backend
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -115,15 +115,15 @@ jobs:
       run: |
         cd onix/deploy/onix-installer/frontend
         npm run build -- --configuration production
-  
+
   build-and-run-onixctl:
-    name: 'Build onixctl, Plugins, and Local Image'
+    name: 'Build onixctl, Plugins, and Adapter Image'
     runs-on: ubuntu-latest
 
     steps:
       - name: 'Checkout repository'
         uses: actions/checkout@v4
-      
+
       - name: 'Set up Go'
         uses: actions/setup-go@v5
         with:
@@ -135,4 +135,3 @@ jobs:
       - name: 'Build and Run onixctl'
         run: |
           cd onix && go build ./cmd/onixctl && cd .. && ./onix/onixctl --config onix/deploy/onix-installer/adapter_artifacts/source.yaml
-          
