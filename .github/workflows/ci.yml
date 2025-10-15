@@ -153,12 +153,9 @@ jobs:
   deploy-pages:
     name: Deploy Reports to GitHub Pages
     runs-on: ubuntu-latest
-    # This job needs the test jobs to be completed
     needs: [test-go, build-python-installer, build-frontend-installer]
     # Only run this job when pushing to the main branch
-    # if: github.ref == 'refs/heads/main'
-
-    # Grant permissions for the GITHUB_TOKEN to upload to Pages
+    if: github.ref == 'refs/heads/main'
     permissions:
       pages: write
       id-token: write
@@ -173,17 +170,14 @@ jobs:
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v4
         with:
-          path: ./coverage-reports # Download all artifacts into this directory
+          path: ./coverage-reports 
 
       - name: Create index page and organize reports
         run: |
-          # The download action creates subdirectories based on artifact name
-          # Move them to more user-friendly names
           mv ./coverage-reports/go-coverage/coverage.html ./coverage-reports/go-coverage.html
           mv ./coverage-reports/python-coverage ./coverage-reports/python
           mv ./coverage-reports/frontend-coverage ./coverage-reports/frontend
           
-          # Create a landing page
           echo '<html><head><title>Test Coverage Reports</title></head><body>' > ./coverage-reports/index.html
           echo '<h1>Onix Test Coverage Reports</h1>' >> ./coverage-reports/index.html
           echo '<ul>' >> ./coverage-reports/index.html
