@@ -21,25 +21,12 @@ jobs:
 
     - name: Run Go Tests and Generate Merged Coverage
       run: |
-          cd onix
-          echo "mode: atomic" > coverage.out
-          # Get a list of all packages, excluding the 'main' packages in cmd
-          # which often have low coverage and can skew results.
-          # You can remove the `grep -v` if you want to include them.
-          PACKAGES=$(go list ./... | grep -v '/cmd/')
-          for pkg in $PACKAGES; do
-            # Generate coverage for each package, appending to the main file
-            go test -race -coverprofile=profile.out -covermode=atomic "$pkg"
-            if [ -f profile.out ]; then
-              grep -v "mode: atomic" profile.out >> coverage.out
-              rm profile.out
-            fi
-          done
+          cd onix && go test -coverprofile=coverage.out -coverpkg=./... ./...
+                    
 
     - name: Convert merged coverage to HTML
       run: |
-          cd onix
-          go tool cover -html=coverage.out -o coverage.html
+          cd onix && go tool cover -html=coverage.out -o coverage.html
 
     - name: Upload Go coverage report
       uses: actions/upload-artifact@v4
@@ -87,6 +74,7 @@ jobs:
       with:
         context: ./onix
         file: ./onix/Dockerfile.${{ matrix.service }}
+        platforms: linux/amd64
         push: false
         tags: ${{ matrix.service }}:latest
 
