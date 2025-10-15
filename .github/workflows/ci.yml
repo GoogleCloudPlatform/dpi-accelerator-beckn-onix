@@ -19,15 +19,27 @@ jobs:
       with:
         go-version: '1.24'
 
-    - name: Run Go Tests with Coverage
+    - name: Run Go Tests and Generate Merged Coverage
       run: |
-        cd onix
-        go test ./... -coverprofile=coverage.out
+          cd onix
+          echo "mode: atomic" > coverage.out
+          # Get a list of all packages, excluding the 'main' packages in cmd
+          # which often have low coverage and can skew results.
+          # You can remove the `grep -v` if you want to include them.
+          PACKAGES=$(go list ./... | grep -v '/cmd/')
+          for pkg in $PACKAGES; do
+            # Generate coverage for each package, appending to the main file
+            go test -race -coverprofile=profile.out -covermode=atomic "$pkg"
+            if [ -f profile.out ]; then
+              grep -v "mode: atomic" profile.out >> coverage.out
+              rm profile.out
+            fi
+          done
 
-    - name: Convert coverage to HTML
+    - name: Convert merged coverage to HTML
       run: |
-        cd onix
-        go tool cover -html=coverage.out -o coverage.html
+          cd onix
+          go tool cover -html=coverage.out -o coverage.html
 
     - name: Upload Go coverage report
       uses: actions/upload-artifact@v4
@@ -189,7 +201,7 @@ jobs:
           echo '<ul>' >> ./coverage-reports/index.html
           echo '<li><a href="go-coverage.html">Go Microservices Coverage</a></li>' >> ./coverage-reports/index.html
           echo '<li><a href="python/index.html">Python Installer Coverage</a></li>' >> ./coverage-reports/index.html
-          echo '<li><a href="frontend/onix/index.html">Frontend Installer Coverage</a></li>' >> ./coverage-reports/index.html
+          echo '<li><a href="frontend/frontend-test/index.html">Frontend Installer Coverage</a></li>' >> ./coverage-reports/index.html
           echo '</ul></body></html>' >> ./coverage-reports/index.html
 
       - name: Upload artifact for GitHub Pages
