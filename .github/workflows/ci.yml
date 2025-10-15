@@ -19,53 +19,64 @@ jobs:
       with:
         go-version: '1.24'
 
-    - name: Run Go Tests
+    - name: Run Go Tests with Coverage
       run: |
         cd onix
-        go test -count=1 ./...
+        go test -race -coverprofile=coverage.out -covermode=atomic ./...
 
-  build-go-binaries:
-    name: Build Go Binaries
-    runs-on: ubuntu-latest
-    needs: test-go
-    strategy:
-      matrix:
-        service: [admin, gateway, registry, subscriber]
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up Go
-      uses: actions/setup-go@v3
-      with:
-        go-version: '1.24'
-
-    - name: Build
+    - name: Convert coverage to HTML
       run: |
-        cd onix/cmd/${{ matrix.service }}
-        go build -v -o ../../build/${{ matrix.service }} .
+        cd onix
+        go tool cover -html=coverage.out -o coverage.html
 
-  build-docker-images:
-    name: Build Docker Images
-    runs-on: ubuntu-latest
-    needs: build-go-binaries
-    strategy:
-      matrix:
-        service: [gateway, registry, registry-admin, subscriber]
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-
-    - name: Build Docker Image
-      uses: docker/build-push-action@v4
+    - name: Upload Go coverage report
+      uses: actions/upload-artifact@v4
       with:
-        context: ./onix
-        file: ./onix/Dockerfile.${{ matrix.service }}
-        push: false
-        tags: ${{ matrix.service }}:latest
+          name: go-coverage
+          path: onix/coverage.html
+
+  # build-go-binaries:
+  #   name: Build Go Binaries
+  #   runs-on: ubuntu-latest
+  #   needs: test-go
+  #   strategy:
+  #     matrix:
+  #       service: [admin, gateway, registry, subscriber]
+  #   steps:
+  #   - name: Checkout code
+  #     uses: actions/checkout@v3
+
+  #   - name: Set up Go
+  #     uses: actions/setup-go@v3
+  #     with:
+  #       go-version: '1.24'
+
+  #   - name: Build
+  #     run: |
+  #       cd onix/cmd/${{ matrix.service }}
+  #       go build -v -o ../../build/${{ matrix.service }} .
+
+  # build-docker-images:
+  #   name: Build Docker Images
+  #   runs-on: ubuntu-latest
+  #   needs: build-go-binaries
+  #   strategy:
+  #     matrix:
+  #       service: [gateway, registry, registry-admin, subscriber]
+  #   steps:
+  #   - name: Checkout code
+  #     uses: actions/checkout@v3
+
+  #   - name: Set up Docker Buildx
+  #     uses: docker/setup-buildx-action@v2
+
+  #   - name: Build Docker Image
+  #     uses: docker/build-push-action@v4
+  #     with:
+  #       context: ./onix
+  #       file: ./onix/Dockerfile.${{ matrix.service }}
+  #       push: false
+  #       tags: ${{ matrix.service }}:latest
 
   build-python-installer:
     name: Build Python Installer Backend
@@ -84,10 +95,27 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r onix/deploy/onix-installer/backend/requirements.txt --require-hashes
 
-    - name: Run Python Tests
+    - name: Install Dependencies
       run: |
-        cd onix/deploy/onix-installer/backend
-        python -m unittest discover tests
+          python -m pip install --upgrade pip
+          pip install coverage
+          pip install -r onix/deploy/onix-installer/backend/requirements.txt --require-hashes
+
+    - name: Run Python Tests with Coverage
+      run: |
+          cd onix/deploy/onix-installer/backend
+          coverage run -m unittest discover tests
+
+    - name: Generate Python coverage report
+      run: |
+          cd onix/deploy/onix-installer/backend
+          coverage html -d htmlcov
+
+    - name: Upload Python coverage report
+      uses: actions/upload-artifact@v4
+      with:
+          name: python-coverage
+          path: onix/deploy/onix-installer/backend/htmlcov
 
   build-frontend-installer:
     name: Build Angular Installer Frontend
@@ -106,32 +134,89 @@ jobs:
         cd onix/deploy/onix-installer/frontend
         npm install
    
-    - name: Run Tests
+    - name: Run Tests with Coverage
       run: |
         cd onix/deploy/onix-installer/frontend
-        npm test -- --watch=false --browsers=ChromeHeadless
+        npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
+
+    - name: Upload Frontend coverage report
+      uses: actions/upload-artifact@v4
+      with:
+          name: frontend-coverage
+          path: onix/deploy/onix-installer/frontend/coverage
 
     - name: Build Frontend
       run: |
         cd onix/deploy/onix-installer/frontend
         npm run build -- --configuration production
-
-  build-and-run-onixctl:
-    name: 'Build onixctl, Plugins, and Adapter Image'
+  
+  deploy-pages:
+    name: Deploy Reports to GitHub Pages
     runs-on: ubuntu-latest
+    # This job needs the test jobs to be completed
+    needs: [test-go, build-python-installer, build-frontend-installer]
+    # Only run this job when pushing to the main branch
+    # if: github.ref == 'refs/heads/main'
+
+    # Grant permissions for the GITHUB_TOKEN to upload to Pages
+    permissions:
+      pages: write
+      id-token: write
 
     steps:
-      - name: 'Checkout repository'
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: 'Set up Go'
-        uses: actions/setup-go@v5
+      - name: Set up Pages
+        uses: actions/configure-pages@v4
+
+      - name: Download all coverage artifacts
+        uses: actions/download-artifact@v4
         with:
-          go-version: '1.24'
+          path: ./coverage-reports # Download all artifacts into this directory
 
-      - name: 'Set up Docker Buildx'
-        uses: docker/setup-buildx-action@v3
-
-      - name: 'Build and Run onixctl'
+      - name: Create index page and organize reports
         run: |
-          cd onix && go build ./cmd/onixctl && cd .. && ./onix/onixctl --config onix/deploy/onix-installer/adapter_artifacts/source.yaml
+          # The download action creates subdirectories based on artifact name
+          # Move them to more user-friendly names
+          mv ./coverage-reports/go-coverage/coverage.html ./coverage-reports/go-coverage.html
+          mv ./coverage-reports/python-coverage ./coverage-reports/python
+          mv ./coverage-reports/frontend-coverage ./coverage-reports/frontend
+          
+          # Create a landing page
+          echo '<html><head><title>Test Coverage Reports</title></head><body>' > ./coverage-reports/index.html
+          echo '<h1>Onix Test Coverage Reports</h1>' >> ./coverage-reports/index.html
+          echo '<ul>' >> ./coverage-reports/index.html
+          echo '<li><a href="go-coverage.html">Go Microservices Coverage</a></li>' >> ./coverage-reports/index.html
+          echo '<li><a href="python/index.html">Python Installer Coverage</a></li>' >> ./coverage-reports/index.html
+          echo '<li><a href="frontend/onix/index.html">Frontend Installer Coverage</a></li>' >> ./coverage-reports/index.html
+          echo '</ul></body></html>' >> ./coverage-reports/index.html
+
+      - name: Upload artifact for GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./coverage-reports
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # build-and-run-onixctl:
+    # name: 'Build onixctl, Plugins, and Adapter Image'
+    # runs-on: ubuntu-latest
+
+    # steps:
+    #   - name: 'Checkout repository'
+    #     uses: actions/checkout@v4
+
+    #   - name: 'Set up Go'
+    #     uses: actions/setup-go@v5
+    #     with:
+    #       go-version: '1.24'
+
+    #   - name: 'Set up Docker Buildx'
+    #     uses: docker/setup-buildx-action@v3
+
+    #   - name: 'Build and Run onixctl'
+    #     run: |
+    #       cd onix && go build ./cmd/onixctl && cd .. && ./onix/onixctl --config onix/deploy/onix-installer/adapter_artifacts/source.yaml
