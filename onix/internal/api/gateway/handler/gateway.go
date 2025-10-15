@@ -85,7 +85,9 @@ func (h *gatewayHandler) ServeHttp(w http.ResponseWriter, r *http.Request) {
 	response := model.TxnResponse{Message: model.Message{Ack: model.Ack{Status: model.StatusACK}}}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		slog.ErrorContext(ctx, "GatewayHandler: Failed to write success response", "error", err)
+	}
 }
 
 func writeGatewayError(w http.ResponseWriter, statusCode int, errorCode string, message string) {
@@ -100,5 +102,7 @@ func writeGatewayError(w http.ResponseWriter, statusCode int, errorCode string, 
 			},
 		},
 	}
-	json.NewEncoder(w).Encode(errResp)
+	if err := json.NewEncoder(w).Encode(errResp); err != nil {
+		slog.Error("writeGatewayError: Failed to encode/write error response", "error", err)
+	}
 }

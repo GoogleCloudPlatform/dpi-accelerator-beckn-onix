@@ -26,7 +26,7 @@ import (
 	"fmt"
 	"regexp"
 	"time"
-
+	"log/slog"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 
@@ -258,7 +258,7 @@ func (km *keyMgr) LookupNPKeys(ctx context.Context, subscriberID, uniqueKeyID st
 	if err == nil {
 		err := km.cache.Set(ctx, cacheKey, string(cacheValue), time.Hour)
 		if err != nil {
-			// Log
+			slog.WarnContext(ctx, "failed to set public keys in cache", "error", err)
 		}
 	}
 

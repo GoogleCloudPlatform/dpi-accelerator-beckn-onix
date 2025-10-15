@@ -15,6 +15,7 @@
 package service
 
 import (
+	"fmt"
 	"crypto/rand"
 	"encoding/hex"
 )
@@ -30,7 +31,9 @@ func NewChallengeService() *challengeService {
 // The challenge is a 32-character hex-encoded string.
 func (s *challengeService) NewChallenge() (string, error) {
 	bytes := make([]byte, 16) // 16 bytes = 32 hex characters
-	rand.Read(bytes)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", fmt.Errorf("failed to generate random bytes for challenge: %w", err)
+	}
 	return hex.EncodeToString(bytes), nil
 }
 

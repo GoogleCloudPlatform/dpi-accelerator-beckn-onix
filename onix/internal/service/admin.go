@@ -140,13 +140,17 @@ func (s *adminService) ApproveSubscription(ctx context.Context, req *model.Opera
 	if len(subs) > 0 && lro.Type == model.OperationTypeCreateSubscription {
 		err := fmt.Errorf("subscription already exists: subscriber_id '%s', domain '%s', type '%s'", subReq.SubscriberID, subReq.Domain, subReq.Type)
 		slog.ErrorContext(ctx, "AdminService: Subscription already exists", "subscriber_id", subReq.SubscriberID, "domain", subReq.Domain, "type", subReq.Type)
-		s.updateLROError(ctx, lro, err, model.LROStatusFailure)
+		if updateErr := s.updateLROError(ctx, lro, err, model.LROStatusFailure); updateErr != nil {
+			slog.ErrorContext(ctx, "AdminService: Failed to update LRO with failure status", "operation_id", lro.OperationID, "update_error", updateErr)
+		}
 		return nil, nil, err
 	}
 	if len(subs) == 0 && lro.Type == model.OperationTypeUpdateSubscription {
 		err := fmt.Errorf("subscription does not exists: subscriber_id '%s', domain '%s', type '%s'", subReq.SubscriberID, subReq.Domain, subReq.Type)
 		slog.ErrorContext(ctx, "AdminService: Subscription does not exists", "subscriber_id", subReq.SubscriberID, "domain", subReq.Domain, "type", subReq.Type)
-		s.updateLROError(ctx, lro, err, model.LROStatusFailure)
+		if updateErr := s.updateLROError(ctx, lro, err, model.LROStatusFailure); updateErr != nil {
+			slog.ErrorContext(ctx, "AdminService: Failed to update LRO with failure status", "operation_id", lro.OperationID, "update_error", updateErr)
+		}
 		return nil, nil, err
 	}
 
@@ -200,20 +204,26 @@ func (s *adminService) subReq(ctx context.Context, lro *model.LRO) (*model.Subsc
 	if err := json.Unmarshal(lro.RequestJSON, &subReq); err != nil {
 		slog.ErrorContext(ctx, "AdminService: Failed to unmarshal LRO request JSON", "operation_id", lro.OperationID, "error", err)
 		err := fmt.Errorf("failed to unmarshal LRO request JSON: %w", err)
-		s.updateLROError(ctx, lro, err, model.LROStatusRejected)
+		if updateErr := s.updateLROError(ctx, lro, err, model.LROStatusRejected); updateErr != nil {
+			slog.ErrorContext(ctx, "AdminService: Failed to update LRO with failure status", "operation_id", lro.OperationID, "update_error", updateErr)
+		}
 		return nil, err
 	}
 
 	if subReq.URL == "" {
 		slog.ErrorContext(ctx, "AdminService: Callback URL missing in subscription request", "operation_id", lro.OperationID)
 		err := errors.New("callback URL missing in subscription request")
-		s.updateLROError(ctx, lro, err, model.LROStatusRejected)
+		if updateErr := s.updateLROError(ctx, lro, err, model.LROStatusRejected); updateErr != nil {
+			slog.ErrorContext(ctx, "AdminService: Failed to update LRO with failure status", "operation_id", lro.OperationID, "update_error", updateErr)
+		}
 		return nil, err
 	}
 	if subReq.EncrPublicKey == "" {
 		slog.ErrorContext(ctx, "AdminService: Encryption public key missing in subscription request", "operation_id", lro.OperationID)
 		err := errors.New("encryption public key missing")
-		s.updateLROError(ctx, lro, err, model.LROStatusRejected)
+		if updateErr := s.updateLROError(ctx, lro, err, model.LROStatusRejected); updateErr != nil {
+			slog.ErrorContext(ctx, "AdminService: Failed to update LRO with failure status", "operation_id", lro.OperationID, "update_error", updateErr)
+		}
 		return nil, err
 	}
 	return &subReq, nil
@@ -225,7 +235,9 @@ func (s *adminService) challenge(ctx context.Context, lro *model.LRO, subscriber
 	if err != nil {
 		slog.ErrorContext(ctx, "AdminService: Failed to generate challenge", "operation_id", lro.OperationID, "error", err)
 		err := fmt.Errorf("failed to generate challenge: %w", err)
-		s.updateLROError(ctx, lro, err, model.LROStatusFailure)
+		if updateErr := s.updateLROError(ctx, lro, err, model.LROStatusFailure); updateErr != nil {
+			slog.ErrorContext(ctx, "AdminService: Failed to update LRO with failure status", "operation_id", lro.OperationID, "update_error", updateErr)
+		}
 		return "", "", err
 	}
 
@@ -233,7 +245,9 @@ func (s *adminService) challenge(ctx context.Context, lro *model.LRO, subscriber
 	if err != nil {
 		slog.ErrorContext(ctx, "AdminService: Failed to encrypt challenge", "operation_id", lro.OperationID, "error", err)
 		err := fmt.Errorf("failed to encrypt challenge: %w", err)
-		s.updateLROError(ctx, lro, err, model.LROStatusFailure)
+		if updateErr := s.updateLROError(ctx, lro, err, model.LROStatusFailure); updateErr != nil {
+			slog.ErrorContext(ctx, "AdminService: Failed to update LRO with failure status", "operation_id", lro.OperationID, "update_error", updateErr)
+		}
 		return "", "", err
 	}
 	return challenge, encryptedChallenge, nil
@@ -246,7 +260,9 @@ func (s *adminService) onSubscribe(ctx context.Context, lro *model.LRO, subReq *
 	if err != nil {
 		slog.WarnContext(ctx, "AdminService: /on_subscribe callback failed", "operation_id", lro.OperationID, "callback_url", subReq.URL, "error", err)
 		err := fmt.Errorf("network Participant /on_subscribe callback failed: %w", err)
-		s.updateLROError(ctx, lro, err, model.LROStatusFailure)
+		if updateErr := s.updateLROError(ctx, lro, err, model.LROStatusFailure); updateErr != nil {
+			slog.ErrorContext(ctx, "AdminService: Failed to update LRO with failure status", "operation_id", lro.OperationID, "update_error", updateErr)
+		}
 		return nil, err
 	}
 	return onSubscribeResp, nil
@@ -257,7 +273,9 @@ func (s *adminService) verifyChallenge(ctx context.Context, lro *model.LRO, chal
 	if !s.chSrv.Verify(challenge, answer) {
 		slog.WarnContext(ctx, "AdminService: Challenge mismatch from /on_subscribe response", "operation_id", lro.OperationID)
 		err := errors.New("challenge verification failed")
-		s.updateLROError(ctx, lro, err, model.LROStatusFailure)
+		if updateErr := s.updateLROError(ctx, lro, err, model.LROStatusFailure); updateErr != nil {
+			slog.ErrorContext(ctx, "AdminService: Failed to update LRO with failure status", "operation_id", lro.OperationID, "update_error", updateErr)
+		}
 		return err
 	}
 	slog.InfoContext(ctx, "AdminService: Challenge verification successful", "operation_id", lro.OperationID)

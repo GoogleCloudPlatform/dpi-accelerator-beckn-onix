@@ -146,7 +146,11 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create redis cache: %w", err)
 	}
-	defer closeRedis()
+	defer func() {
+		if err := closeRedis(); err != nil {
+			slog.Error("failed to close redis", "error", err)
+		}
+	}()
 
 	becknRegClient := becknclient.NewRegisteryClient(&becknclient.Config{RegisteryURL: cfg.Registry.BaseURL})
     keyManagerConfig := &keyManager.Config{
@@ -161,7 +165,11 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create secrets key manager: %w", err)
 	}
-	defer closeKM()
+	defer func() {
+		if err := closeKM(); err != nil {
+			slog.Error("failed to close key manager", "error", err)
+		}
+	}()
 
 	// Initialize Decrypter
 	dec, _, err := decryption.New(ctx)
@@ -178,7 +186,11 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create signer: %w", err)
 	}
-	defer sCloser()
+	defer func() {
+		if err := sCloser(); err != nil {
+			slog.Error("failed to close signer", "error", err)
+		}
+	}()
 
 	evPub, close, err := event.NewPublisher(ctx, cfg.Event)
 	if err != nil {

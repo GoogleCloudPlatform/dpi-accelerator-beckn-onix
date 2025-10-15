@@ -46,7 +46,9 @@ func TestHttpNPClient_OnSubscribe_Success(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(expectedResponse)
+		if err := json.NewEncoder(w).Encode(expectedResponse); err != nil {
+			t.Fatalf("Failed to write mock response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -111,7 +113,9 @@ func TestHttpNPClient_OnSubscribe_Error(t *testing.T) {
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				io.WriteString(w, `{"answer": "missing_quote}`) // Malformed JSON
+				if _, err := io.WriteString(w, `{"answer": "missing_quote}`); err != nil {
+					t.Fatalf("Failed to write mock response: %v", err)
+				}
 			},
 			request:    validRequest,
 			ctx:        context.Background(),

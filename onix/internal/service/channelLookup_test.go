@@ -54,11 +54,6 @@ func (m *mockTaskQueuer) QueueTxn(ctx context.Context, reqCtx *model.Context, ms
 	return &model.AsyncTask{}, nil
 }
 
-func (m *mockTaskQueuer) reset() {
-	m.err = nil
-	m.callCount = 0
-}
-
 func TestNewChannelLookupProcessor(t *testing.T) {
 	tests := []struct {
 		name           string

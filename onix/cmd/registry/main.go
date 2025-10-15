@@ -118,14 +118,22 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to open database connection: %w", err)
 	}
-	defer dbCleanUp()
+	defer func() {
+		if err := dbCleanUp(); err != nil {
+			slog.Error("failed to clean up database connection", "error", err)
+		}
+	}()
 
 	sv, svClose, err := signvalidator.New(ctx, &signvalidator.Config{})
 	if err != nil {
 		return fmt.Errorf("failed to create signature validator: %w", err)
 	}
 	if svClose != nil { // Ensure svClose is not nil before deferring
-		defer svClose()
+		defer func() {
+			if err := svClose(); err != nil {
+				slog.Error("failed to close signature validator", "error", err)
+			}
+		}()
 	}
 	server, err := newServer(ctx, cfg, db, sv)
 	if err != nil {
@@ -167,7 +175,6 @@ func run(ctx context.Context) error {
 }
 
 var configPath string
-var sqlOpen = sql.Open // Make sql.Open swappable for tests.
 var newConnectionPool = repository.NewConnectionPool
 
 func newServer(ctx context.Context, cfg *config, db *sql.DB, sv definition.SignValidator) (*http.Server, error) {

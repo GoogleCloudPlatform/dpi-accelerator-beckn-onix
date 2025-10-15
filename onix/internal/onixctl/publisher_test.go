@@ -53,19 +53,6 @@ func (m *mockGCSBucketHandle) Object(name string) *storage.ObjectHandle {
 		return &storage.ObjectHandle{}
 }
 
-// mockStorageWriter simulates writing to GCS by writing to an in-memory buffer.
-type mockStorageWriter struct {
-	w *bytes.Buffer
-}
-
-func (m *mockStorageWriter) Write(p []byte) (n int, err error) {
-	return m.w.Write(p)
-}
-
-func (m *mockStorageWriter) Close() error {
-	return nil
-}
-
 func TestPublisher_Publish_NoGSPath(t *testing.T) {
 	config := &Config{}
 	publisher := NewPublisher(config)

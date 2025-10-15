@@ -31,7 +31,6 @@ import (
 
 // mockAdminEventPublisher is a mock implementation of adminEventPublisher.
 type mockAdminEventPublisher struct {
-	publishErr error
 	msgID      string
 	err        error
 }

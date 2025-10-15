@@ -91,7 +91,7 @@ func TestCacheProviderNewErrorFromRedisCacheNew(t *testing.T) {
 	defer func() { mockRedisCacheNew = originalRedisCacheNew }()
 
 	provider := cacheProvider{}
-	c, closeFunc, err := provider.New(ctx, config)
+	c, _, err := provider.New(ctx, config)
 
 	if err == nil {
 		t.Errorf("Expected an error, got nil")
@@ -101,8 +101,6 @@ func TestCacheProviderNewErrorFromRedisCacheNew(t *testing.T) {
 	}
 	if c != nil {
 		t.Errorf("Expected nil cache, got %v", c)
-	}
-	if closeFunc != nil {
 	}
 }
 

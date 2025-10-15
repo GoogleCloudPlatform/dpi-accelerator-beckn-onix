@@ -70,7 +70,11 @@ func TestProviderNewSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error during publisher creation: %v", err)
 	}
-	defer closer()
+	defer func() {
+		if err := closer(); err != nil {
+			t.Logf("error closing publisher: %v", err)
+		}
+	}()
 
 	msg := []byte("hello from plugin")
 	err = pub.Publish(ctx, "test-topic1", msg)
@@ -168,7 +172,11 @@ func TestProviderNewError(t *testing.T) {
 				if !tc.useCancelledCtx && tc.publishTopic == "" {
 					t.Fatalf("expected error, but publisher creation succeeded")
 				}
-				defer closer()
+				defer func() {
+					if err := closer(); err != nil {
+						t.Logf("error closing publisher: %v", err)
+					}
+				}()
 				pubCtx := ctx
 				if tc.useCancelledCtx {
 					var cancelPub context.CancelFunc
@@ -186,3 +194,4 @@ func TestProviderNewError(t *testing.T) {
 		})
 	}
 }
+

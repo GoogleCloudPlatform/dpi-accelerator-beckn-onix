@@ -32,7 +32,6 @@ func setupTestServer(t *testing.T, ctx context.Context, projectID string) (*pubs
 	client, err := pubsub.NewClient(ctx, projectID,
 		option.WithEndpoint(srv.Addr),
 		option.WithoutAuthentication(),
-		option.WithGRPCDialOption(grpc.WithBlock()),
 		option.WithGRPCDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())),
 	)
 	if err != nil {
@@ -66,13 +65,16 @@ func TestPublisherSuccess(t *testing.T) {
 	pub, closer, err := New(ctx, config,
 		option.WithEndpoint(srv.Addr),
 		option.WithoutAuthentication(),
-		option.WithGRPCDialOption(grpc.WithBlock()),
 		option.WithGRPCDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())),
 	)
 	if err != nil {
 		t.Fatalf("unexpected error during publisher creation: %v", err)
 	}
-	defer closer()
+	defer func() {
+		if err := closer(); err != nil {
+			t.Logf("error closing publisher: %v", err)
+		}
+	}()
 
 	msg := []byte("hello world")
 	err = pub.Publish(ctx, "test-topic1", msg)
@@ -158,7 +160,6 @@ func TestPublisherError(t *testing.T) {
 			pub, closer, err := New(ctx, tc.config,
 				option.WithEndpoint(srv.Addr),
 				option.WithoutAuthentication(),
-				option.WithGRPCDialOption(grpc.WithBlock()),
 				option.WithGRPCDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())),
 			)
 
@@ -166,7 +167,11 @@ func TestPublisherError(t *testing.T) {
 				if !tc.useCancelledCtx && tc.publishTopic == "" {
 					t.Fatalf("expected error, but publisher creation succeeded")
 				}
-				defer closer()
+				defer func() {
+					if err := closer(); err != nil {
+						t.Logf("error closing publisher: %v", err)
+					}
+				}()
 				pubCtx := ctx
 				if tc.useCancelledCtx {
 					var cancelPub context.CancelFunc

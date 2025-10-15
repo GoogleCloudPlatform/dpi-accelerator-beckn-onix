@@ -165,7 +165,9 @@ func runErrorTests(t *testing.T, testName string, clientCall func(context.Contex
 			name: "server returns 500",
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
-				io.WriteString(w, "internal error")
+				if _, err := io.WriteString(w, "internal error"); err != nil {
+					t.Fatalf("failed to write response: %v", err)
+				}
 			},
 			ctx:        context.Background(),
 			wantErrMsg: fmt.Sprintf("registry %s failed with status 500: internal error", logAction),
@@ -175,7 +177,9 @@ func runErrorTests(t *testing.T, testName string, clientCall func(context.Contex
 			handler: func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusOK)
-				io.WriteString(w, `{"key": "malformed"`)
+				if _, err := io.WriteString(w, `{"key": "malformed"`); err != nil {
+					t.Fatalf("failed to write response: %v", err)
+				}
 			},
 			ctx:        context.Background(),
 			wantErrMsg: fmt.Sprintf("failed to unmarshal Registry %s response", logAction),
@@ -294,7 +298,9 @@ func TestHttpRegistryClient_Lookup_Success(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(expectedResponse)
+		if err := json.NewEncoder(w).Encode(expectedResponse); err != nil {
+			t.Fatalf("failed to encode response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -351,7 +357,9 @@ func TestHttpRegistryClient_CreateSubscription_Success(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(expectedResponse)
+		if err := json.NewEncoder(w).Encode(expectedResponse); err != nil {
+			t.Fatalf("failed to encode response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -412,7 +420,9 @@ func TestHttpRegistryClient_UpdateSubscription_Success(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(expectedResponse)
+		if err := json.NewEncoder(w).Encode(expectedResponse); err != nil {
+			t.Fatalf("failed to encode response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -460,7 +470,9 @@ func TestHttpRegistryClient_GetOperation_Success(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(expectedResponse)
+		if err := json.NewEncoder(w).Encode(expectedResponse); err != nil {
+			t.Fatalf("failed to encode response: %v", err)
+		}
 	}))
 	defer server.Close()
 

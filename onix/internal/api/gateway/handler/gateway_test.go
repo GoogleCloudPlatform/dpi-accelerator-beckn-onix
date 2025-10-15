@@ -195,7 +195,8 @@ func TestServeHttp_ReadBodyError(t *testing.T) {
 		t.Errorf("ServeHttp() status code = %v, want %v", rr.Code, http.StatusInternalServerError)
 	}
 	var errResp model.TxnResponse
-	json.Unmarshal(rr.Body.Bytes(), &errResp)
+	_ = json.Unmarshal(rr.Body.Bytes(), &errResp)
+
 	if errResp.Message.Error.Code != "INTERNAL_ERROR" {
 		t.Errorf("Error Code = %q, want %q", errResp.Message.Error.Code, "INTERNAL_ERROR")
 	}
@@ -219,7 +220,9 @@ func TestServeHttp_AuthValidationError(t *testing.T) {
 		t.Errorf("ServeHttp() status code = %v, want %v", rr.Code, http.StatusUnauthorized)
 	}
 	var errResp model.TxnResponse
-	json.Unmarshal(rr.Body.Bytes(), &errResp)
+	if err := json.Unmarshal(rr.Body.Bytes(), &errResp); err != nil {
+		t.Fatalf("Failed to unmarshal error response body: %v. Body: %s", err, rr.Body.String())
+	}
 	if errResp.Message.Error.Code != model.ErrorCodeInvalidSignature {
 		t.Errorf("Error Code = %q, want %q", errResp.Message.Error.Code, model.ErrorCodeInvalidSignature)
 	}
@@ -245,7 +248,10 @@ func TestServeHttp_UnmarshalBodyError(t *testing.T) {
 		t.Errorf("ServeHttp() status code = %v, want %v", rr.Code, http.StatusBadRequest)
 	}
 	var errResp model.TxnResponse
-	json.Unmarshal(rr.Body.Bytes(), &errResp)
+	_ = json.Unmarshal(rr.Body.Bytes(), &errResp)
+	// if err := json.Unmarshal(rr.Body.Bytes(), &errResp); err != nil {
+	// 	t.Fatalf("Failed to unmarshal error response body: %v. Body: %s", err, rr.Body.String())
+	// }
 	if errResp.Message.Error.Code != "INVALID_JSON" {
 		t.Errorf("Error Code = %q, want %q", errResp.Message.Error.Code, "INVALID_JSON")
 	}
@@ -270,7 +276,10 @@ func TestServeHttp_QueueTaskError(t *testing.T) {
 		t.Errorf("ServeHttp() status code = %v, want %v", rr.Code, http.StatusInternalServerError)
 	}
 	var errResp model.TxnResponse
-	json.Unmarshal(rr.Body.Bytes(), &errResp)
+    _ = json.Unmarshal(rr.Body.Bytes(), &errResp)
+	// if err := json.Unmarshal(rr.Body.Bytes(), &errResp); err != nil {
+	// 	t.Fatalf("Failed to unmarshal error response body: %v. Body: %s", err, rr.Body.String())
+	// }
 	if errResp.Message.Error.Code != "QUEUEING_FAILED" {
 		t.Errorf("Error Code = %q, want %q", errResp.Message.Error.Code, "QUEUEING_FAILED")
 	}

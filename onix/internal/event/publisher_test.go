@@ -320,7 +320,9 @@ func TestPublishNewSubscriptionRequestEvent(t *testing.T) {
 		Topic: testTopicName,
 		Data:  byts,
 	}
-	publisher.PublishNewSubscriptionRequestEvent(ctx, req)
+	if _, err := publisher.PublishNewSubscriptionRequestEvent(ctx, req); err != nil {
+		t.Fatalf("PublishNewSubscriptionRequestEvent() returned an unexpected error: %v", err)
+	}
 	got := psSrv.Messages()[0]
 	if d := cmp.Diff(want, got, msgCmpOpts...); d != "" {
 		t.Errorf("PublishNewSubscriptionRequestEvent(%v) returned diff (-want +got):\n%s", req, d)
@@ -343,7 +345,9 @@ func TestPublishUpdateSubscriptionRequestEvent(t *testing.T) {
 		Topic: testTopicName,
 		Data:  byts,
 	}
-	publisher.PublishUpdateSubscriptionRequestEvent(ctx, req)
+	if _, err := publisher.PublishUpdateSubscriptionRequestEvent(ctx, req); err != nil {
+		t.Fatalf("PublishUpdateSubscriptionRequestEvent() returned an unexpected error: %v", err)
+	}
 	got := psSrv.Messages()[0]
 	if d := cmp.Diff(want, got, msgCmpOpts...); d != "" {
 		t.Errorf("PublishUpdateSubscriptionRequestEvent(%v) returned diff (-want +got):\n%s", req, d)
@@ -367,7 +371,9 @@ func TestPublishSubscriptionRequestApprovedEvent(t *testing.T) {
 		Topic: testTopicName,
 		Data:  byts,
 	}
-	publisher.PublishSubscriptionRequestApprovedEvent(ctx, req)
+	if _, err := publisher.PublishSubscriptionRequestApprovedEvent(ctx, req); err != nil {
+		t.Fatalf("PublishSubscriptionRequestApprovedEvent() returned an unexpected error: %v", err)
+	}
 	got := psSrv.Messages()[0]
 	if d := cmp.Diff(want, got, msgCmpOpts...); d != "" {
 		t.Errorf("PublishSubscriptionRequestApprovedEvent(%v) returned diff (-want +got):\n%s", req, d)
@@ -391,10 +397,11 @@ func TestPublishSubscriptionRequestRejectedEvent(t *testing.T) {
 		Topic: testTopicName,
 		Data:  byts,
 	}
-	publisher.PublishSubscriptionRequestRejectedEvent(ctx, req)
+	if _, err := publisher.PublishSubscriptionRequestRejectedEvent(ctx, req); err != nil {
+		t.Fatalf("PublishSubscriptionRequestRejectedEvent() returned an unexpected error: %v", err)
+	}
 	got := psSrv.Messages()[0]
 	if d := cmp.Diff(want, got, msgCmpOpts...); d != "" {
-		publisher.PublishSubscriptionRequestRejectedEvent(ctx, req)
 		t.Errorf("PublishSubscriptionRequestRejectedEvent(%v) returned diff (-want +got):\n%s", req, d)
 	}
 }
@@ -417,7 +424,9 @@ func TestPublishOnSubscribeRecievedEvent(t *testing.T) {
 		Topic: testTopicName,
 		Data:  byts,
 	}
-	publisher.PublishOnSubscribeRecievedEvent(ctx, lroID)
+	if _, err := publisher.PublishOnSubscribeRecievedEvent(ctx, lroID); err != nil {
+		t.Fatalf("PublishOnSubscribeRecievedEvent() returned an unexpected error: %v", err)
+	}
 	if len(psSrv.Messages()) == 0 {
 		t.Fatal("PublishOnSubscribeRecievedEvent did not publish a message")
 	}

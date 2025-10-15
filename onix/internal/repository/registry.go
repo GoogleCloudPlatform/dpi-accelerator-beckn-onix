@@ -266,7 +266,9 @@ func NewConnectionPool(ctx context.Context, cfg *Config) (*sql.DB, func() error,
 
 	// Ping the database to ensure a connection can be made.
 	if err = db.Ping(); err != nil {
-		cleanup()
+		if cleanupErr := cleanup(); cleanupErr != nil {
+			slog.ErrorContext(ctx, "failed to run pgxv5 cleanup after ping failure", "error", cleanupErr)
+		}
 		db.Close()
 		return nil, nil, fmt.Errorf("db.Ping failed: %w", err)
 	}
@@ -507,8 +509,12 @@ func (r *registry) UpsertSubscriptionAndLRO(ctx context.Context, sub *model.Subs
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback() // If Commit succeeds, the rollback will be a no-op.
-
+	defer func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			slog.ErrorContext(ctx, "transaction rollback failed", "error", err)
+		}
+	}()
+	
 	if err := r.upsertSubscription(ctx, tx, sub); err != nil {
 		return nil, nil, err
 	}

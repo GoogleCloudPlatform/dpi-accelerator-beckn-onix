@@ -139,7 +139,11 @@ func run(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to open database connection: %w", err)
 	}
-	defer dbCleanUp()
+	defer func() {
+		if err := dbCleanUp(); err != nil {
+			slog.Error("failed to clean up database connection", "error", err)
+		}
+	}()
 	encry, _, err := encrypter.New(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to create signature validator: %w", err)

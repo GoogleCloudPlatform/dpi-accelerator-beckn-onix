@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"time"
 
@@ -41,9 +42,9 @@ import (
 
 // Config Required for the module.
 type Config struct {
-	ProjectID string
+	ProjectID           string
 	SubscriberKeysCache bool
-	NetworkKeysCache bool
+	NetworkKeysCache    bool
 }
 
 type secretMgr interface {
@@ -190,7 +191,7 @@ func (km *keyMgr) InsertKeyset(ctx context.Context, keyID string, keyset *model.
 	if km.subscriberKeysCache {
 		err = km.cache.Set(ctx, secretID, string(payload), time.Hour)
 		if err != nil {
-			// Log
+			slog.WarnContext(ctx, "failed to set subscriber keys in cache after insert", "error", err, "secretID", secretID)
 		}
 	}
 	return nil
@@ -227,7 +228,7 @@ func (km *keyMgr) Keyset(ctx context.Context, keyID string) (*model.Keyset, erro
 	if km.subscriberKeysCache {
 		err = km.cache.Set(ctx, secretID, string(res.Payload.Data), time.Hour)
 		if err != nil {
-			// Log
+			slog.WarnContext(ctx, "failed to set subscriber keys in cache after fetch", "error", err, "secretID", secretID)
 		}
 	}
 
@@ -250,7 +251,7 @@ func (km *keyMgr) DeleteKeyset(ctx context.Context, keyID string) error {
 	if km.subscriberKeysCache {
 		err := km.cache.Delete(ctx, secretID)
 		if err != nil {
-			// Log
+			slog.WarnContext(ctx, "failed to delete subscriber keys from cache", "error", err, "secretID", secretID)
 		}
 	}
 
@@ -292,9 +293,8 @@ func (km *keyMgr) LookupNPKeys(ctx context.Context, subscriberID, uniqueKeyID st
 		// Set fetched values in cache.
 		cacheValue, err := json.Marshal(publicKeys)
 		if err == nil {
-			err := km.cache.Set(ctx, cacheKey, string(cacheValue), time.Hour)
-			if err != nil {
-				// Log
+			if err := km.cache.Set(ctx, cacheKey, string(cacheValue), time.Hour); err != nil {
+				slog.WarnContext(ctx, "failed to set network keys in cache", "error", err, "cacheKey", cacheKey)
 			}
 		}
 	}
@@ -390,3 +390,4 @@ var (
 	ErrEmptyKeyID         = errors.New("keyID cannot be empty")
 	ErrSubscriberNotFound = errors.New("no subscriber found with given credentials")
 )
+

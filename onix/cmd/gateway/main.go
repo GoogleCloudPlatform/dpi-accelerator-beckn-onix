@@ -124,7 +124,7 @@ func (c *config) valid() error {
 		// Provide default values or handle as an error if strict config is required
 		c.HTTPClientRetry = &service.RetryConfig{RetryMax: 1, RetryWaitMin: 1 * time.Second, RetryWaitMax: 30 * time.Second}
 	}
-    if c.KeyManagerCacheTTL == nil {
+	if c.KeyManagerCacheTTL == nil {
 		slog.Warn("Config validation: keyManagerCacheTTL section missing, using default retry values.")
 		// Provide default values or handle as an error if strict config is required
 		c.KeyManagerCacheTTL = &keyManager.CacheTTL{PrivateKeysSeconds: 5, PublicKeysSeconds: 3600}
@@ -149,29 +149,41 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("failed to create signature validator: %w", err)
 	}
 	if svClose != nil {
-		defer svClose()
+		defer func() {
+			if err := svClose(); err != nil {
+				slog.ErrorContext(ctx, "failed to close signature validator", "error", err)
+			}
+		}()
 	}
 
 	redis, closeRedis, err := rediscache.New(ctx, map[string]string{"addr": cfg.RedisAddr})
 	if err != nil {
 		return fmt.Errorf("failed to create redis cache: %w", err)
 	}
-	defer closeRedis()
+	defer func() {
+		if err := closeRedis(); err != nil {
+			slog.ErrorContext(ctx, "failed to close redis connection", "error", err)
+		}
+	}()
 	rClient := beckn.NewRegisteryClient(&beckn.Config{RegisteryURL: cfg.Registry.BaseURL})
 
 	keyManagerConfig := &keyManager.Config{
-    ProjectID: cfg.ProjectID,
-    CacheTTL: keyManager.CacheTTL{
-        PrivateKeysSeconds: cfg.KeyManagerCacheTTL.PrivateKeysSeconds,
-        PublicKeysSeconds:  cfg.KeyManagerCacheTTL.PublicKeysSeconds,
-    },
-    }
+		ProjectID: cfg.ProjectID,
+		CacheTTL: keyManager.CacheTTL{
+			PrivateKeysSeconds: cfg.KeyManagerCacheTTL.PrivateKeysSeconds,
+			PublicKeysSeconds:  cfg.KeyManagerCacheTTL.PublicKeysSeconds,
+		},
+	}
 
-   km, closeKM, err := keyManager.New(ctx, redis, rClient, keyManagerConfig)
+	km, closeKM, err := keyManager.New(ctx, redis, rClient, keyManagerConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create secrets key manager: %w", err)
 	}
-	defer closeKM()
+	defer func() {
+		if err := closeKM(); err != nil {
+			slog.ErrorContext(ctx, "failed to close key manager", "error", err)
+		}
+	}()
 
 	signer, _, err := signer.New(ctx, &signer.Config{})
 	if err != nil {
