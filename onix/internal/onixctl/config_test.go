@@ -97,8 +97,8 @@ func TestLoadConfig_ValidationFails(t *testing.T) {
 			expectedError: "config validation failed: at least one module must be defined in 'modules'",
 		},
 		{
-			name:          "Missing Module Name",
-			yamlContent:   `goVersion: 1.24
+			name: "Missing Module Name",
+			yamlContent: `goVersion: 1.24
 modules: [{}]`,
 			expectedError: "config validation failed: module at index 0 is missing required 'name' field",
 		},
