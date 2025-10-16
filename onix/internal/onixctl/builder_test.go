@@ -15,6 +15,7 @@
 package onixctl
 
 import (
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -27,12 +28,13 @@ import (
 // MockCommandRunner is a mock for testing that captures the command.
 type MockCommandRunner struct {
 	CommandsRun [][]string
+	ShouldError error
 }
 
 // Run captures the command arguments instead of executing them.
 func (m *MockCommandRunner) Run(cmd *exec.Cmd) error {
 	m.CommandsRun = append(m.CommandsRun, cmd.Args)
-	return nil 
+	return m.ShouldError
 }
 
 func TestZipAndCopyPlugins(t *testing.T) {
@@ -89,7 +91,12 @@ func TestNewBuilder(t *testing.T) {
 		Output: "./test-output",
 	}
 	wsPath := t.TempDir()
-	defer os.RemoveAll(config.Output)
+	defer func() {
+		if err := os.RemoveAll(config.Output); err != nil {
+			// Replace 'log.Printf' with your actual project's logger if needed
+			log.Printf("Error cleaning up output directory %s: %v", config.Output, err)
+		}
+	}()
 
 	builder, err := NewBuilder(config, wsPath)
 	require.NoError(t, err)
@@ -173,4 +180,242 @@ func TestBuildImagesLocally_WithRegistry(t *testing.T) {
 
 	assert.Equal(t, expectedBuildCmd, mockRunner.CommandsRun[0])
 	assert.Equal(t, expectedPushCmd, mockRunner.CommandsRun[1])
+}
+
+func TestBuildImagesLocally_NoRegistry(t *testing.T) {
+	// 1. Setup
+	mockRunner := &MockCommandRunner{}
+	wsPath := t.TempDir()
+	dockerfileDir := filepath.Join(wsPath, "app")
+	require.NoError(t, os.MkdirAll(dockerfileDir, 0755))
+	_, err := os.Create(filepath.Join(dockerfileDir, "Dockerfile"))
+	require.NoError(t, err)
+
+	config := &Config{
+		Modules: []Module{
+			{
+				DirName: "app",
+				Images: map[string]Image{
+					"myimage": {Dockerfile: "Dockerfile", Tag: "v1"},
+				},
+			},
+		},
+	}
+	builder := &Builder{
+		config:        config,
+		workspacePath: wsPath,
+		runner:        mockRunner,
+	}
+
+	// 2. Execute
+	err = builder.buildImagesLocally()
+
+	// 3. Assert
+	require.NoError(t, err)
+	require.Len(t, mockRunner.CommandsRun, 1, "Expected only the build command")
+
+	expectedBuildCmd := []string{
+		"docker", "buildx", "build", "--platform", "linux/amd64", "--load",
+		"-t", "myimage:v1",
+		"-f", "Dockerfile", ".",
+	}
+
+	assert.Equal(t, expectedBuildCmd, mockRunner.CommandsRun[0])
+}
+
+func TestBuild(t *testing.T) {
+	// 1. Setup
+	mockRunner := &MockCommandRunner{}
+	wsPath := t.TempDir()
+	outputPath := t.TempDir()
+
+	// Create dummy files and dirs for build process
+	dockerfileDir := filepath.Join(wsPath, "app")
+	require.NoError(t, os.MkdirAll(dockerfileDir, 0755))
+	_, err := os.Create(filepath.Join(dockerfileDir, "Dockerfile"))
+	require.NoError(t, err)
+	pluginDir := filepath.Join(wsPath, "plugins_out")
+	require.NoError(t, os.MkdirAll(pluginDir, 0755))
+	_, err = os.Create(filepath.Join(pluginDir, "myplugin.so"))
+	require.NoError(t, err)
+
+	config := &Config{
+		GoVersion:   "1.24",
+		Registry:    "my-registry.com/project",
+		ZipFileName: "plugins.zip",
+		Output:      outputPath,
+		Modules: []Module{
+			{
+				DirName: "app",
+				Plugins: map[string]string{"myplugin": "cmd/myplugin"},
+				Images: map[string]Image{
+					"myimage": {Dockerfile: "Dockerfile", Tag: "v1"},
+				},
+			},
+		},
+	}
+	builder := &Builder{
+		config:        config,
+		workspacePath: wsPath,
+		outputPath:    outputPath,
+		runner:        mockRunner,
+	}
+
+	// 2. Execute
+	err = builder.Build()
+
+	// 3. Assert
+	require.NoError(t, err)
+	// Expecting 4 commands:
+	// 1. docker run (for plugins)
+	// 2. docker buildx build (for image)
+	// 3. docker push (for image)
+	// 4. zip (for plugins)
+	require.Len(t, mockRunner.CommandsRun, 4, "Expected four commands to be run")
+
+	// Assert plugin build command
+	assert.Contains(t, mockRunner.CommandsRun[0][0], "docker")
+	assert.Contains(t, mockRunner.CommandsRun[0][1], "run")
+
+	// Assert image build command
+	assert.Contains(t, mockRunner.CommandsRun[1][0], "docker")
+	assert.Contains(t, mockRunner.CommandsRun[1][1], "buildx")
+
+	// Assert image push command
+	assert.Contains(t, mockRunner.CommandsRun[2][0], "docker")
+	assert.Contains(t, mockRunner.CommandsRun[2][1], "push")
+
+	// Assert zip command
+	assert.Contains(t, mockRunner.CommandsRun[3][0], "zip")
+}
+
+func TestBuild_PluginBuildFail(t *testing.T) {
+	// 1. Setup
+	mockRunner := &MockCommandRunner{
+		ShouldError: assert.AnError,
+	}
+	wsPath := t.TempDir()
+	outputPath := t.TempDir()
+
+	config := &Config{
+		GoVersion: "1.24",
+		Modules: []Module{
+			{Plugins: map[string]string{"myplugin": "cmd/myplugin"}},
+		},
+		Output: outputPath,
+	}
+	builder := &Builder{
+		config:        config,
+		workspacePath: wsPath,
+		outputPath:    outputPath,
+		runner:        mockRunner,
+	}
+
+	// 2. Execute
+	err := builder.Build()
+
+	// 3. Assert
+	require.Error(t, err)
+	assert.Equal(t, mockRunner.ShouldError, err)
+	require.Len(t, mockRunner.CommandsRun, 1, "Expected only the plugin build command to be run")
+	assert.Contains(t, mockRunner.CommandsRun[0][0], "docker")
+}
+
+func TestBuild_ImageBuildFail(t *testing.T) {
+	// 1. Setup
+	mockRunner := &MockCommandRunner{}
+	wsPath := t.TempDir()
+	outputPath := t.TempDir()
+	dockerfileDir := filepath.Join(wsPath, "app")
+	require.NoError(t, os.MkdirAll(dockerfileDir, 0755))
+	_, err := os.Create(filepath.Join(dockerfileDir, "Dockerfile"))
+	require.NoError(t, err)
+
+	config := &Config{
+		GoVersion: "1.24",
+		Modules: []Module{
+			{
+				DirName: "app",
+				Images:  map[string]Image{"myimage": {Dockerfile: "Dockerfile", Tag: "v1"}},
+			},
+		},
+		Output: outputPath,
+	}
+	builder := &Builder{
+		config:        config,
+		workspacePath: wsPath,
+		outputPath:    outputPath,
+		runner:        mockRunner,
+	}
+
+	// 2. Execute
+	// Simulate error only on the second command (image build)
+	mockRunner.ShouldError = assert.AnError
+	err = builder.buildImagesLocally()
+
+	// 3. Assert
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to build image")
+	require.Len(t, mockRunner.CommandsRun, 1, "Expected only the image build command to be run")
+	assert.Contains(t, mockRunner.CommandsRun[0][0], "docker")
+}
+
+func TestBuild_ZipFail(t *testing.T) {
+	// 1. Setup
+	mockRunner := &MockCommandRunner{
+		ShouldError: assert.AnError,
+	}
+	wsPath := t.TempDir()
+	outputPath := t.TempDir()
+	pluginDir := filepath.Join(wsPath, "plugins_out")
+	require.NoError(t, os.MkdirAll(pluginDir, 0755))
+	_, err := os.Create(filepath.Join(pluginDir, "myplugin.so"))
+	require.NoError(t, err)
+
+	config := &Config{
+		ZipFileName: "plugins.zip",
+		Output:      outputPath,
+	}
+	builder := &Builder{
+		config:        config,
+		workspacePath: wsPath,
+		outputPath:    outputPath,
+		runner:        mockRunner,
+	}
+
+	// 2. Execute
+	err = builder.zipAndCopyPlugins()
+
+	// 3. Assert
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create zip archive")
+	require.Len(t, mockRunner.CommandsRun, 1, "Expected only the zip command to be run")
+	assert.Contains(t, mockRunner.CommandsRun[0][0], "zip")
+}
+
+func TestNewBuilder_OutputDirCreationFail(t *testing.T) {
+	// 1. Setup
+	outPath := "./test-output"
+	// Create a file where the directory should be
+	_, err := os.Create(outPath)
+	require.NoError(t, err)
+
+	defer func() {
+		if err := os.RemoveAll(outPath); err != nil {
+			// Replace 'log.Printf' with your actual project's logger if needed
+			log.Printf("Error cleaning up output directory %s: %v", outPath, err)
+		}
+	}()
+
+	config := &Config{
+		Output: outPath,
+	}
+	wsPath := t.TempDir()
+
+	// 2. Execute
+	_, err = NewBuilder(config, wsPath)
+
+	// 3. Assert
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create output directory")
 }
