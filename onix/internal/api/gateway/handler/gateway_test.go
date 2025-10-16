@@ -249,9 +249,6 @@ func TestServeHttp_UnmarshalBodyError(t *testing.T) {
 	}
 	var errResp model.TxnResponse
 	_ = json.Unmarshal(rr.Body.Bytes(), &errResp)
-	// if err := json.Unmarshal(rr.Body.Bytes(), &errResp); err != nil {
-	// 	t.Fatalf("Failed to unmarshal error response body: %v. Body: %s", err, rr.Body.String())
-	// }
 	if errResp.Message.Error.Code != "INVALID_JSON" {
 		t.Errorf("Error Code = %q, want %q", errResp.Message.Error.Code, "INVALID_JSON")
 	}
@@ -277,9 +274,6 @@ func TestServeHttp_QueueTaskError(t *testing.T) {
 	}
 	var errResp model.TxnResponse
     _ = json.Unmarshal(rr.Body.Bytes(), &errResp)
-	// if err := json.Unmarshal(rr.Body.Bytes(), &errResp); err != nil {
-	// 	t.Fatalf("Failed to unmarshal error response body: %v. Body: %s", err, rr.Body.String())
-	// }
 	if errResp.Message.Error.Code != "QUEUEING_FAILED" {
 		t.Errorf("Error Code = %q, want %q", errResp.Message.Error.Code, "QUEUEING_FAILED")
 	}
