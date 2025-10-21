@@ -94,7 +94,7 @@ cleanup() {
         echo "Stopping frontend server (ng serve)..."
         pkill -f "ng serve" || echo "Frontend server was not running."
         echo "Stopping backend server (uvicorn)..."
-        pkill -f "uvicorn main:app" || echo "Backend server was not running."
+        pkill -f "uvicorn backend.main:app" || echo "Backend server was not running."
     else
         echo "pkill not found, falling back to lsof to find processes by port."
         echo "Stopping frontend server (on port 4200)..."
@@ -258,7 +258,7 @@ if [ -d "$BACKEND_DIR" ] && [ -f "$BACKEND_DIR/main.py" ]; then
 
         echo "🔵 Starting backend server..."
         echo "View logs at $LOG_DIR/backend.log"
-        uvicorn main:app --reload > "$LOG_DIR/backend.log" 2>&1 &
+        PYTHONPATH=.. uvicorn backend.main:app --reload > "$LOG_DIR/backend.log" 2>&1 &
 
         # Store the PID of uvicorn for potential future use in cleanup if needed
         # (though pkill -f is generally sufficient)
