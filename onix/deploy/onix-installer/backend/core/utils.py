@@ -19,7 +19,7 @@ import os
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 import yaml
 
-from core.constants import ANSI_ESCAPE_PATTERN
+from .constants import ANSI_ESCAPE_PATTERN
 
 logger = logging.getLogger(__name__)
 

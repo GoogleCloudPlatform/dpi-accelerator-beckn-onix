@@ -15,9 +15,9 @@
 import logging
 import os
 
-from core.models import InfraDeploymentRequest
-from core.utils import render_jinja_template, write_file_content
-from core.constants import TERRAFORM_DIRECTORY, TEMPLATE_DIRECTORY
+from ..core.models import InfraDeploymentRequest
+from ..core.utils import render_jinja_template, write_file_content
+from ..core.constants import TERRAFORM_DIRECTORY, TEMPLATE_DIRECTORY
 
 logger = logging.getLogger(__name__)
 

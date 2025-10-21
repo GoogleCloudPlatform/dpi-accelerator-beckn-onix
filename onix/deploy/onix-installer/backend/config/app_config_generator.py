@@ -18,9 +18,9 @@ from typing import Dict, List
 
 import urllib
 
-from core.models import AppDeploymentRequest
-from core.constants import TERRAFORM_DIRECTORY, TEMPLATE_DIRECTORY, GENERATED_CONFIGS_DIR
-from core import utils
+from ..core.models import AppDeploymentRequest
+from ..core.constants import TERRAFORM_DIRECTORY, TEMPLATE_DIRECTORY, GENERATED_CONFIGS_DIR
+from ..core import utils
 
 logger = logging.getLogger(__name__)
 

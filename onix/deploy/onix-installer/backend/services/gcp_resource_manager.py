@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Manages interactions with Google Cloud Platform resources.
+
+This module contains asynchronous functions to list GCP projects
+and regions, handling authentication and CLI subprocess errors.
+"""
+
 import asyncio
 import json
 import logging
@@ -24,10 +31,10 @@ from google.cloud import resourcemanager_v3
 
 logger = logging.getLogger(__name__)
 
+
 async def list_google_cloud_projects() -> List[str]:
     """
     Lists all Google Cloud projects accessible by the authenticated user/service account.
-    Mimics the logic from the provided main.py using google-cloud-resource-manager library.
     """
     project_ids = []
     try:
@@ -41,27 +48,26 @@ async def list_google_cloud_projects() -> List[str]:
 
         # Sort the list for consistent output.
         project_ids.sort()
-        logger.info(f"Successfully retrieved {len(project_ids)} Google Cloud projects.")
+        logger.info("Successfully retrieved %s Google Cloud projects.", len(project_ids))
         return project_ids
 
     except GoogleAuthError as e:
-        logger.error(f"Authentication failed when listing GCP projects: {e}")
+        logger.error("Authentication failed when listing GCP projects: %s", e)
         raise HTTPException(
             status_code=500,
             detail="Authentication failed. Please configure your environment with Google Cloud credentials. "
                    "Try running 'gcloud auth application-default login' in your terminal.",
-        )
+        ) from e
     except Exception as e:
-        logger.exception(f"An unexpected error occurred while listing GCP projects: {e}")
+        logger.exception("An unexpected error occurred while listing GCP projects: %s", e)
         raise HTTPException(
             status_code=500,
             detail=f"An unexpected error occurred: {e}"
-        )
+        ) from e
 
 async def list_google_cloud_regions() -> List[str]:
     """
     Lists all available Google Cloud regions for Compute Engine using the gcloud CLI.
-    Mimics the logic from the provided main.py using subprocess.
     """
     logger.info("Listing Google Cloud regions using gcloud CLI...")
     try:
@@ -77,21 +83,22 @@ async def list_google_cloud_regions() -> List[str]:
 
         regions_data = json.loads(result.stdout)
         region_names = [region['name'] for region in regions_data]
-        logger.info(f"Successfully retrieved {len(region_names)} Google Cloud regions via gcloud CLI.")
+        logger.info("Successfully retrieved %s Google Cloud regions via gcloud CLI.", len(region_names))
         return region_names
 
-    except FileNotFoundError:
+    except FileNotFoundError as exc:
         error_msg = "Error: 'gcloud' command not found. Please ensure the Google Cloud SDK is installed and configured in your system's PATH."
         logger.error(error_msg)
-        raise HTTPException(status_code=500, detail=error_msg) # Propagate as HTTPException
+        raise HTTPException(status_code=500, detail=error_msg) from exc
     except subprocess.CalledProcessError as e:
         error_msg = f"An error occurred while executing the gcloud command. Stderr: {e.stderr}"
         logger.error(error_msg)
-        raise HTTPException(status_code=500, detail=error_msg)
-    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail=error_msg) from e
+    except json.JSONDecodeError as exc:
         error_msg = "Error: Could not parse the JSON output from the gcloud command."
         logger.error(error_msg)
-        raise HTTPException(status_code=500, detail=error_msg)
+        raise HTTPException(status_code=500, detail=error_msg) from exc
     except Exception as e:
-        logger.exception(f"An unexpected error occurred while listing regions: {e}")
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
+        logger.exception("An unexpected error occurred while listing regions: %s", e)
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}") from e
+ 
