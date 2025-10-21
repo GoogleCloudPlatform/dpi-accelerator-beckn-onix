@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Performs and manages asynchronous health checks for various microservices.
+
+This module provides functions to poll service health endpoints over a WebSocket
+connection, reporting status back to the client in real-time.
+"""
+
 import asyncio
 import json
 import logging
@@ -21,6 +28,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 class HealthCheckConstants:
+    """A container for health check configuration constants."""
     HEALTH_CHECK_URL_SUFFIX: str = "/health"
     HEALTH_CHECK_TIMEOUT_SECONDS: int = 15 * 60 # 15 minutes total timeout
     HEALTH_CHECK_ATTEMPT_DELAY_SECONDS: int = 10 # Seconds between polls
@@ -34,7 +42,9 @@ async def perform_single_health_check(
 ) -> bool:
     """
     Performs a single health check against a given service URL and sends the result via WebSocket.
-    Returns True if the check passes, False otherwise.
+
+    Returns:
+        bool: True if the check passes (HTTP 200), False otherwise.
     """
     health_url = f"https://{base_url.rstrip('/')}{HealthCheckConstants.HEALTH_CHECK_URL_SUFFIX}"
     try:
@@ -87,11 +97,10 @@ async def perform_single_health_check(
 async def run_websocket_health_check(websocket, service_urls_to_check: Dict[str, str]):
     """
     Manages the health check polling process for multiple services over a WebSocket.
-    Sends updates and final status to the connected client.
     """
     if not isinstance(service_urls_to_check, dict) or \
        not all(isinstance(k, str) and isinstance(v, str) for k, v in service_urls_to_check.items()):
-        logger.error("Invalid payload format received for healthCheck in service.")
+        logger.error("Invalid payload format received for healthCheck.")
         await websocket.send_text(json.dumps({
             "type": "error",
             "message": "Invalid payload format. Expected a dictionary of serviceName: serviceUrl strings."
@@ -102,7 +111,7 @@ async def run_websocket_health_check(websocket, service_urls_to_check: Dict[str,
         "type": "info",
         "message": "Starting health checks for provided service URLs..."
     }))
-    logger.info(f"Starting comprehensive health checks for: {', '.join(service_urls_to_check.keys())}")
+    logger.info("Starting comprehensive health checks for: %s", ', '.join(service_urls_to_check.keys()))
 
     if not service_urls_to_check:
         await websocket.send_text(json.dumps({
@@ -116,7 +125,7 @@ async def run_websocket_health_check(websocket, service_urls_to_check: Dict[str,
     delay_between_attempts = HealthCheckConstants.HEALTH_CHECK_ATTEMPT_DELAY_SECONDS
 
     start_time = asyncio.get_event_loop().time()
-    pending_services = {name: url for name, url in service_urls_to_check.items()}
+    pending_services = service_urls_to_check.copy()
 
     try:
         async with httpx.AsyncClient(timeout=30) as client:
@@ -127,19 +136,26 @@ async def run_websocket_health_check(websocket, service_urls_to_check: Dict[str,
                 elapsed_time = current_time - start_time
 
                 if elapsed_time > total_timeout_seconds:
+                    unhealthy_services = ', '.join(pending_services.keys())
+                    timeout_message = (
+                        f"Health checks timed out after {int(elapsed_time)} seconds. "
+                        f"The following services are still unhealthy: {unhealthy_services}"
+                    )
                     await websocket.send_text(json.dumps({
                         "type": "error",
                         "action": "health_check_timeout",
-                        "message": f"Health checks timed out after {int(elapsed_time)} seconds ({total_timeout_seconds / 60} minutes). The following service URLs are still unhealthy: {', '.join(pending_services.keys())}"
+                        "message": timeout_message
                     }))
-                    logger.error(f"Health checks timed out. Unhealthy services: {', '.join(pending_services.keys())}")
+                    logger.error("Health checks timed out. Unhealthy services: %s", unhealthy_services)
                     break
 
-                await websocket.send_text(json.dumps({
-                    "type": "log",
-                    "message": f"Attempt {attempt}: Checking {len(pending_services)} service URL(s) for health... ({int(elapsed_time)}s elapsed / {total_timeout_seconds}s timeout)"
-                }))
-                logger.info(f"Attempt {attempt}: Checking {len(pending_services)} services. Elapsed: {int(elapsed_time)}s.")
+                log_message = (
+                    f"Attempt {attempt}: Checking {len(pending_services)} service URL(s)... "
+                    f"({int(elapsed_time)}s elapsed / {total_timeout_seconds}s timeout)"
+                )
+                await websocket.send_text(json.dumps({"type": "log", "message": log_message}))
+                logger.info("Attempt %d: Checking %d services. Elapsed: %ds.",
+                            attempt, len(pending_services), int(elapsed_time))
 
                 tasks = [
                     perform_single_health_check(service_name, service_url, websocket, client)
@@ -148,13 +164,11 @@ async def run_websocket_health_check(websocket, service_urls_to_check: Dict[str,
 
                 results = await asyncio.gather(*tasks)
 
-                services_that_passed_this_round = [
-                    service_name
-                    for i, (service_name, _) in enumerate(pending_services.items())
-                    if results[i] # If the check passed (True)
+                passed_services = [
+                    service_name for i, (service_name, _) in enumerate(pending_services.items()) if results[i]
                 ]
 
-                for service_name in services_that_passed_this_round:
+                for service_name in passed_services:
                     del pending_services[service_name]
 
                 if not pending_services:
@@ -169,11 +183,11 @@ async def run_websocket_health_check(websocket, service_urls_to_check: Dict[str,
                 if pending_services:
                     await websocket.send_text(json.dumps({
                         "type": "log",
-                        "message": f"{len(pending_services)} service URL(s) are not yet healthy. Retrying in {delay_between_attempts} seconds..."
+                        "message": f"{len(pending_services)} service(s) not yet healthy. Retrying in {delay_between_attempts}s..."
                     }))
-                    logger.warning(f"{len(pending_services)} services still pending health check. Retrying...")
+                    logger.warning("%d services still pending health check. Retrying...", len(pending_services))
                     await asyncio.sleep(delay_between_attempts)
 
     except Exception as e:
-        logger.exception(f"An unexpected error occurred within run_websocket_health_check: {e}")
+        logger.exception("An unexpected error occurred within run_websocket_health_check: %s", e)
         raise

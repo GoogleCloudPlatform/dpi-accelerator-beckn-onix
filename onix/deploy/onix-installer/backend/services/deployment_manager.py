@@ -12,49 +12,53 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Manages the deployment process for infrastructure and applications.
+
+This module handles generating configuration files and executing deployment scripts
+via asynchronous subprocesses, streaming the output over WebSockets.
+"""
+
 import asyncio
 import json
 import logging
 import os
 from typing import List
-import core.utils as utils
-from core.models import InfraDeploymentRequest, AppDeploymentRequest
-from core.constants import INFRA_SCRIPT_PATH, APP_SCRIPT_PATH, TERRAFORM_DIRECTORY, ANSI_ESCAPE_PATTERN
-import config.tf_config_generator as tf_config
-import config.app_config_generator as app_config
+
+# --- FIX: Changed to relative imports and removed unused import ---
+from ..core import utils
+from ..core.models import InfraDeploymentRequest, AppDeploymentRequest
+from ..core.constants import INFRA_SCRIPT_PATH, APP_SCRIPT_PATH, TERRAFORM_DIRECTORY
+from ..config import tf_config_generator as tf_config
+from ..config import app_config_generator as app_config
 
 logger = logging.getLogger(__name__)
+
 
 async def run_infra_deployment(config: InfraDeploymentRequest, websocket):
     """
     Generates Terraform configurations and executes the infrastructure deployment script.
-    Mimics the logic from the provided main.py.
     """
-    logger.info(f"Initiating infrastructure deployment for project: {config.project_id}, region: {config.region}")
+    logger.info("Initiating infrastructure deployment for project: %s, region: %s",
+                config.project_id, config.region)
 
     await websocket.send_text(json.dumps({"type": "info", "message": "Generating Terraform configurations..."}))
     try:
-        # Calling generate_config() to populate/process the terraform.tfvars file.
         tf_config.generate_config(config)
         await websocket.send_text(json.dumps({"type": "info", "message": "Terraform configurations generated successfully."}))
         logger.info("Terraform configurations generated successfully.")
     except Exception as e:
         error_message = f"Failed to generate Terraform configurations: {e}"
-        logger.error(error_message, exc_info=True)
+        logger.exception(error_message)
         await websocket.send_text(json.dumps({"type": "error", "message": error_message}))
-        return # Exit if config generation fails.
+        return
 
     await websocket.send_text(json.dumps({"type": "info", "message": "Executing infrastructure deployment script..."}))
-    logger.info(f"Executing infrastructure deployment script: {INFRA_SCRIPT_PATH}")
+    logger.info("Executing infrastructure deployment script: %s", INFRA_SCRIPT_PATH)
 
-    # Prepare the command to run the infrastructure deployment script.
-    command = [
-        '/bin/bash',
-        INFRA_SCRIPT_PATH,
-    ]
+    command = ['/bin/bash', INFRA_SCRIPT_PATH]
 
     try:
-        #  Running the script as an asynchronous subprocess.
         process = await asyncio.create_subprocess_exec(
             *command,
             stdout=asyncio.subprocess.PIPE,
@@ -63,17 +67,17 @@ async def run_infra_deployment(config: InfraDeploymentRequest, websocket):
         )
 
         await utils.stream_subprocess_output(process, websocket, "infra_deploy_log")
-
         return_code = await process.wait()
-        logger.info(f"Infrastructure deployment script finished with exit code: {return_code}")
+        logger.info("Infrastructure deployment script finished with exit code: %d", return_code)
 
         if return_code == 0:
             outputs_json_path = os.path.join(TERRAFORM_DIRECTORY, "outputs.json")
             try:
-                with open(outputs_json_path, "r") as f:
+                # FIX: Added explicit encoding
+                with open(outputs_json_path, "r", encoding="utf-8") as f:
                     outputs_data = json.load(f)
-                
-                logger.info(f"Successfully loaded outputs.json: {outputs_data}")
+
+                logger.info("Successfully loaded outputs.json: %s", outputs_data)
                 await websocket.send_text(json.dumps({
                     "type": "success",
                     "message": outputs_data
@@ -119,39 +123,35 @@ def _get_services_to_deploy(app_deployment_request: AppDeploymentRequest) -> Lis
     if app_config.should_deploy_subscriber(app_deployment_request.components):
         services_to_deploy.add("subscriber")
     sorted_services = sorted(list(services_to_deploy))
-    logger.debug(f"Determined services to deploy: {sorted_services}")
+    logger.debug("Determined services to deploy: %s", sorted_services)
     return sorted_services
 
 async def run_app_deployment(app_deployment_request: AppDeploymentRequest, websocket):
     """
     Generates application configurations and executes the application deployment script.
-    Mimics the logic from the provided main.py.
     """
-    logger.info(f"Initiating application deployment with payload: {app_deployment_request}")
+    logger.info("Initiating application deployment with payload: %s", app_deployment_request)
 
     await websocket.send_text(json.dumps({"type": "info", "message": "Generating application configurations..."}))
     try:
         app_config.generate_app_configs(app_deployment_request)
         logger.info("Application configuration YAMLs generated successfully.")
-        await websocket.send_text(json.dumps({"type": "info", "message": "Application configurations generated successfully."}))
+        await websocket.send_text(json.dumps({
+            "type": "info",
+            "message": "Application configurations generated successfully."
+        }))
 
         services = _get_services_to_deploy(app_deployment_request)
-    
         env_vars_for_script = app_config.get_deployment_environment_variables(app_deployment_request, services)
         logger.info("Environment variables for app script prepared.")
-        
-        # Combine generated environment variables with current process environment.
+
         subprocess_env = os.environ.copy()
         subprocess_env.update(env_vars_for_script)
 
-        # Prepare and Run the deploy-app.sh shell script
-        shell_command = [
-            '/bin/bash',
-            APP_SCRIPT_PATH
-        ]
+        shell_command = ['/bin/bash', APP_SCRIPT_PATH]
 
         await websocket.send_text(json.dumps({"type": "info", "message": "Executing application deployment script..."}))
-        logger.info(f"Executing application deployment script: {APP_SCRIPT_PATH}")
+        logger.info("Executing application deployment script: %s", APP_SCRIPT_PATH)
 
         subprocess_handle = await asyncio.create_subprocess_exec(
             *shell_command,
@@ -162,47 +162,46 @@ async def run_app_deployment(app_deployment_request: AppDeploymentRequest, webso
         )
 
         await utils.stream_subprocess_output(subprocess_handle, websocket, "app_deploy_log")
-
         return_code = await subprocess_handle.wait()
-        logger.info(f"Application deployment script finished with exit code: {return_code}")
+        logger.info("Application deployment script finished with exit code: %d", return_code)
 
-        # Handle Script Result.
         if return_code == 0:
-            log_exploer_urls = app_config.generate_logs_explorer_urls(services)
-
+            log_explorer_urls = app_config.generate_logs_explorer_urls(services)
             service_urls = app_config.extract_final_urls(app_deployment_request.domain_names, services)
-            logger.info(json.dumps({
+
+            success_payload = {
                 "type": "success",
                 "action": "app_deploy_complete",
                 "message": "Application deployment successful!",
                 "data": {
                     "service_urls": service_urls,
                     "services_deployed": services,
-                    "logs_explorer_urls": log_exploer_urls,
+                    "logs_explorer_urls": log_explorer_urls,
                 }
-            }))
-            await websocket.send_text(json.dumps({
-                "type": "success",
-                "action": "app_deploy_complete",
-                "message": "Application deployment successful!",
-                "data": {
-                    "service_urls": service_urls,
-                    "services_deployed": services,
-                    "logs_explorer_urls": log_exploer_urls,
-                }
-            }))
+            }
+            logger.info(json.dumps(success_payload))
+            await websocket.send_text(json.dumps(success_payload))
         else:
+            # FIX: Broke up long line
+            error_message = (
+                "Application deployment script failed with exit code: "
+                f"{return_code}. Check logs above for details."
+            )
             await websocket.send_text(json.dumps({
                 "type": "error",
                 "action": "app_deploy_failed",
-                "message": f"Application deployment script failed with exit code: {return_code}. Check logs above for details."
+                "message": error_message
             }))
 
     except FileNotFoundError as e:
-        error_message = f"Error generating application configs: Required outputs.json not found or script not found: {str(e)}. Ensure infrastructure is deployed."
+        error_message = (
+            "Error generating application configs: Required outputs.json not found or script not "
+            f"found: {str(e)}. Ensure infrastructure is deployed."
+        )
         logger.error(error_message)
         await websocket.send_text(json.dumps({"type": "error", "action": "app_config_error", "message": error_message}))
     except Exception as e:
         error_message = f"An unexpected error occurred during app deployment: {str(e)}"
         logger.exception(error_message)
         await websocket.send_text(json.dumps({"type": "error", "action": "app_deploy_exception", "message": error_message}))
+
