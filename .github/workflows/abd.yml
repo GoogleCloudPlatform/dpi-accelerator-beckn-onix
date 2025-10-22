@@ -74,7 +74,17 @@ jobs:
       - name: Update onixctl source.yaml
         run: |
           CONFIG_FILE="onix/deploy/onix-installer/adapter_artifacts/source.yaml"
-          echo "Updating $CONFIG_FILE to use beckn-one@latest..."
+          
+          echo "Finding latest tag from onix/go.mod (resolved by Step 4)..."
+          # Read the version that 'go get' placed in go.mod
+          LATEST_TAG=$(grep 'github.com/beckn-one/beckn-onix' onix/go.mod | awk '{print $2}')
+          
+          if [ -z "$LATEST_TAG" ]; then
+            echo "::error::Could not find beckn-one/beckn-onix version in go.mod!"
+            exit 1
+          fi
+
+          echo "Updating $CONFIG_FILE to use beckn-one@$LATEST_TAG..."
           
           # Replace the repo URL
           sed -i 's|https://github.com/beckn/beckn-onix|https://github.com/beckn-one/beckn-onix|g' $CONFIG_FILE
@@ -82,8 +92,9 @@ jobs:
           # Replace the go module name
           sed -i 's|github.com/beckn/beckn-onix|github.com/beckn-one/beckn-onix|g' $CONFIG_FILE
           
-          # Update the version to latest
-          sed -i 's|version: v1.0.0|version: latest|g' $CONFIG_FILE
+          # Update the version to the LATEST_TAG found in go.mod
+          # Note: We use double quotes (") to allow shell variable expansion
+          sed -i "s|version: v1.0.0|version: $LATEST_TAG|g" $CONFIG_FILE
           
           echo "Updated config file contents:"
           cat $CONFIG_FILE
