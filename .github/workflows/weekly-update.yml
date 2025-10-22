@@ -6,11 +6,6 @@
 name: Weekly Beckn Dependency Update & Build
 
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-  # Allows you to run this workflow manually from the Actions tab in GitHub
   workflow_dispatch:
 
   # Runs the workflow automatically every Monday at 5:30 AM UTC
