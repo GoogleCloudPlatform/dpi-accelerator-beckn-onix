@@ -87,7 +87,7 @@ jobs:
           
           echo "Updated config file contents:"
           cat $CONFIG_FILE
-        working--: ${{ github.workspace }}
+        working-directory: ${{ github.workspace }}
 
       - name: 'Build and Run onixctl'
         run: |
