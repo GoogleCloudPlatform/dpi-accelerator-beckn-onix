@@ -6,6 +6,10 @@
 name: Weekly Beckn Dependency Update & Build
 
 on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
   # Allows you to run this workflow manually from the Actions tab in GitHub
   workflow_dispatch:
 
@@ -63,14 +67,31 @@ jobs:
           echo "Microservices built successfully."
         working-directory: ${{ github.workspace }}/onix
 
-      # Step 6: Build the plugins using the onixctl tool
-      # - name: Build Plugins
-      #   run: |
-      #     echo "Building onixctl tool..."
-      #     go build -v ./onixctl
-      #     echo "Building plugins..."
-      #     # NOTE: The exact command to build plugins might differ.
-      #     # You may need to adjust './onixctl build' based on the tool's usage.
-      #     ./onixctl build
-      #     echo "Plugins built successfully."
-      #   working-directory: ${{ github.workspace }}/onix
+       # Step 6: Build the plugins and adapter using onixctl
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Update onixctl source.yaml
+        run: |
+          CONFIG_FILE="onix/deploy/onix-installer/adapter_artifacts/source.yaml"
+          echo "Updating $CONFIG_FILE to use beckn-one@latest..."
+          
+          # Replace the repo URL
+          sed -i 's|https://github.com/beckn/beckn-onix|https://github.com/beckn-one/beckn-onix|g' $CONFIG_FILE
+          
+          # Replace the go module name
+          sed -i 's|github.com/beckn/beckn-onix|github.com/beckn-one/beckn-onix|g' $CONFIG_FILE
+          
+          # Update the version to latest
+          sed -i 's|version: v1.0.0|version: latest|g' $CONFIG_FILE
+          
+          echo "Updated config file contents:"
+          cat $CONFIG_FILE
+        working--: ${{ github.workspace }}
+
+      - name: 'Build and Run onixctl'
+        run: |
+          cd onix && go build ./cmd/onixctl && cd .. && ./onix/onixctl --config onix/deploy/onix-installer/adapter_artifacts/source.yaml
+          
+          echo "Adapter artifacts built successfully."
+        working-directory: ${{ github.workspace }}
