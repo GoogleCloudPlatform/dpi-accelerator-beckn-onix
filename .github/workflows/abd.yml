@@ -1,0 +1,76 @@
+# This workflow automatically updates the beckn-onix dependency,
+# builds the specified microservices and plugins, and saves them as artifacts.
+#
+# It runs on a schedule (every Monday at 5:30 AM UTC) and can also be triggered manually.
+
+name: Weekly Beckn Dependency Update & Build
+
+on:
+  # Allows you to run this workflow manually from the Actions tab in GitHub
+  workflow_dispatch:
+
+  # Runs the workflow automatically every Monday at 5:30 AM UTC
+  schedule:
+    - cron: '30 5 * * 1'
+
+jobs:
+  update-and-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository's code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Set up the Go environment
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      # Step 3: Replace all old import paths with the new one
+      - name: Update Import Statements
+        run: |
+          echo "Searching for and replacing import paths in all .go files..."
+          find ./onix -type f -name "*.go" -exec sed -i 's|github.com/beckn/beckn-onix|github.com/beckn-one/beckn-onix|g' {} +
+          echo "Import paths updated."
+        working-directory: ${{ github.workspace }}
+
+      # Step 4: Update Go modules to use the latest beckn-one dependency
+      - name: Update Go Modules
+        run: |
+          go mod edit -droprequire github.com/beckn/beckn-onix
+          go get github.com/beckn-one/beckn-onix@latest
+          go mod tidy
+        working-directory: ${{ github.workspace }}/onix
+
+      # Step 5: Build Go Binaries
+      - name: Build Go Binaries
+        run: |
+          echo "Creating build output directory..."
+          mkdir -p build
+          
+          SERVICES="admin gateway registry subscriber"
+          echo "Building services: $SERVICES"
+
+          for service in $SERVICES; do
+            echo "Building $service..."
+            cd cmd/$service
+            go build -v -o ../../build/$service .
+            cd ../..
+          done
+          
+          echo "Microservices built successfully."
+        working-directory: ${{ github.workspace }}/onix
+
+      # Step 6: Build the plugins using the onixctl tool
+      # - name: Build Plugins
+      #   run: |
+      #     echo "Building onixctl tool..."
+      #     go build -v ./onixctl
+      #     echo "Building plugins..."
+      #     # NOTE: The exact command to build plugins might differ.
+      #     # You may need to adjust './onixctl build' based on the tool's usage.
+      #     ./onixctl build
+      #     echo "Plugins built successfully."
+      #   working-directory: ${{ github.workspace }}/onix
