@@ -1,0 +1,49 @@
+# Copyright 2025 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+log:
+  level: INFO
+timeouts:
+  read: 5s
+  write: 10s
+  idle: 120s
+  shutdown: 15s
+server:
+  host: 0.0.0.0
+  port: 8080
+projectID: <PROJECT_ID>
+registry:
+  baseURL: <REGISTRY_URL>
+  timeout: <REGISTRY_CLIENT_TIMEOUT>
+  maxIdleConns: <REGISTRY_CLIENT_MAX_IDLE_CONNS>
+  maxIdleConnsPerHost: <REGISTRY_CLIENT_MAX_IDLE_CONNS_PER_HOST>
+  maxConnsPerHost: <REGISTRY_CLIENT_MAX_CONNS_PER_HOST> # 0 means no limit
+  idleConnTimeout: <REGISTRY_CLIENT_IDLE_CONN_TIMEOUT>
+redisAddr: <CACHE_IP>
+keyManagerCacheTTL:
+  privateKeysSeconds: <KEY_MANAGER_PRIVATE_KEY_CACHE_TTL_SECONDS>
+  publicKeysSeconds: <KEY_MANAGER_PUBLIC_KEY_CACHE_TTL_SECONDS>
+maxConcurrentFanoutTasks: <MAX_CONCURRENT_FANOUT_TASKS>
+taskQueueWorkersCount: <NUM_OF_CHANNEL_TASK_QUEUE_WORKERS>
+taskQueueBufferSize: <BUFFER_SIZE_OF_CHANNEL_TASK_QUEUE>
+subscriberID: <GATEWAY_SUBSCRIBER_ID>
+httpClientRetry:
+  retryMax: <HTTP_CLIENT_RETRY_MAX>
+  waitMin: <HTTP_CLIENT_RETRY_WAIT_MIN>
+  waitMax: <HTTP_CLIENT_RETRY_WAIT_MAX>
+  timeout: <HTTP_CLIENT_TIMEOUT>
+  maxIdleConns: <HTTP_CLIENT_MAX_IDLE_CONNS>
+  maxIdleConnsPerHost: <HTTP_CLIENT_MAX_IDLE_CONNS_PER_HOST>
+  maxConnsPerHost: <HTTP_CLIENT_MAX_CONNS_PER_HOST> # 0 means no limit
+  idleConnTimeout: <HTTP_CLIENT_IDLE_CONN_TIMEOUT>

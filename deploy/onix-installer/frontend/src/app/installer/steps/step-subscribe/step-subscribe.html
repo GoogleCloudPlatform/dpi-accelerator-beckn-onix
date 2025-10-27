@@ -1,0 +1,91 @@
+<!--
+ Copyright 2025 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<h2>Network Subscription</h2>
+<p class="subtitle">Subscribe your components to the network registry.</p>
+
+
+<form [formGroup]="subscriptionForm" class="gcp-form">
+
+  <mat-form-field appearance="outline">
+    <mat-label>Type</mat-label>
+    <mat-select formControlName="type">
+      <mat-option *ngFor="let type of subscriptionTypes" [value]="type">
+        {{ type }}
+      </mat-option>
+    </mat-select>
+    <mat-error *ngIf="subscriptionForm.get('type')?.hasError('required')">Type is required.</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Subscriber ID</mat-label>
+    <input matInput formControlName="subscriberId" placeholder="e.g., my-bap.my-domain.com">
+    <mat-error *ngIf="subscriptionForm.get('subscriberId')?.hasError('required')">Subscriber ID is required.</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>URL</mat-label>
+    <input matInput formControlName="url" placeholder="e.g., https://my-bap.my-domain.com/api">
+    <mat-error *ngIf="subscriptionForm.get('url')?.hasError('required')">URL is required.</mat-error>
+  </mat-form-field>
+
+
+  <ng-container *ngIf="subscriptionForm.get('type')?.value !== 'Registry'">
+    <mat-form-field appearance="outline">
+      <mat-label>Domain</mat-label>
+      <input matInput formControlName="domain" placeholder="e.g., retail, mobility">
+      <mat-error *ngIf="subscriptionForm.get('domain')?.hasError('required')">Domain is required.</mat-error>
+    </mat-form-field>
+  </ng-container>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Location (JSON format)</mat-label>
+    <textarea matInput formControlName="location" rows="5"
+              placeholder='{\n  "city": {\n    "code": "std:080"\n  },\n  "country": {\n    "code": "IND"\n  }\n}'>
+    </textarea>
+    <mat-error *ngIf="subscriptionForm.get('location')?.hasError('jsonInvalid')">Please enter valid JSON.</mat-error>
+  </mat-form-field>
+</form>
+
+<div class="step-navigation-buttons">
+  <button mat-button (click)="onBack()">Back</button>
+  <button
+    mat-button
+    [disabled]="subscriptionForm.invalid"
+    (click)="onSubscriptionSubmit()">
+    Subscribe <mat-icon>arrow_forward</mat-icon>
+  </button>
+</div>
+
+<div *ngIf="showStatusPopup" class="popup-overlay">
+  <div class="popup-content" [class.error-popup]="isError">
+    <div *ngIf="showSpinner" class="spinner-container">
+      <mat-spinner [diameter]="40"></mat-spinner>
+    </div>
+
+    <mat-icon *ngIf="!showSpinner && popupIcon" class="popup-icon" [class.success-icon]="!isError" [class.error-icon]="isError">
+      {{ popupIcon }}
+    </mat-icon>
+
+    <h2 class="popup-message" [class.error-text]="isError">{{ popupMessage }}</h2>
+
+    <p *ngIf="responseMessageId" class="message-id-text">
+      Message ID: <strong>{{ responseMessageId }}</strong>
+    </p>
+
+    <button mat-raised-button color="primary" (click)="closePopupAndNavigate()" *ngIf="!showSpinner">OK</button>
+  </div>
+</div>

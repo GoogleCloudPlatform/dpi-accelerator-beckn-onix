@@ -21,18 +21,18 @@ jobs:
 
     - name: Run Go Tests and Generate Merged Coverage
       run: |
-          cd onix && go test -coverprofile=coverage.out -coverpkg=./... ./...
+          go test -coverprofile=coverage.out -coverpkg=./... ./...
                     
 
     - name: Convert merged coverage to HTML
       run: |
-          cd onix && go tool cover -html=coverage.out -o coverage.html
+          go tool cover -html=coverage.out -o coverage.html
 
     - name: Upload Go coverage report
       uses: actions/upload-artifact@v4
       with:
           name: go-coverage
-          path: onix/coverage.html
+          path: coverage.html
 
   build-go-binaries:
     name: Build Go Binaries
@@ -52,7 +52,7 @@ jobs:
 
     - name: Build
       run: |
-        cd onix/cmd/${{ matrix.service }}
+        cd cmd/${{ matrix.service }}
         go build -v -o ../../build/${{ matrix.service }} .
 
   build-docker-images:
@@ -72,8 +72,8 @@ jobs:
     - name: Build Docker Image
       uses: docker/build-push-action@v4
       with:
-        context: ./onix
-        file: ./onix/Dockerfile.${{ matrix.service }}
+        context: .
+        file: ./Dockerfile.${{ matrix.service }}
         platforms: linux/amd64
         push: false
         tags: ${{ matrix.service }}:latest
@@ -94,23 +94,23 @@ jobs:
       run: |
           python -m pip install --upgrade pip
           pip install coverage
-          pip install -r onix/deploy/onix-installer/backend/requirements.txt --require-hashes
+          pip install -r deploy/onix-installer/backend/requirements.txt --require-hashes
 
     - name: Run Python Tests with Coverage
       run: |
-          cd onix/deploy/onix-installer/backend
+          cd deploy/onix-installer/backend
           coverage run -m unittest discover tests
 
     - name: Generate Python coverage report
       run: |
-          cd onix/deploy/onix-installer/backend
+          cd deploy/onix-installer/backend
           coverage html -d htmlcov
 
     - name: Upload Python coverage report
       uses: actions/upload-artifact@v4
       with:
           name: python-coverage
-          path: onix/deploy/onix-installer/backend/htmlcov
+          path: deploy/onix-installer/backend/htmlcov
 
   build-frontend-installer:
     name: Build Angular Installer Frontend
@@ -126,23 +126,23 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        cd onix/deploy/onix-installer/frontend
+        cd deploy/onix-installer/frontend
         npm install
    
     - name: Run Tests with Coverage
       run: |
-        cd onix/deploy/onix-installer/frontend
+        cd deploy/onix-installer/frontend
         npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
 
     - name: Upload Frontend coverage report
       uses: actions/upload-artifact@v4
       with:
           name: frontend-coverage
-          path: onix/deploy/onix-installer/frontend/coverage
+          path: deploy/onix-installer/frontend/coverage
 
     - name: Build Frontend
       run: |
-        cd onix/deploy/onix-installer/frontend
+        cd deploy/onix-installer/frontend
         npm run build -- --configuration production
   
   deploy-pages:
@@ -208,4 +208,4 @@ jobs:
 
       - name: 'Build and Run onixctl'
         run: |
-          cd onix && go build ./cmd/onixctl && cd .. && ./onix/onixctl --config onix/deploy/onix-installer/adapter_artifacts/source.yaml
+          go build ./cmd/onixctl && ./onixctl --config deploy/onix-installer/adapter_artifacts/source.yaml

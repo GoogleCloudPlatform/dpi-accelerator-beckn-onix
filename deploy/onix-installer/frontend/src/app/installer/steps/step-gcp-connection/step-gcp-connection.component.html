@@ -1,0 +1,119 @@
+<!--
+ Copyright 2025 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<div class="step-content gcp-connection-step-content">
+  <h1>GCP Connection Details</h1>
+  <p class="subtitle">Please provide your Google Cloud Platform project ID and preferred region for deployment.</p>
+
+  <form [formGroup]="gcpConnectionForm" class="gcp-connection-form">
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>GCP Project ID</mat-label>
+      <mat-select
+        formControlName="projectId"
+        required
+        (openedChange)="clearProjectSearch()"
+        #projectSelect
+      >
+        <div class="search-input-container" (click)="stopProp($event)">
+          <mat-icon class="search-icon">search</mat-icon> <input
+            matInput
+            [formControl]="projectSearchCtrl"
+            placeholder="Search project..."
+            class="mat-select-search-input"
+            autocomplete="off"
+          >
+          <mat-icon
+            *ngIf="projectSearchCtrl.value"
+            matSuffix
+            class="search-clear-icon"
+            (click)="projectSearchCtrl.setValue(''); stopProp($event); projectSelect.focus()"
+          >close</mat-icon>
+        </div>
+
+        <mat-option *ngIf="isProjectsLoading">
+          <mat-progress-spinner [diameter]="20" mode="indeterminate"></mat-progress-spinner> Loading projects...
+        </mat-option>
+        <mat-option *ngIf="!isProjectsLoading && (filteredGcpProjects | async)?.length === 0" disabled>
+          No projects found for "{{ projectSearchCtrl.value }}".
+        </mat-option>
+        <mat-option *ngFor="let project of filteredGcpProjects | async" [value]="project">
+          {{ project }}
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="gcpConnectionForm.get('projectId')?.hasError('required') && gcpConnectionForm.get('projectId')?.touched">
+        Project ID is required.
+      </mat-error>
+      <mat-error *ngIf="apiError" class="api-error-message">
+        {{ apiError }}
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>GCP Region</mat-label>
+      <mat-select
+        formControlName="region"
+        required
+        (openedChange)="clearRegionSearch()"
+        #regionSelect
+      >
+        <div class="search-input-container" (click)="stopProp($event)">
+          <mat-icon class="search-icon">search</mat-icon> <input
+            matInput
+            [formControl]="regionSearchCtrl"
+            placeholder="Search region..."
+            class="mat-select-search-input"
+            autocomplete="off"
+          >
+          <mat-icon
+            *ngIf="regionSearchCtrl.value"
+            matSuffix
+            class="search-clear-icon"
+            (click)="regionSearchCtrl.setValue(''); stopProp($event); regionSelect.focus()"
+          >close</mat-icon>
+        </div>
+
+        <mat-option *ngIf="isRegionsLoading">
+          <mat-progress-spinner [diameter]="20" mode="indeterminate"></mat-progress-spinner> Loading regions...
+        </mat-option>
+        <mat-option *ngIf="!isRegionsLoading && (filteredGcpRegions | async)?.length === 0" disabled>
+          No regions found for "{{ regionSearchCtrl.value }}".
+        </mat-option>
+        <mat-option *ngFor="let region of filteredGcpRegions | async" [value]="region">
+          {{ region }}
+        </mat-option>
+      </mat-select>
+      <mat-error *ngIf="gcpConnectionForm.get('region')?.hasError('required') && gcpConnectionForm.get('region')?.touched">
+        Region is required.
+      </mat-error>
+      <mat-error *ngIf="apiError" class="api-error-message">
+        {{ apiError }}
+      </mat-error>
+    </mat-form-field>
+  </form>
+
+  <div class="step-navigation-buttons">
+    <button mat-button (click)="onBack()">Back</button>
+    <button
+      mat-raised-button
+      color="primary"
+      [disabled]="!gcpConnectionForm.valid || isProjectsLoading || isRegionsLoading"
+      (click)="onNext()"
+    >
+      Deploy Infra <mat-icon>arrow_forward</mat-icon>
+    </button>
+  </div>
+</div>

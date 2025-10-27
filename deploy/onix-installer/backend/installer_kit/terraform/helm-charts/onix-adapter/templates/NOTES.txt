@@ -1,0 +1,33 @@
+Thank you for installing the Beckn Onix Adapter!
+
+Your adapter has been deployed with the following details:
+
+{{- if .Values.ingress.enabled }}
+The adapter can be accessed through:
+  http{{ if .Values.ingress.tls }}s{{ end }}://{{ .Values.ingress.host }}{{ .Values.ingress.path }}
+{{- else }}
+To access the adapter from outside the cluster:
+  kubectl port-forward svc/{{ include "onix-adapter.fullname" . }}-service {{ .Values.service.port }}:{{ .Values.container.port }} -n {{ .Values.config.namespace | default "onix-adapter" }}
+{{- end }}
+
+Helpful commands:
+
+1. Get pods status:
+   kubectl get pods -n {{ .Values.config.namespace | default "onix-adapter" }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+2. Check logs (only if pods exist):
+   # First verify pods exist:
+   kubectl get pods -n {{ .Values.config.namespace | default "onix-adapter" }} -l app.kubernetes.io/instance={{ .Release.Name }}
+   
+   # Then check logs:
+   POD_NAME=$(kubectl get pods -n {{ .Values.config.namespace | default "onix-adapter" }} -l app.kubernetes.io/instance={{ .Release.Name }} -o jsonpath='{.items[0].metadata.name}')
+   kubectl logs -f $POD_NAME -n {{ .Values.config.namespace | default "onix-adapter" }}
+
+3. Check service status:
+   kubectl get svc -n {{ .Values.config.namespace | default "onix-adapter" }} -l app.kubernetes.io/instance={{ .Release.Name }}
+
+4. Describe deployment for troubleshooting:
+   kubectl describe deployment {{ include "onix-adapter.fullname" . }} -n {{ .Values.config.namespace | default "onix-adapter" }}
+
+5. Check GCS bucket configuration:
+   kubectl describe pod -n {{ .Values.config.namespace | default "onix-adapter" }} -l app.kubernetes.io/instance={{ .Release.Name }} | grep -A 10 "Volumes:"

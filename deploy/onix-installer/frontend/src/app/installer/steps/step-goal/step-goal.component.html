@@ -1,0 +1,86 @@
+<!--
+ Copyright 2025 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<div class="step-content goal-step-content">
+  <h1>What is your goal today?</h1>
+  <p class="subtitle">Select an option to get started. The installer will set up the required components.</p>
+
+  <form [formGroup]="goalForm" class="goal-selection-form">
+    <mat-radio-group formControlName="installerGoal" class="radio-group">
+      <mat-radio-button value="create_new_open_network" class="radio-card">
+        <div class="mat-radio-label-content"> <h3>Create & Deploy a New Network</h3>
+          <p>Deploys a <strong>Registry</strong>, <strong>Gateway</strong>, and optionally a
+            <strong>BAP/BPP</strong> adapter for a complete network setup.
+          </p>
+
+          <div *ngIf="selectedInstallerGoal === 'create_new_open_network'" class="components-selection-container">
+            <mat-divider></mat-divider>
+            <form [formGroup]="createNetworkComponentsForm">
+              <label class="components-label">Select components to deploy:</label>
+              <div class="components-checkbox-group">
+                <mat-checkbox formControlName="registry">Registry</mat-checkbox>
+                <mat-checkbox formControlName="gateway">Gateway</mat-checkbox>
+                <mat-checkbox formControlName="bap">BAP</mat-checkbox>
+                <mat-checkbox formControlName="bpp">BPP</mat-checkbox>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="all-checkbox-container">
+                <mat-checkbox formControlName="all" (change)="toggleSelectAll($event, 'create')">All</mat-checkbox>
+              </div>
+            </form>
+          </div>
+        </div>
+      </mat-radio-button>
+
+      <mat-radio-button value="join_existing_network" class="radio-card">
+        <div class="mat-radio-label-content"> <h3>Join an Existing Network</h3>
+          <p>Deploys a <strong>BAP</strong> or <strong>BPP</strong> adapter to connect to an existing network.</p>
+
+          <div *ngIf="selectedInstallerGoal === 'join_existing_network'"
+            class="components-selection-container">
+            <mat-divider></mat-divider>
+            <form [formGroup]="joinNetworkComponentsForm">
+              <label class="components-label">Select components to deploy:</label>
+              <div class="components-checkbox-group join-network-group">
+                <mat-checkbox formControlName="bap">BAP</mat-checkbox>
+                <mat-checkbox formControlName="bpp">BPP</mat-checkbox>
+              </div>
+              <mat-divider></mat-divider>
+              <div class="all-checkbox-container">
+                <mat-checkbox formControlName="all" (change)="toggleSelectAll($event, 'join')">All</mat-checkbox>
+              </div>
+            </form>
+          </div>
+        </div>
+      </mat-radio-button>
+    </mat-radio-group>
+  </form>
+
+  <mat-error *ngIf="goalForm.get('installerGoal')?.invalid && goalForm.get('installerGoal')?.touched">
+    Please select a goal to proceed.
+  </mat-error>
+  <mat-error *ngIf="!isGoalStepValid && (createNetworkComponentsForm.touched || joinNetworkComponentsForm.touched) && goalForm.get('installerGoal')?.valid">
+    Please select at least one component to deploy.
+  </mat-error>
+
+
+  <div class="step-navigation-buttons">
+    <button mat-button (click)="goToPreviousStep()">Back</button>
+    <button mat-raised-button color="primary" [disabled]="!isGoalStepValid" (click)="goToNextStep()">
+      Prerequisites <mat-icon>arrow_forward</mat-icon>
+    </button>
+  </div>
+</div>

@@ -1,0 +1,287 @@
+/**
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.app-deploy-step-content {
+  padding: 20px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+h2 {
+  font-size: 2em;
+  margin-bottom: 5px;
+  color: #000;
+}
+
+.subtitle {
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.component-config-tabs {
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.config-form {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.single-column {
+  margin-top: 15px;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+.tab-navigation-buttons {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+.tab-navigation-buttons .deploy-button {
+  margin-left: auto;
+}
+
+.deploy-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 25px;
+  flex-shrink: 0;
+}
+
+.deploy-button {
+  padding: 10px 25px;
+  font-size: 1.1em;
+}
+
+.deploy-button mat-icon {
+  margin-right: 8px;
+}
+.app-deploy-status-section {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.app-deployment-logs-container {
+  border: 1px solid #e0e0e0;
+  background-color: #000;
+  padding: 15px;
+  border-radius: 8px;
+  height: 350px;
+  overflow-y: auto;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 0.85em;
+  color: #fff;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-all;
+  flex-grow: 1;
+  margin-top: 20px;
+}
+
+.app-log-entry {
+  margin: 0;
+  padding: 2px 0;
+}
+
+.app-log-line-cursor {
+  display: inline-block;
+  animation: blink-caret .75s step-end infinite;
+}
+
+@keyframes blink-caret {
+  from, to { border-right-color: transparent }
+  50% { border-right-color: currentColor }
+}
+
+
+.no-app-logs {
+  color: #888;
+  text-align: center;
+  padding: 20px;
+}
+.app-result-panel {
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  flex-shrink: 0;
+}
+
+.app-success-panel {
+  background-color: #e8f5e9;
+  border: 1px solid #4caf50;
+  color: #1b5e20;
+}
+
+.app-error-panel {
+  background-color: #ffebee;
+  border: 1px solid #f44336;
+  color: #b71c1c;
+}
+.app-deployment-summary {
+  margin-bottom: 15px;
+}
+
+.app-deployment-summary p {
+  margin: 5px 0;
+}
+
+.app-summary-divider {
+  border: 0;
+  height: 1px;
+  background-color: #c8e6c9;
+  margin: 15px 0;
+}
+.app-output-wrapper {
+  margin-top: 20px;
+}
+
+.app-output-details-scrollable {
+  background-color: #f0fdf0;
+  border: 1px solid #a5d6a7;
+  padding: 15px;
+  border-radius: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+  font-size: 0.9em;
+  padding-right: 10px;
+}
+
+.app-output-details-scrollable p {
+  margin: 5px 0;
+  word-break: break-all;
+}
+
+.app-output-details-scrollable strong {
+  font-weight: 500;
+  color: #388e3c;
+}
+.button-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+  flex-shrink: 0;
+}
+
+.button-row button + button {
+  margin-left: 8px;
+}
+.deployment-status, .deploying, .complete, .error,
+.log-output, .log-output p, .log-container, .log-output-area, .log-output-area p, .log-output-area p:last-child,
+.log-output-area mat-spinner {
+  display: none !important;
+}
+.deploy-button .button-content-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.service-url-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.indented-row {
+  padding-left: 10px;
+}
+
+.service-url-row .service-name {
+  margin-right: 5px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.service-url-row a {
+  flex-grow: 1;
+  word-break: break-all;
+  margin-right: 10px;
+}
+
+.service-url-row .mat-icon-button {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.service-url-row .log-button {
+  margin-left: 5px;
+  flex-shrink: 0;
+}
+
+
+.no-app-outputs {
+  color: #888;
+  font-style: italic;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.section-header-row {
+  display: flex;
+  align-items: center;
+  margin-top: 15px;
+  margin-bottom: 5px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+.section-header-row strong {
+  font-size: 1.3em;
+  margin-right: 15px;
+  flex-shrink: 0;
+}
+
+
+.section-header-row .log-button {
+  margin-left: auto;
+}
+
+.deployment-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #90caf9;
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin: 1em 0;
+  font-size: 0.9rem;
+}
+
+.deployment-notice mat-icon {
+  font-size: 20px;
+  height: 20px;
+  width: 20px;
+}

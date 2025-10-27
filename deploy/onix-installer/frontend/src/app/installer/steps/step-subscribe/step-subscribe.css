@@ -1,0 +1,191 @@
+/**
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.gcp-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.gcp-form mat-form-field {
+  width: 100%;
+}
+
+h2 {
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  margin-bottom: 32px;
+}
+
+.step-navigation-buttons {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.step-navigation-buttons button[mat-button] {
+  min-width: 120px;
+}
+
+.step-navigation-buttons button[mat-raised-button] {
+  width: 100%;
+  max-width: 450px;
+  background-color: #f0f0f0;
+  color: #616161;
+  padding: 14px 0;
+  font-size: 1rem;
+  font-weight: 500;
+  box-shadow: none;
+  border-radius: 8px;
+}
+
+.step-navigation-buttons button[mat-raised-button]:disabled {
+  background-color: #f5f5f5;
+  color: rgba(0, 0, 0, 0.26);
+}
+
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.popup-content {
+  background-color: white;
+  padding: 24px 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  max-width: 400px;
+}
+
+.popup-content h2 {
+  color: #055cbb;
+  font-weight: bold;
+  margin-top: 0;
+}
+
+.popup-content button {
+  margin-top: 15px;
+  min-width: 100px;
+}
+
+.popup-content.error-popup {
+  border: 1px solid #d32f2f;
+}
+
+.popup-content h2.error-text {
+  color: #d32f2f;
+}
+
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 15px;
+}
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.popup-content {
+  background-color: white;
+  padding: 30px 40px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 450px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.popup-content.error-popup {
+  border: 2px solid #ef5350;
+}
+
+.spinner-container {
+  margin-bottom: 10px;
+}
+
+.popup-icon {
+  font-size: 50px;
+  width: 50px;
+  height: 50px;
+  margin-bottom: 10px;
+}
+
+.popup-icon.success-icon {
+  color: rgb(4, 121, 4);
+}
+
+.popup-icon.error-icon {
+  color: #ef5350;
+}
+
+.popup-message {
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 0;
+  color: #333;
+}
+
+.popup-message.error-text {
+  color: #d32f2f;
+}
+
+.message-id-text {
+  font-size: 0.9rem;
+  color: #757575;
+  margin-top: 10px;
+  word-break: break-all;
+}
+
+.popup-content button {
+  margin-top: 20px;
+  min-width: 150px;
+  background-color: #1976D2;
+  color: white;
+  border-radius: 5px;
+  font-weight: 500;
+}
+
+.popup-content button.mat-primary {
+  background-color: #1976D2;
+}
+.popup-content button:hover {
+  opacity: 0.9;
+}

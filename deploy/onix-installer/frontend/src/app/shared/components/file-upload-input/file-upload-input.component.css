@@ -1,0 +1,50 @@
+/**
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.file-input-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+  margin-bottom: 5px;
+}
+
+.file-name-display {
+  font-style: italic;
+  color: #555;
+  flex-grow: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-error {
+  color: #f44336;
+  font-size: 0.85em;
+  margin-top: 5px;
+}
+
+.file-type-info {
+  font-size: 0.85em;
+  color: #777;
+  margin-top: 5px;
+}
+
+.info-text {
+  font-size: 0.8em;
+  color: rgba(0, 0, 0, 0.54);
+  margin-top: 5px;
+}

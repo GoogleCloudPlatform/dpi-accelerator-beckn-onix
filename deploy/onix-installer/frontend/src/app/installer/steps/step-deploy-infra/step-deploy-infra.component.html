@@ -1,0 +1,128 @@
+<!--
+ Copyright 2025 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<div class="step-content deploy-infra-step-content">
+  <div *ngIf="!isDeploying && !deploymentComplete && !deploymentFailed">
+    <h2>Configure & Deploy Infrastructure</h2>
+    <p class="subtitle">Confirm the name of your application, which will serve as a suffix for all your resources, and
+      select the deployment size.</p>
+
+    <form [formGroup]="deployInfraForm" class="gcp-form single-column">
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>App Name</mat-label>
+        <input matInput formControlName="appName" required>
+        <mat-error
+          *ngIf="deployInfraForm.get('appName')?.hasError('required') && deployInfraForm.get('appName')?.touched">
+          App Name is required.
+        </mat-error>
+         <mat-error
+        *ngIf="hasAppNameMaxLengthError()">
+        App Name can not be more than 6 characters.
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Deployment Size</mat-label>
+        <mat-select formControlName="deploymentSize" required>
+          <mat-option *ngFor="let type of deploymentTypes" [value]="type">
+            {{ getDeploymentTypeDisplay(type) }}
+          </mat-option>
+        </mat-select>
+        <mat-error
+          *ngIf="deployInfraForm.get('deploymentSize')?.hasError('required') && deployInfraForm.get('deploymentSize')?.touched">
+          Deployment Size is required.
+        </mat-error>
+      </mat-form-field>
+
+      <button mat-raised-button color="primary" class="deploy-button" [disabled]="deployInfraForm.invalid"
+        (click)="onDeployInfra()">
+        <div class="button-content-wrapper">
+          <mat-icon>cloud_upload</mat-icon>
+          <span>Deploy Infrastructure</span>
+        </div>
+      </button>
+      <hr>
+      <div class="button-row">
+        <button mat-stroked-button (click)="onBack()">Back</button>
+        <button mat-raised-button color="primary" class="action-button" [disabled]="true">
+          Next: App Config <mat-icon>arrow_forward</mat-icon>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div *ngIf="isDeploying" class="deploy-progress-container">
+    <h2>Configuring & Deploying Infrastructure...</h2>
+    <div class="deployment-notice">
+    <mat-icon>info_outline</mat-icon>
+    <span>This process usually takes around 45 minutes to complete. Please keep this window open.</span>
+  </div>
+
+    <div #logContainer class="deployment-logs-container">
+      <p *ngFor="let log of installerState.deploymentLogs; trackBy: trackByLog" class="log-line">{{ log }}</p>
+      <p class="log-line-cursor">_</p>
+    </div>
+  </div>
+
+  <div *ngIf="deploymentComplete || deploymentFailed">
+    <h2>Deployment Status</h2>
+
+    <div *ngIf="deploymentComplete" class="result-panel success-panel">
+      <div class="deployment-summary">
+        <p><strong>App Name:</strong> {{ installerState.appName }}</p>
+        <p><strong>Deployment Size:</strong> {{ getDeploymentTypeDisplay(installerState.deploymentSize) }}</p>
+      </div>
+      <hr class="summary-divider">
+      <h4>Infrastructure Deployed Successfully!</h4>
+      <p>Deployment successful. Click "Next" to configure domains and applications.</p>
+      <div class="infra-output-wrapper">
+        <h4>Infrastructure Outputs:</h4>
+        <div class="infra-output-details-scrollable">
+          <p *ngFor="let detail of installerState.infraDetails | keyvalue">
+            <strong>{{ formatOutputKey(detail.key) }}:</strong> {{ detail.value?.value }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="deploymentFailed" class="result-panel error-panel">
+      <h4>Deployment Failed!</h4>
+      <p>The deployment process encountered an error. Please review the logs below and click "Retry" to try again.</p>
+
+      <div class="infra-output-wrapper">
+        <h4>Deployment Logs:</h4>
+        <div class="infra-output-details-scrollable">
+          <p *ngFor="let log of installerState.deploymentLogs" style="font-family: 'Roboto Mono', monospace;">
+            {{ log }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="button-row">
+      <button mat-stroked-button (click)="onBack()">Back</button>
+
+      <button *ngIf="deploymentFailed" mat-raised-button color="warn" class="action-button" (click)="onDeployInfra()">
+        <mat-icon>refresh</mat-icon>
+        <span>Retry Deployment</span>
+      </button>
+
+      <button *ngIf="deploymentComplete" mat-raised-button color="primary" class="action-button" (click)="onNext()">
+        Next: Domain Config <mat-icon>arrow_forward</mat-icon>
+      </button>
+    </div>
+  </div>
+</div>

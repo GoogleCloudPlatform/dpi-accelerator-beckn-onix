@@ -1,0 +1,83 @@
+<!--
+ Copyright 2025 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<div class="health-check-container">
+  <header class="header">
+    <div>
+      <h1 class="title">Health Check</h1>
+      <p class="subtitle">Verifying all configured domains and URLs...</p>
+    </div>
+    <ng-container [ngSwitch]="healthCheckStatus">
+      <button *ngSwitchCase="'idle'" class="btn btn-primary" (click)="runHealthCheck()">
+        Check Health
+      </button>
+      <button *ngSwitchCase="'inProgress'" class="btn btn-primary" disabled>
+        <span class="spinner-small"></span>
+        Checking...
+      </button>
+      <button *ngSwitchCase="'success'" class="btn btn-success" disabled>
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+        </svg>Passed</button>
+      <button *ngSwitchCase="'failed'" class="btn btn-danger" (click)="retryHealthCheck()">
+        <mat-icon class="icon">refresh</mat-icon>
+        Retry
+      </button>
+    </ng-container>
+  </header>
+
+  <main class="content">
+    <div *ngIf="healthCheckStatus === 'idle'" class="idle-message">
+      <p>Click "Check Health" to begin.</p>
+    </div>
+    <div *ngIf="healthCheckStatus !== 'idle'">
+      <ul class="check-list">
+        <li *ngFor="let item of checkResults" class="check-item">
+  <div>
+    <span class="item-name">{{ item.name }}</span>
+    <span class="item-url">https://{{ item.url }}</span>
+  </div>
+
+  <div class="status-icon-container"[ngSwitch]="item.status">
+    <mat-spinner *ngSwitchCase="'pending'" [diameter]="24" [strokeWidth]="4"></mat-spinner>
+    <mat-icon *ngSwitchCase="'success'" class="icon-status mat-success-icon">check_circle</mat-icon>
+    <mat-icon *ngSwitchCase="'failed'" class="icon-status mat-danger-icon">cancel</mat-icon>
+  </div>
+</li>
+      </ul>
+      <div *ngIf="logMessages.length > 0" class="log-viewer">
+        <h3 class="log-title">Logs</h3>
+        <pre class="log-content"><span *ngFor="let msg of logMessages" class="log-line">{{ msg }}</span></pre>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="footer-actions" *ngIf="healthCheckStatus != 'idle'">
+ <button mat-raised-button color="primary" [disabled]="healthCheckStatus !== 'success'" (click)="onNext()">
+      Finish <mat-icon>arrow_forward</mat-icon>
+    </button>
+     </footer>
+
+</div>
+
+<div *ngIf="showSuccessModal" class="modal-overlay">
+  <div class="modal-content">
+    <h3 class="modal-title">Health Check Successful!</h3>
+    <p class="modal-text">All components are responding correctly.</p>
+    <button class="btn btn-primary" (click)="closeModal()">OK</button>
+  </div>
+</div>

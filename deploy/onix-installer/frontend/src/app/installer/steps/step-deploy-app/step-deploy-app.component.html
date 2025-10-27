@@ -1,0 +1,363 @@
+<!--
+ Copyright 2025 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<div class="step-content app-deploy-step-content">
+  <div *ngIf="!isAppDeploying && !appDeploymentComplete && !appDeploymentFailed" class="app-deploy-config">
+    <h2>Configure Your Onix Components</h2>
+    <p class="subtitle">
+      Configure the final BAP/BPP settings and deploy the application.
+    </p>
+
+    <mat-tab-group class="component-config-tabs" #componentConfigTabs [(selectedIndex)]="currentInternalStep">
+      <mat-tab label="Image Config">
+        <ng-template matTabContent>
+          <form [formGroup]="imageConfigForm" class="config-form single-column">
+            <p>Please provide the container image URLs for the selected components.</p>
+
+            <mat-form-field appearance="outline"
+              *ngIf="installerState.deploymentGoal.all || installerState.deploymentGoal.registry">
+              <mat-label>Registry Image URL</mat-label>
+              <input matInput formControlName="registryImageUrl">
+              <mat-error *ngIf="getErrorMessage(imageConfigForm.get('registryImageUrl'), 'Registry Image URL')">
+                {{ getErrorMessage(imageConfigForm.get('registryImageUrl'), 'Registry Image URL') }}
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline"
+              *ngIf="installerState.deploymentGoal.all || installerState.deploymentGoal.registry">
+              <mat-label>Registry Admin Image URL</mat-label>
+              <input matInput formControlName="registryAdminImageUrl">
+              <mat-error
+                *ngIf="getErrorMessage(imageConfigForm.get('registryAdminImageUrl'), 'Registry Admin Image URL')">
+                {{ getErrorMessage(imageConfigForm.get('registryAdminImageUrl'), 'Registry Admin Image
+                URL') }}
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" *ngIf="showGatewayTab">
+              <mat-label>Gateway Image URL</mat-label>
+              <input matInput formControlName="gatewayImageUrl">
+              <mat-error *ngIf="getErrorMessage(imageConfigForm.get('gatewayImageUrl'), 'Gateway Image URL')">
+                {{ getErrorMessage(imageConfigForm.get('gatewayImageUrl'), 'Gateway Image URL') }}
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" *ngIf="showAdapterTab">
+              <mat-label>Adapter Image URL (BAP/BPP)</mat-label>
+              <input matInput formControlName="adapterImageUrl">
+              <mat-error *ngIf="getErrorMessage(imageConfigForm.get('adapterImageUrl'), 'Adapter Image URL (BAP/BPP)')">
+                {{ getErrorMessage(imageConfigForm.get('adapterImageUrl'), 'Adapter Image URL
+                (BAP/BPP)') }}
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" *ngIf="showGatewayTab || showAdapterTab">
+              <mat-label>Subscription Image URL</mat-label>
+              <input matInput formControlName="subscriptionImageUrl">
+              <mat-error *ngIf="getErrorMessage(imageConfigForm.get('subscriptionImageUrl'), 'Subscription Image URL')">
+                {{ getErrorMessage(imageConfigForm.get('subscriptionImageUrl'), 'Subscription Image
+                URL') }}
+              </mat-error>
+            </mat-form-field>
+          </form>
+          <div class="tab-navigation-buttons">
+            <button mat-stroked-button color="primary" (click)="onPreviousTab()">
+              <mat-icon>arrow_back</mat-icon>
+              <span>Back</span>
+            </button>
+            <button mat-stroked-button color="primary" (click)="onNextTab()" [disabled]="!isCurrentMainTabValid()"
+              *ngIf="!isLastConfigTabActive()"> <span>Next</span>
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <mat-tab label="Registry Config">
+        <ng-template matTabContent>
+          <form [formGroup]="registryConfigForm" class="config-form single-column">
+            <p>Registry specific settings for deployment.</p>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Registry URL</mat-label>
+              <input matInput formControlName="registryUrl" placeholder="https://registry.example.com">
+              <mat-error *ngIf="getErrorMessage(registryConfigForm.get('registryUrl'), 'Registry URL')">
+                {{ getErrorMessage(registryConfigForm.get('registryUrl'), 'Registry URL') }}
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Key ID</mat-label>
+              <input matInput formControlName="registryKeyId" placeholder="your-key-id">
+              <mat-error *ngIf="getErrorMessage(registryConfigForm.get('registryKeyId'), 'Key ID')">
+                {{ getErrorMessage(registryConfigForm.get('registryKeyId'), 'Key ID') }}
+              </mat-error>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Subscriber ID</mat-label>
+              <input matInput formControlName="registrySubscriberId" placeholder="your-subscriber-id">
+              <mat-error *ngIf="getErrorMessage(registryConfigForm.get('registrySubscriberId'), 'Subscriber ID')">
+                {{ getErrorMessage(registryConfigForm.get('registrySubscriberId'), 'Subscriber ID') }}
+              </mat-error>
+            </mat-form-field>
+
+            <mat-checkbox formControlName="enableAutoApprover" class="auto-approver-checkbox">
+              Enable Auto Approver (for Registry)
+              <mat-icon
+                matTooltip="Enables automatic approval of new subscriber registrations in the Registry.">info</mat-icon>
+            </mat-checkbox>
+          </form>
+          <div class="tab-navigation-buttons">
+            <button mat-stroked-button color="primary" (click)="onPreviousTab()">
+              <mat-icon>arrow_back</mat-icon>
+              <span>Back</span>
+            </button>
+            <button mat-stroked-button color="primary" (click)="onNextTab()" [disabled]="!isCurrentMainTabValid()"
+              *ngIf="!isLastConfigTabActive()"> <span>Next</span>
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+            <button mat-flat-button color="accent" class="deploy-button"
+              [disabled]="!isAppDeployStepValid || isAppDeploying" (click)="onDeployApp()"
+              *ngIf="isLastConfigTabActive()">
+              <div class="button-content-wrapper">
+                <mat-spinner *ngIf="isAppDeploying" [diameter]="20"></mat-spinner>
+                <span>Deploy Application</span>
+              </div>
+            </button>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <mat-tab label="Gateway Config" *ngIf="showGatewayTab">
+        <ng-template matTabContent>
+          <form [formGroup]="gatewayConfigForm" class="config-form single-column">
+            <p>Gateway specific settings for deployment.</p>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Subscription ID</mat-label>
+              <input matInput formControlName="gatewaySubscriptionId" placeholder="e.g., your-subscription-id">
+              <mat-error *ngIf="getErrorMessage(gatewayConfigForm.get('gatewaySubscriptionId'), 'Subscription ID')">
+                {{ getErrorMessage(gatewayConfigForm.get('gatewaySubscriptionId'), 'Subscription ID') }}
+              </mat-error>
+            </mat-form-field>
+          </form>
+          <div class="tab-navigation-buttons">
+            <button mat-stroked-button color="primary" (click)="onPreviousTab()">
+              <mat-icon>arrow_back</mat-icon>
+              <span>Back</span>
+            </button>
+            <button mat-stroked-button color="primary" (click)="onNextTab()" [disabled]="!isCurrentMainTabValid()"
+              *ngIf="!isLastConfigTabActive()"> <span>Next</span>
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+            <button mat-flat-button color="accent" class="deploy-button"
+              [disabled]="!isAppDeployStepValid || isAppDeploying" (click)="onDeployApp()"
+              *ngIf="isLastConfigTabActive()">
+              <div class="button-content-wrapper">
+                <mat-spinner *ngIf="isAppDeploying" [diameter]="20"></mat-spinner>
+                <span>Deploy Application</span>
+              </div>
+            </button>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <mat-tab label="Adapter Config" *ngIf="showAdapterTab">
+        <ng-template matTabContent>
+          <form [formGroup]="adapterConfigForm" class="config-form single-column">
+            <h3>Schema Configuration</h3>
+
+            <mat-checkbox formControlName="enableSchemaValidation" class="schema-validation-checkbox">
+              Enable L2 Schema Validation
+            </mat-checkbox>
+          </form>
+          <div class="tab-navigation-buttons">
+            <button mat-stroked-button color="primary" (click)="onPreviousTab()">
+              <mat-icon>arrow_back</mat-icon>
+              <span>Back</span>
+            </button>
+            <button mat-flat-button color="accent" class="deploy-button"
+              [disabled]="!isAppDeployStepValid || isAppDeploying" (click)="onDeployApp()"
+              *ngIf="isLastConfigTabActive()">
+              <div class="button-content-wrapper">
+                <mat-spinner *ngIf="isAppDeploying" [diameter]="20"></mat-spinner>
+                <span>Deploy Application</span>
+              </div>
+            </button>
+          </div>
+        </ng-template>
+      </mat-tab>
+    </mat-tab-group>
+
+  </div>
+
+  <div *ngIf="isAppDeploying || appDeploymentComplete || appDeploymentFailed" class="app-deploy-status-section">
+    <h2 *ngIf="isAppDeploying">Configuring & Deploying Application...</h2>
+    <h2 *ngIf="appDeploymentComplete">Application Deployment Status</h2>
+    <h2 *ngIf="appDeploymentFailed">Application Deployment Status</h2>
+
+  <div class="deployment-notice" *ngIf="isAppDeploying">
+    <mat-icon>info_outline</mat-icon>
+    <span>This process usually takes around 15 minutes to complete. Please keep this window open.</span>
+  </div>
+
+    <div #appLogContainer class="app-deployment-logs-container" *ngIf="isAppDeploying">
+      <p *ngFor="let log of appDeploymentLogs" class="app-log-entry">{{ log }}</p>
+      <p class="app-log-line-cursor">_</p>
+    </div>
+
+    <div *ngIf="appDeploymentComplete" class="app-result-panel app-success-panel">
+      <div class="app-deployment-summary">
+        <h4>Application Deployed Successfully!</h4>
+        <p>Your Onix application components have been deployed successfully.</p>
+        <p *ngIf="appExternalIp">
+          External IP: <strong>{{ appExternalIp }}</strong>
+          <button mat-icon-button (click)="copyToClipboard(appExternalIp)">
+            <mat-icon matTooltip="Copy to clipboard">content_copy</mat-icon>
+          </button>
+        </p>
+      </div>
+
+      <hr class="app-summary-divider">
+
+      <div class="app-output-wrapper">
+        <h4>Deployed Service URLs:</h4>
+        <div class="app-output-details-scrollable">
+
+          <ng-container *ngIf="showAdapterLogButton">
+            <div class="section-header-row">
+              <strong>Adapter</strong>
+              <button mat-stroked-button color="primary" class="log-button" *ngIf="logsExplorerUrls['adapter']"
+                (click)="openUrl(logsExplorerUrls['adapter'])" matTooltip="View Adapter Logs">
+                <mat-icon>launch</mat-icon> Logs
+              </button>
+            </div>
+            <ng-container *ngFor="let key of serviceUrls | keyvalue">
+              <div class="service-url-row indented-row" *ngIf="key.key.startsWith('adapter_')">
+                <span class="service-name">{{ key.key.replace('adapter_', '').replace('Txn', ' Transaction ') }}:</span>
+                <a [href]="key.value" target="_blank" rel="noopener noreferrer">{{ key.value }}</a>
+                <button mat-icon-button (click)="copyToClipboard(key.value)" matTooltip="Copy URL">
+                  <mat-icon>content_copy</mat-icon>
+                </button>
+              </div>
+            </ng-container>
+          </ng-container>
+
+          <ng-container *ngIf="serviceUrls['registry']">
+            <div class="section-header-row">
+              <strong>Registry</strong>
+              <button mat-stroked-button color="primary" class="log-button" *ngIf="logsExplorerUrls['registry']"
+                (click)="openUrl(logsExplorerUrls['registry'])" matTooltip="View Registry Logs">
+                <mat-icon>launch</mat-icon> Logs
+              </button>
+            </div>
+            <div class="service-url-row indented-row">
+              <a [href]="serviceUrls['registry']" target="_blank" rel="noopener noreferrer">{{ serviceUrls['registry']
+                }}</a>
+              <button mat-icon-button (click)="copyToClipboard(serviceUrls['registry'])" matTooltip="Copy URL">
+                <mat-icon>content_copy</mat-icon>
+              </button>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="serviceUrls['registry_admin']">
+            <div class="section-header-row">
+              <strong>Registry Admin</strong>
+              <button mat-stroked-button color="primary" class="log-button" *ngIf="logsExplorerUrls['registry_admin']"
+                (click)="openUrl(logsExplorerUrls['registry_admin'])" matTooltip="View Registry Admin Logs">
+                <mat-icon>launch</mat-icon> Logs
+              </button>
+            </div>
+            <div class="service-url-row indented-row">
+              <a [href]="serviceUrls['registry_admin']" target="_blank" rel="noopener noreferrer">{{
+                serviceUrls['registry_admin'] }}</a>
+              <button mat-icon-button (click)="copyToClipboard(serviceUrls['registry_admin'])" matTooltip="Copy URL">
+                <mat-icon>content_copy</mat-icon>
+              </button>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="serviceUrls['gateway']">
+            <div class="section-header-row">
+              <strong>Gateway</strong>
+              <button mat-stroked-button color="primary" class="log-button" *ngIf="logsExplorerUrls['gateway']"
+                (click)="openUrl(logsExplorerUrls['gateway'])" matTooltip="View Gateway Logs">
+                <mat-icon>launch</mat-icon> Logs
+              </button>
+            </div>
+            <div class="service-url-row indented-row">
+              <a [href]="serviceUrls['gateway']" target="_blank" rel="noopener noreferrer">{{ serviceUrls['gateway']
+                }}</a>
+              <button mat-icon-button (click)="copyToClipboard(serviceUrls['gateway'])" matTooltip="Copy URL">
+                <mat-icon>content_copy</mat-icon>
+              </button>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="serviceUrls['subscriber']">
+            <div class="section-header-row">
+              <strong>Subscriber</strong>
+              <button mat-stroked-button color="primary" class="log-button" *ngIf="logsExplorerUrls['subscriber']"
+                (click)="openUrl(logsExplorerUrls['subscriber'])" matTooltip="View Subscriber Logs">
+                <mat-icon>launch</mat-icon> Logs
+              </button>
+            </div>
+            <div class="service-url-row indented-row">
+              <a [href]="serviceUrls['subscriber']" target="_blank" rel="noopener noreferrer">{{
+                serviceUrls['subscriber'] }}</a>
+              <button mat-icon-button (click)="copyToClipboard(serviceUrls['subscriber'])" matTooltip="Copy URL">
+                <mat-icon>content_copy</mat-icon>
+              </button>
+            </div>
+          </ng-container>
+
+          <ng-container *ngIf="servicesDeployed.length > 0">
+            <p><strong>Services Deployed:</strong> {{ servicesDeployed.join(', ') }}</p>
+          </ng-container>
+
+          <p *ngIf="servicesDeployed.length === 0 && (serviceUrls | keyvalue).length === 0" class="no-app-outputs">
+            No service details available.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="appDeploymentFailed" class="app-result-panel app-error-panel">
+      <h4>Application Deployment Failed!</h4>
+      <p>{{ 'An unknown error occurred during deployment.' }}</p>
+
+      <div class="app-output-wrapper">
+        <h4>Deployment Logs:</h4>
+        <div class="app-output-details-scrollable">
+          <p *ngFor="let log of appDeploymentLogs" class="app-log-entry">{{ log }}</p>
+          <p *ngIf="appDeploymentLogs.length === 0" class="no-app-logs">No logs available for failed deployment.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="button-row" *ngIf="appDeploymentComplete || appDeploymentFailed">
+      <button mat-stroked-button (click)="resetDeployment()">
+        <span *ngIf="appDeploymentFailed">Retry Deployment</span>
+        <span *ngIf="appDeploymentComplete">Back to Config</span>
+      </button>
+      <button mat-raised-button color="primary" class="action-button" [disabled]="!appDeploymentComplete"
+        (click)="continueToNextStep()">
+        Next: Health Checks <mat-icon>arrow_forward</mat-icon>
+      </button>
+    </div>
+  </div>
+</div>

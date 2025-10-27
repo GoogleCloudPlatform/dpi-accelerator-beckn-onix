@@ -1,0 +1,40 @@
+<!--
+ Copyright 2025 Google LLC
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<div class="step-content prerequisites-step-content">
+  <h1>Confirm Prerequisites</h1>
+  <p class="subtitle">Please confirm that you have met all the following requirements before proceeding:</p>
+
+  <form [formGroup]="prerequisitesForm" class="prerequisites-form">
+    <div formArrayName="items" class="prerequisites-checkbox-group">
+      <mat-checkbox *ngFor="let prerequisite of prerequisitesList; let i = index" [formControlName]="i"
+        class="prerequisite-item" color="primary">
+        <span [innerHTML]="prerequisite"></span>
+      </mat-checkbox>
+    </div>
+
+    <mat-error *ngIf="prerequisitesForm.get('items')?.invalid && prerequisitesForm.get('items')?.touched">
+      Please check all prerequisites to proceed.
+    </mat-error>
+  </form>
+
+  <div class="step-navigation-buttons">
+    <button mat-button (click)="onBack()">Back</button>
+    <button mat-raised-button color="primary" [disabled]="!allPrerequisitesMet" (click)="onNext()">
+      GCP Connection <mat-icon>arrow_forward</mat-icon>
+    </button>
+  </div>
+</div>

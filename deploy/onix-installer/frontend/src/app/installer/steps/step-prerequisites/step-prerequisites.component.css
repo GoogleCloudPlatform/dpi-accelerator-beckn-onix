@@ -1,0 +1,91 @@
+/**
+ * Copyright 2025 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.prerequisites-step-content {
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+h1 {
+  color: #333;
+  font-size: 1.8em;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 1em;
+  margin-bottom: 25px;
+}
+
+.prerequisites-form {
+  margin-bottom: 30px;
+}
+
+.prerequisites-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.prerequisite-item {
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.prerequisite-item:last-child {
+  border-bottom: none;
+}
+
+mat-checkbox {
+  display: flex;
+  align-items: flex-start;
+  font-size: 1em;
+  color: #444;
+}
+
+mat-checkbox ::ng-deep .mat-checkbox-layout .mat-checkbox-label {
+  white-space: normal;
+  line-height: 1.4;
+  padding-top: 2px;
+}
+
+mat-checkbox ::ng-deep strong {
+  color: #000;
+}
+
+
+mat-error {
+  color: #f44336;
+  font-size: 0.8em;
+  margin-top: -10px;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.step-navigation-buttons {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.step-navigation-buttons button {
+  min-width: 120px;
+}
