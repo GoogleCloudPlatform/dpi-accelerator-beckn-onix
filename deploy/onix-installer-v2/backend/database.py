@@ -37,7 +37,7 @@ SUB_COLLECTION_AUDIT = "audit_logs"
 def generate_unique_suffix(max_attempts: int = 3) -> str:
     """
     Generates a unique 6-character alphanumeric resource suffix.
-    Performs a uniqueness check loop as per Section 6.1.1 of the design doc.
+    Performs a uniqueness check loop.
     """
     alphabet = string.ascii_lowercase + string.digits
     
@@ -89,7 +89,7 @@ def list_all_deployments(
     environment: Optional[str] = None,
     role: Optional[str] = None
 ) -> list[dict[str, Any]]:
-    """Lists all deployments with optional filtering (Section 6.1.2)."""
+    """Lists all deployments with optional filtering"""
     query = db.collection(COLLECTION_DEPLOYMENTS)
     
     # Apply optional equality filters
@@ -101,13 +101,12 @@ def list_all_deployments(
     if role:
         query = query.where("tags.role", "==", role)
     
-    
     # Firestore allows ordering by a field after equality filters
     docs = query.order_by("last_updated_at", direction=firestore.Query.DESCENDING).stream()
     return [doc.to_dict() for doc in docs]
 
 def log_audit_event(deployment_id: str, audit: AuditLog):
-    """Records a business audit event in the sub-collection (Section 3.3)."""
+    """Records a business audit event in the sub-collection"""
     evt_id = f"evt-{uuid.uuid4()}"
     audit_ref = (
         db.collection(COLLECTION_DEPLOYMENTS)
