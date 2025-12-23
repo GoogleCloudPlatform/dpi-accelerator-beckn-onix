@@ -98,3 +98,13 @@ class Subscription(BaseModel):
     status: SubscriptionStatus
     created_at: datetime = Field(default_factory=datetime.utcnow)
     error_detail: Optional[str] = None
+
+#-----Request and Response Models----------#
+class DeploymentCreateRequest(BaseModel):
+    name: str
+    tags: Tags
+    config: DeploymentConfig
+
+class DeploymentCreateResponse(BaseModel):
+    deployment_id: str
+    resource_suffix: str

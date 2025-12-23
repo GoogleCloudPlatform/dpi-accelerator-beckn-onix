@@ -9,22 +9,20 @@ from pydantic import EmailStr
 from core.constants import DeploymentStatus, OperationStatus, OperationType, RoleType, ComputeType
 from core.models import (
     Deployment, DeploymentConfig, Lock, OperationSnapshot, 
-    Tags, Versions, AuditLog, AuditActionType
+    Tags, Versions, AuditLog, AuditActionType,
+    DeploymentCreateRequest, DeploymentCreateResponse
 )
 import database as db_ops
 from middleware import get_current_user
 
 app = FastAPI(title="Onix Management Portal (OMP) v2")
 
-@app.post("/api/deployments", status_code=201)
+@app.post("/api/deployments", status_code=201, response_model=DeploymentCreateResponse)
 async def create_deployment(
-    name: str = Body(...), 
-    tags: Tags = Body(...), 
-    config: DeploymentConfig = Body(...), 
+    req: DeploymentCreateRequest,
     user_email: str = Depends(get_current_user)
 ):
     """
-    Section 6.1.1: Create New Deployment (DRAFT).
     Initializes metadata, generates unique suffix, and persists to Firestore.
     """
     deployment_id = str(uuid.uuid4())
@@ -33,11 +31,11 @@ async def create_deployment(
 
     new_deployment = Deployment(
         deployment_id=deployment_id,
-        name=name,
+        name=req.name,
         resource_suffix=suffix,
         created_by=user_email,
         last_updated_by=user_email,
-        tags=tags,
+        tags=req.tags,
         versions=Versions(    # For Now Hard Coded will have to check how we can do that
             installer_version="v2.0.0",
             onix_bundle_version="google-onix-v2.1",
@@ -45,7 +43,7 @@ async def create_deployment(
         ),
         status=DeploymentStatus.DRAFT,
         lock=Lock(),
-        config=config,
+        config=req.config,
         health_status="UNKNOWN"
     )
     
@@ -62,9 +60,12 @@ async def create_deployment(
         status_result="SUCCESS"
     ))
 
-    return {"deployment_id": deployment_id, "resource_suffix": suffix}
+    return DeploymentCreateResponse(
+        deployment_id= deployment_id, 
+        resource_suffix= suffix
+        )
 
-@app.get("/api/deployments")
+@app.get("/api/deployments", response_model=list[Deployment])
 async def list_deployments(
     network_group: str = None,
     environment: str = None,
@@ -76,9 +77,9 @@ async def list_deployments(
         role=role
     )
 
-@app.get("/api/deployments/{id}")
+@app.get("/api/deployments/{id}", response_model=Deployment)
 async def get_deployment(id: str):
-    """Section 6.1.3: Get Full Details."""
+    """Get details for a specific deployment."""
     doc = db_ops.get_deployment_ref(id).get()
     if not doc.exists:
         raise HTTPException(status_code=404, detail="Deployment not found")
