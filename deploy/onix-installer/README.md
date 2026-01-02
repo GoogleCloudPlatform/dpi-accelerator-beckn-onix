@@ -46,7 +46,6 @@ Why? These domains are required to expose the Onix services (like the gateway, r
 -   **Docker**: For building and running containers.
     -   [Installation Guide](https://docs.docker.com/engine/install/)
 -   **Additional Tools**:
-    -   **gsutil**: [Installation Guide](https://cloud.google.com/storage/docs/gsutil_install)
     -   **jq**: [Installation Guide](https://jqlang.github.io/jq/download/)
     -   **gke-gcloud-auth-plugin**: [Installation Guide](https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin)
     -   **psql**: [Installation Guide](https://www.postgresql.org/download/)

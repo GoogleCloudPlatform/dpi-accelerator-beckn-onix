@@ -28,7 +28,6 @@ echo -e "\nChecking system requirements...\n"
 check_command "gcloud"
 check_command "helm"
 check_command "kubectl"
-check_command "gsutil"
 check_command "jq"  # required for parsing JSON outputs to read outputs.json
 
 echo -e "\nAll required tools are installed. Proceeding...\n"
@@ -104,7 +103,7 @@ DOMAINS_LIST=$(IFS=,; echo "${DOMAINS_ARRAY[*]}")
 #########################################
 
 echo -e "\nUploading configs and schemas from $CONFIG_DIR to bucket: gs://$CONFIG_BUCKET/ ...\n"
-gsutil -m cp -r "$CONFIG_DIR"/* "gs://$CONFIG_BUCKET/configs/"
+gcloud storage cp --recursive "$CONFIG_DIR"/* "gs://$CONFIG_BUCKET/configs/"
 
 if [ $? -eq 0 ]; then
     echo -e "\nConfig Files upload successful!\n"
@@ -113,7 +112,7 @@ else
     exit 1
 fi
 
-gsutil -m cp -r "$ROUTING_CONFIG_DIR"/* "gs://$CONFIG_BUCKET/configs/"
+gcloud storage cp --recursive "$ROUTING_CONFIG_DIR"/* "gs://$CONFIG_BUCKET/configs/"
 
 if [ $? -eq 0 ]; then
     echo -e "\nRouting Config Files upload successful!\n"
@@ -122,7 +121,7 @@ else
     exit 1
 fi
 
-gsutil -m cp -r "$PLUGIN_DIR" "gs://$CONFIG_BUCKET/"
+gcloud storage cp --recursive "$PLUGIN_DIR" "gs://$CONFIG_BUCKET/"
 
 if [ $? -eq 0 ]; then
     echo -e "\nPlugin bundle upload successful!\n"
@@ -138,7 +137,7 @@ if [ "$ENABLE_SCHEMA_VALIDATION" == "true" ]; then
         exit 1
     fi
     echo -e "\nSchema validation is enabled. Uploading schemas from $SCHEMA_DIR to bucket: gs://$CONFIG_BUCKET/configs/schemas/ ...\n"
-    gsutil -m cp -r "$SCHEMA_DIR" "gs://$CONFIG_BUCKET/configs/"
+    gcloud storage cp --recursive "$SCHEMA_DIR" "gs://$CONFIG_BUCKET/configs/"
     if [ $? -eq 0 ]; then
         echo -e "\nSchemas upload successful!\n"
     else
