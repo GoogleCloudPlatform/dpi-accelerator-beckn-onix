@@ -149,7 +149,7 @@ terraform --version
 helm version
 kubectl version --client
 docker --version
-gsutil version
+gcloud -v
 jq --version
 gke-gcloud-auth-plugin --version
 python3 --version
@@ -258,4 +258,3 @@ To uninstall Onix and delete all associated infrastructure, run the following co
 ```bash 
  make destroy-infra
 ```
-   
