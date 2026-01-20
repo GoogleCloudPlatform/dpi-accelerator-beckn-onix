@@ -124,17 +124,15 @@ def _get_services_to_deploy(app_deployment_request: AppDeploymentRequest) -> Lis
 
 async def run_app_deployment(app_deployment_request: AppDeploymentRequest, websocket):
     """
-    Generates application configurations and executes the application deployment script.
-    Mimics the logic from the provided main.py.
+    Executes the application deployment script.
     """
     logger.info(f"Initiating application deployment with payload: {app_deployment_request}")
 
-    await websocket.send_text(json.dumps({"type": "info", "message": "Generating application configurations..."}))
     try:
-        app_config.generate_app_configs(app_deployment_request)
-        logger.info("Application configuration YAMLs generated successfully.")
-        await websocket.send_text(json.dumps({"type": "info", "message": "Application configurations generated successfully."}))
-
+        # Generate p2.tfvars (needed for SSL/Domains)
+        app_config.generate_p2_tfvars(app_deployment_request)
+        logger.info("p2.tfvars generated for deployment phase.")
+        
         services = _get_services_to_deploy(app_deployment_request)
     
         env_vars_for_script = app_config.get_deployment_environment_variables(app_deployment_request, services)

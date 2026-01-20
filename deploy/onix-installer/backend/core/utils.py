@@ -62,6 +62,7 @@ def read_file_content(file_path: str) -> str:
         with open(file_path, 'r') as f:
             content = f.read()
         logger.debug(f"Successfully read content from file: '{file_path}'")
+        logger.info(f"Successfully read content from file: '{content}'")
         return content
     except FileNotFoundError:
         logger.error(f"File not found: '{file_path}'")

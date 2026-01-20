@@ -20,11 +20,12 @@ import httpx
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from config.app_config_generator import generate_p2_tfvars
 
-from core.models import InfraDeploymentRequest, AppDeploymentRequest, ProxyRequest
+from core.models import InfraDeploymentRequest, AppDeploymentRequest, ProxyRequest, ConfigGenerationRequest, ConfigUpdateRequest
 from services.gcp_resource_manager import list_google_cloud_projects, list_google_cloud_regions
 from services.deployment_manager import run_infra_deployment, run_app_deployment
-from services import ui_state_manager as ui_state
+from services import ui_state_manager as ui_state, config_manager
 from services.health_checks import run_websocket_health_check
 
 logging.basicConfig(level=logging.DEBUG,
@@ -90,6 +91,76 @@ async def get_regions():
             detail=f"An unexpected internal server error occurred: {e}"
         )
 
+@app.post("/api/configs")
+def generate_configs(request: ConfigGenerationRequest):
+    """
+    Generates initial configuration files. Does NOT overwrite existing files.
+    """
+    logger.info("Received request to generate initial configurations.")
+    try:
+        config_manager.generate_initial_configs(request)
+        return {"message": "Initial configurations generated successfully."}
+    except Exception as e:
+        logger.error(f"Failed to generate configs: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/configs/path")
+def get_config_paths():
+    """
+    Returns a list of all configuration file paths in the artifacts directory.
+    """
+    logger.info("Received request to list config paths.")
+    try:
+        paths = config_manager.get_all_config_paths()
+        return {"count": len(paths), "files": paths}
+    except Exception as e:
+        logger.error(f"Failed to list config paths: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/config/data")
+def get_config_data(path: str):
+    """
+    Retrieves the content of a specific configuration file.
+    Usage: GET /api/config/data?path=generated_configs/adapter.yaml
+    """
+    logger.info(f"Received request to read config: {path}")
+    try:
+        content = config_manager.get_config_content(path)
+        return {"content": content}
+    except ValueError as e:
+        logger.warning(f"Invalid path access attempt: {e}")
+        raise HTTPException(status_code=403, detail="Invalid path")
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="File not found")
+    except Exception as e:
+        logger.error(f"Failed to read config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/config/data")
+def update_config_data(request: ConfigUpdateRequest):
+    """
+    Updates a specific configuration file with new content.
+    Request Body: { "path": "generated_configs/adapter.yaml", "content": "..." }
+    """
+    logger.info(f"Received request to update config: {request.path}")
+    try:
+        config_manager.update_config_content(request.path, request.content)
+        return {"message": "Configuration updated successfully."}
+    except ValueError as e:
+        logger.warning(f"Invalid path update attempt: {e}")
+        raise HTTPException(status_code=403, detail="Invalid path")
+    except Exception as e:
+        logger.error(f"Failed to update config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/api/deploy")
+async def deploy(request: AppDeploymentRequest):
+    """uncninrci
+    """
+    generate_p2_tfvars(request)
+      
+
 @app.websocket("/ws/deployInfra")
 async def websocket_deploy_infra(websocket: WebSocket):
     await websocket.accept()
@@ -124,6 +195,7 @@ async def websocket_deploy_application(websocket: WebSocket):
 
     try:
         app_request_payload = await websocket.receive_json()
+        logger.info(json.dumps(app_request_payload))
         app_deployment_request = AppDeploymentRequest(**app_request_payload)
         logger.info(f"Received application deployment request with payload: {app_deployment_request}")
 
@@ -244,4 +316,3 @@ async def dynamic_proxy(request: ProxyRequest) -> Any:
                 status_code=500,
                 detail="An internal server error occurred."
             )
-

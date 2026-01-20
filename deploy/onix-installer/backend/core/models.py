@@ -64,27 +64,38 @@ class DomainConfig(BaseModel):
     domainType: NonEmptyStr
     baseDomain: str
     dnsZone: str
-    
+
+class ConfigGenerationRequest(BaseModel):
+    """
+    Model for generating application configuration files (YAMLs).
+    Contains only the fields necessary for rendering service configs.
+    """
+    components: Dict[str, bool]
+    registry_url: HttpUrl
+    adapter_config: Optional[AdapterConfig] = None
+    registry_config: RegistryConfig
+    gateway_config: Optional[GatewayConfig] = None
+
 class AppDeploymentRequest(BaseModel):
     """
     Pydantic model for incoming application deployment requests.
+    Inherits from ConfigGenerationRequest and adds fields required for 
+    deployment logic (Terraform variables, Helm charts, etc.).
     """
     app_name: NonEmptyStr
     components: Dict[str, bool]
-    # Expected keys for components: "gateway", "registry", "bap", "bpp"
     domain_names: Dict[str, NonEmptyStr]
     # Expected keys for domain_names: "registry", "registry_admin", "subscriber", "gateway", "adapter"
     image_urls: Dict[str, NonEmptyStr]
     # Expected keys for image_urls: "registry", "registry_admin", "subscriber", "gateway", "adapter"
-
-    registry_url: HttpUrl
-
-    adapter_config: Optional[AdapterConfig] = None
-    registry_config: RegistryConfig
-    gateway_config: Optional[GatewayConfig] = None
     domain_config: DomainConfig
+    registry_config: RegistryConfig
 
 
 class ProxyRequest(BaseModel):
     targetUrl: str
     payload: Dict[Any, Any]
+
+class ConfigUpdateRequest(BaseModel):
+    path: str  
+    content: str

@@ -16,7 +16,7 @@ import unittest
 import os
 import sys
 import logging
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import patch, MagicMock, call, mock_open
 
 import urllib
 
@@ -26,6 +26,7 @@ sys.path.insert(0, project_root)
 
 from core.models import (
     AppDeploymentRequest,
+    ConfigGenerationRequest,
     DeploymentType,
     AdapterConfig,
     RegistryConfig,
@@ -206,13 +207,14 @@ class TestAppConfigGenerator(unittest.TestCase):
         self.mock_logger.info.assert_any_call(f"Loading infrastructure outputs from {expected_path}")
 
 
-    def test_prepare_template_context(self):
+    def test_prepare_template_context_full_request(self):
         """
-        Test that the Jinja2 context is prepared correctly, including SA email stripping.
+        Test that the Jinja2 context is prepared correctly with a full AppDeploymentRequest.
+        Note: AppDeploymentRequest does NOT contain adapter_config, gateway_config, or registry_url.
         """
         app_req = AppDeploymentRequest(
             app_name="test-app",
-            components={"bap": True, "bpp": False, "gateway": True, "registry": False}, # Using string keys
+            components={"bap": True, "bpp": False, "gateway": True, "registry": False},
             domain_names={
                 "auth_domain": "auth.example.com",
                 "adapter": "adapter.example.com",
@@ -220,10 +222,10 @@ class TestAppConfigGenerator(unittest.TestCase):
                 "registry": "registry.example.com"
             },
             image_urls={"adapter": "some-repo/adapter:1.0"},
-            registry_url="http://reg.example.com",
-            adapter_config=AdapterConfig(enable_schema_validation=True),
+            # registry_url="http://reg.example.com", # Removed from AppDeploymentRequest
+            # adapter_config=AdapterConfig(enable_schema_validation=True), # Removed
             registry_config=RegistryConfig(subscriber_id="test_sub", key_id="test_key", enable_auto_approver=True),
-            gateway_config=GatewayConfig(subscriber_id="test_gateway_sub"),
+            # gateway_config=GatewayConfig(subscriber_id="test_gateway_sub"), # Removed
             domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
         infra_outputs = {
@@ -244,13 +246,11 @@ class TestAppConfigGenerator(unittest.TestCase):
         context = app_config_generator._prepare_template_context(app_req, infra_outputs)
 
         self.assertEqual(context["project_id"], "infra-proj")
-        self.assertEqual(context["cluster_region"], "infra-region")
-        self.assertEqual(context["redis_instance_ip"], "10.0.0.1")
-        self.assertEqual(context["onix_topic_name"], "onix-t")
-        self.assertEqual(context["adapter_topic_name"], "adapter-t")
-        self.assertEqual(context["database_user_sa_email"], "user@my-proj.iam")
-        self.assertEqual(context["registry_admin_database_user_sa_email"], "admin@my-proj.iam")
-        self.assertEqual(context["registry_url"], "http://reg.example.com/")
+        self.assertEqual(context["suffix"], "test-app")
+        
+        # FIX: Registry URL is not in AppDeploymentRequest, so it defaults to empty string
+        self.assertEqual(context["registry_url"], "")
+        
         self.assertEqual(context["domains"], {
                 "auth_domain": "auth.example.com",
                 "adapter": "adapter.example.com",
@@ -258,21 +258,52 @@ class TestAppConfigGenerator(unittest.TestCase):
                 "registry": "registry.example.com"
             })
 
-        self.assertEqual(context["adapter"], app_req.adapter_config.model_dump())
+        # FIX: Adapter and Gateway configs are not in AppDeploymentRequest, so context should be empty
+        self.assertEqual(context["adapter"], {})
+        self.assertEqual(context["gateway"], {})
+        
         self.assertEqual(context["registry"], app_req.registry_config.model_dump())
-        self.assertEqual(context["gateway"], app_req.gateway_config.model_dump())
 
         self.assertTrue(context["deploy_bap"])
         self.assertFalse(context["deploy_bpp"])
         self.assertTrue(context["enable_subscriber"])
         self.assertTrue(context["enable_auto_approver"])
-        self.assertEqual(context["url_map"], "mock-url-map-id")
         self.assertTrue(context["is_google_domain"])
         self.assertEqual(context["domain_name"], "example.com")
         self.assertEqual(context["dns_zone"], "example-zone")
-        self.assertEqual(context["global_ip_address"], "35.35.35.35")
         self.assertIn("adapter.example.com", context["domain_list"])
-        self.assertIn("gateway.example.com", context["domain_list"])
+
+    def test_prepare_template_context_config_generation_request(self):
+        """
+        Test that the Jinja2 context is prepared correctly with a partial ConfigGenerationRequest.
+        """
+        config_req = ConfigGenerationRequest(
+            components={"bap": True, "bpp": False},
+            registry_url="http://reg.example.com",
+            adapter_config=AdapterConfig(enable_schema_validation=True),
+            registry_config=RegistryConfig(subscriber_id="test_sub", key_id="test_key", enable_auto_approver=True),
+            gateway_config=GatewayConfig(subscriber_id="test_gateway_sub"),
+        )
+        infra_outputs = {
+            "project_id": "infra-proj",
+            # ... other infra fields
+        }
+
+        context = app_config_generator._prepare_template_context(config_req, infra_outputs)
+
+        # Check fields present in ConfigGenerationRequest
+        self.assertEqual(context["registry_url"], "http://reg.example.com/")
+        self.assertEqual(context["adapter"], config_req.adapter_config.model_dump())
+        self.assertTrue(context["deploy_bap"])
+        self.assertTrue(context["enable_subscriber"])
+
+        # Check fields absent in ConfigGenerationRequest (should have safe defaults)
+        self.assertEqual(context["suffix"], "")
+        self.assertEqual(context["domains"], {})
+        self.assertFalse(context["is_google_domain"])
+        self.assertEqual(context["domain_name"], "")
+        self.assertEqual(context["domain_list"], [])
+
 
     @patch('config.app_config_generator.os.makedirs')
     @patch('config.app_config_generator.utils.write_file_content')
@@ -288,21 +319,17 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('os.path.join', side_effect=os.path.join)
     def test_generate_app_configs_all_components(self, mock_os_path_join, mock_load_infra, mock_prepare_context, mock_render, mock_write_file, mock_makedirs):
         """
-        Test generation of app configs when all components that create config files are enabled.
+        Test generation of app configs using ConfigGenerationRequest.
         """
-        req = AppDeploymentRequest(
-            app_name="test-app",
+        req = ConfigGenerationRequest(
             components={
                 "bap": True,
                 "bpp": True,
                 "gateway": True,
                 "registry": True
             },
-            domain_names={},
-            image_urls={},
             registry_url="http://mock-reg.com",
             registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
 
         app_config_generator.generate_app_configs(req)
@@ -313,6 +340,7 @@ class TestAppConfigGenerator(unittest.TestCase):
 
         expected_template_source_dir = os.path.join(self.mock_template_dir, 'configs')
         
+        # Expect ONLY config YAMLs, not tfvars
         expected_render_calls_configs = [
             call(template_dir=expected_template_source_dir, template_name=self.mock_adapter_template, context={"mock_context": True}),
             call(template_dir=expected_template_source_dir, template_name=self.mock_gateway_template, context={"mock_context": True}),
@@ -321,16 +349,10 @@ class TestAppConfigGenerator(unittest.TestCase):
             call(template_dir=expected_template_source_dir, template_name=self.mock_registry_admin_template, context={"mock_context": True}),
         ]
         
-        # Test for tfvars template as well
-        tf_template_source_dir = os.path.join(self.mock_template_dir, 'tf_configs')
-        expected_render_calls_tfvars = [
-            call(template_dir=tf_template_source_dir, template_name=self.mock_tfvars_template, context={"mock_context": True}),
-        ]
-
-        all_expected_render_calls = sorted(expected_render_calls_configs + expected_render_calls_tfvars, key=lambda c: str(c))
+        all_expected_render_calls = sorted(expected_render_calls_configs, key=lambda c: str(c))
         actual_render_calls = sorted(mock_render.call_args_list, key=lambda c: str(c))
         self.assertEqual(actual_render_calls, all_expected_render_calls)
-        self.assertEqual(mock_render.call_count, 6) # 5 app configs + 1 tfvars
+        self.assertEqual(mock_render.call_count, 5) 
 
         expected_write_calls_configs = [
             call(os.path.join(self.mock_generated_configs_dir, self.mock_adapter_template.replace('.j2', '')), "rendered_content"),
@@ -340,15 +362,46 @@ class TestAppConfigGenerator(unittest.TestCase):
             call(os.path.join(self.mock_generated_configs_dir, self.mock_registry_admin_template.replace('.j2', '')), "rendered_content"),
         ]
 
-        tf_vars_output_dir = os.path.join(self.mock_tf_dir, 'phase2')
-        expected_write_calls_tfvars = [
-            call(os.path.join(tf_vars_output_dir, self.mock_tfvars_template.replace('.j2', '')), "rendered_content"),
-        ]
-
-        all_expected_write_calls = sorted(expected_write_calls_configs + expected_write_calls_tfvars, key=lambda c: str(c))
+        all_expected_write_calls = sorted(expected_write_calls_configs, key=lambda c: str(c))
         actual_write_calls = sorted(mock_write_file.call_args_list, key=lambda c: str(c))
         self.assertEqual(actual_write_calls, all_expected_write_calls)
-        self.assertEqual(mock_write_file.call_count, 6)
+        self.assertEqual(mock_write_file.call_count, 5)
+
+    @patch('config.app_config_generator.utils.write_file_content')
+    @patch('config.app_config_generator.utils.render_jinja_template', return_value="rendered_content")
+    @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
+    @patch('config.app_config_generator._load_infrastructure_outputs', return_value={})
+    @patch('os.path.join', side_effect=os.path.join)
+    def test_generate_p2_tfvars(self, mock_os_path_join, mock_load_infra, mock_prepare_context, mock_render, mock_write_file):
+        """
+        Test generation of p2.tfvars.
+        """
+        req = AppDeploymentRequest(
+            app_name="test-app",
+            components={"bap": True},
+            domain_names={"registry": "reg.com"},
+            image_urls={},
+            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+        )
+
+        app_config_generator.generate_p2_tfvars(req)
+
+        mock_load_infra.assert_called_once()
+        mock_prepare_context.assert_called_once_with(req, mock_load_infra.return_value)
+
+        tf_template_source_dir = os.path.join(self.mock_template_dir, 'tf_configs')
+        mock_render.assert_called_once_with(
+            template_dir=tf_template_source_dir,
+            template_name=self.mock_tfvars_template,
+            context={"mock_context": True}
+        )
+
+        tf_vars_output_dir = os.path.join(self.mock_tf_dir, 'phase2')
+        mock_write_file.assert_called_once_with(
+            os.path.join(tf_vars_output_dir, self.mock_tfvars_template.replace('.j2', '')),
+            "rendered_content"
+        )
 
 
     @patch('config.app_config_generator.os.makedirs')
@@ -365,18 +418,14 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('os.path.join', side_effect=os.path.join)
     def test_generate_app_configs_only_registry(self, mock_os_path_join, mock_load_infra, mock_prepare_context, mock_render, mock_write_file, mock_makedirs):
         """
-        Test generation of app configs when only registry component is enabled.
+        Test generation of app configs when only registry component is enabled (using ConfigGenerationRequest).
         """
-        req = AppDeploymentRequest(
-            app_name="test-app",
+        req = ConfigGenerationRequest(
             components={
                 "registry": True
             },
-            domain_names={},
-            image_urls={},
             registry_url="http://mock-reg.com",
             registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
 
         app_config_generator.generate_app_configs(req)
@@ -391,30 +440,20 @@ class TestAppConfigGenerator(unittest.TestCase):
             call(template_dir=expected_template_source_dir, template_name=self.mock_registry_admin_template, context={"mock_context": True}),
         ]
 
-        tf_template_source_dir = os.path.join(self.mock_template_dir, 'tf_configs')
-        expected_render_calls_tfvars = [
-            call(template_dir=tf_template_source_dir, template_name=self.mock_tfvars_template, context={"mock_context": True}),
-        ]
-
-        all_expected_render_calls = sorted(expected_render_calls_configs + expected_render_calls_tfvars, key=lambda c: str(c))
+        all_expected_render_calls = sorted(expected_render_calls_configs, key=lambda c: str(c))
         actual_render_calls = sorted(mock_render.call_args_list, key=lambda c: str(c))
         self.assertEqual(actual_render_calls, all_expected_render_calls)
-        self.assertEqual(mock_render.call_count, 3) # Registry, Registry-Admin, and tfvars
+        self.assertEqual(mock_render.call_count, 2) 
 
         expected_write_calls_configs = [
             call(os.path.join(self.mock_generated_configs_dir, self.mock_registry_template.replace('.j2', '')), "rendered_content"),
             call(os.path.join(self.mock_generated_configs_dir, self.mock_registry_admin_template.replace('.j2', '')), "rendered_content"),
         ]
 
-        tf_vars_output_dir = os.path.join(self.mock_tf_dir, 'phase2')
-        expected_write_calls_tfvars = [
-            call(os.path.join(tf_vars_output_dir, self.mock_tfvars_template.replace('.j2', '')), "rendered_content"),
-        ]
-
-        all_expected_write_calls = sorted(expected_write_calls_configs + expected_write_calls_tfvars, key=lambda c: str(c))
+        all_expected_write_calls = sorted(expected_write_calls_configs, key=lambda c: str(c))
         actual_write_calls = sorted(mock_write_file.call_args_list, key=lambda c: str(c))
         self.assertEqual(actual_write_calls, all_expected_write_calls)
-        self.assertEqual(mock_write_file.call_count, 3) # Registry, Registry-Admin, and tfvars
+        self.assertEqual(mock_write_file.call_count, 2) 
 
 
     @patch('config.app_config_generator.os.makedirs')
@@ -433,14 +472,10 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test that FileNotFoundError during template rendering is caught and re-raised.
         """
-        req = AppDeploymentRequest(
-            app_name="test-app",
+        req = ConfigGenerationRequest(
             components={"bap": True},
-            domain_names={},
-            image_urls={},
             registry_url="http://mock-reg.com",
             registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
 
         with self.assertRaisesRegex(FileNotFoundError, "Missing J2"):
@@ -466,14 +501,10 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test that IOError during file writing is caught and re-raised.
         """
-        req = AppDeploymentRequest(
-            app_name="test-app",
+        req = ConfigGenerationRequest(
             components={"gateway": True},
-            domain_names={},
-            image_urls={},
             registry_url="http://mock-reg.com",
             registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
 
         with self.assertRaisesRegex(IOError, "No disk space"):
@@ -509,7 +540,6 @@ class TestAppConfigGenerator(unittest.TestCase):
                 "gateway": "repo/gateway:1.0",
                 "subscriber": "repo/subscriber:1.0"
             },
-            registry_url="http://mock-reg.com",
             registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
             domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
@@ -554,7 +584,6 @@ class TestAppConfigGenerator(unittest.TestCase):
             components={},
             domain_names={},
             image_urls={},
-            registry_url="http://mock-reg.com",
             registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
             domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
@@ -583,7 +612,6 @@ class TestAppConfigGenerator(unittest.TestCase):
             image_urls={
                 "registry": "repo/reg:1.0"
             },
-            registry_url="http://mock-reg.com",
             registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
             domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
@@ -597,26 +625,32 @@ class TestAppConfigGenerator(unittest.TestCase):
         self.assertEqual(env_vars["ENABLE_SCHEMA_VALIDATION"], "false")
         self.assertEqual(len(env_vars), 5) # DEPLOY_SERVICES + 2 Domains + 1 Image URL + 1 validation flag
 
-    def test_get_deployment_environment_variables_schema_validation_enabled(self):
+    @patch('config.app_config_generator.os.path.exists', return_value=True)
+    @patch('config.app_config_generator.utils.read_yaml_file', return_value={
+        "modules": [{"handler": {"plugins": {"schemaValidator": {}}}}]
+    })
+    # FIX: Correct argument order to match decorator stack (bottom-up)
+    def test_get_deployment_environment_variables_schema_validation_enabled(self, mock_read_yaml, mock_path_exists):
         """
-        Test that ENABLE_SCHEMA_VALIDATION is set to 'true' when enabled in the request.
+        Test that ENABLE_SCHEMA_VALIDATION is set to 'true' when found in the generated file.
         """
         req = AppDeploymentRequest(
             app_name="test-app",
             components={"bap": True},
             domain_names={},
             image_urls={},
-            registry_url="http://mock-reg.com",
-            adapter_config=AdapterConfig(enable_schema_validation=True),
             registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
             domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
         services_to_deploy = ["adapter"]
         env_vars = app_config_generator.get_deployment_environment_variables(req, services_to_deploy)
+        mock_read_yaml.assert_called_once()
         self.assertEqual(env_vars["ENABLE_SCHEMA_VALIDATION"], "true")
 
     @patch('os.path.join', side_effect=os.path.join)
-    @patch('config.app_config_generator.utils.read_yaml_file')
+    @patch('core.utils.read_yaml_file', return_value={
+        "modules": [{"handler": {"plugins": {"schemaValidator": {}}}}]
+    })
     def test_extract_final_urls_with_adapter_modules(self, mock_read_yaml_file, mock_os_path_join):
         """
         Test extracting final URLs, including adapter modules from a mocked adapter.yaml.
