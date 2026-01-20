@@ -629,7 +629,6 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('config.app_config_generator.utils.read_yaml_file', return_value={
         "modules": [{"handler": {"plugins": {"schemaValidator": {}}}}]
     })
-    # FIX: Correct argument order to match decorator stack (bottom-up)
     def test_get_deployment_environment_variables_schema_validation_enabled(self, mock_read_yaml, mock_path_exists):
         """
         Test that ENABLE_SCHEMA_VALIDATION is set to 'true' when found in the generated file.

@@ -79,11 +79,10 @@ class ConfigGenerationRequest(BaseModel):
 class AppDeploymentRequest(BaseModel):
     """
     Pydantic model for incoming application deployment requests.
-    Inherits from ConfigGenerationRequest and adds fields required for 
-    deployment logic (Terraform variables, Helm charts, etc.).
     """
     app_name: NonEmptyStr
     components: Dict[str, bool]
+    # Expected keys for components: "gateway", "registry", "bap", "bpp"
     domain_names: Dict[str, NonEmptyStr]
     # Expected keys for domain_names: "registry", "registry_admin", "subscriber", "gateway", "adapter"
     image_urls: Dict[str, NonEmptyStr]

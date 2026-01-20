@@ -72,8 +72,6 @@ def _prepare_template_context(request: Union[ConfigGenerationRequest, AppDeploym
     Adapts based on whether the input is a ConfigGenerationRequest or AppDeploymentRequest.
     """
     iam_sa_suffix = ".gserviceaccount.com"
-
-    # --- Safely extract fields that might be missing depending on the model ---
     
     # Fields specific to AppDeploymentRequest
     app_name = getattr(request, 'app_name', '')
@@ -92,7 +90,6 @@ def _prepare_template_context(request: Union[ConfigGenerationRequest, AppDeploym
 
     logger.debug("Preparing Jinja2 template context for application configurations...")
     context = {
-        # Infrastructure Details
         "project_id": infra_output_values.get("project_id"),
         "region": infra_output_values.get("cluster_region"),
         "cluster_region": infra_output_values.get("cluster_region"),
@@ -107,7 +104,6 @@ def _prepare_template_context(request: Union[ConfigGenerationRequest, AppDeploym
         "url_map": infra_output_values.get("url_map", ""),
         "global_ip_address": infra_output_values.get("global_ip_address"),
 
-        # Shared Configuration
         "registry": request.registry_config.model_dump(),
         "deploy_bap": request.components.get("bap", False),
         "deploy_bpp": request.components.get("bpp", False),
@@ -159,10 +155,9 @@ def _generate_file_from_template(
 
 def generate_app_configs(request: ConfigGenerationRequest):
     """
-    Generates application configuration YAML files (adapter.yaml, registry.yaml etc.).
-    Uses the ConfigGenerationRequest model.
+    Generates application configuration YAML files (adapter.yaml, registry.yaml etc.) based on ConfigGenerationRequest and infrastructure outputs.
     """
-    logger.info(f"Starting Application Configuration YAML Generation ")
+    logger.info("Starting Application Configuration YAML Generation ")
 
     try:
         # Loading infrastructure outputs.
@@ -209,7 +204,7 @@ def generate_app_configs(request: ConfigGenerationRequest):
 def generate_p2_tfvars(request: AppDeploymentRequest):
     """
     Generates the p2.tfvars file required for Phase 2 Terraform (HTTPS/SSL).
-    Requires full AppDeploymentRequest.
+    Requires AppDeploymentRequest.
     """
     logger.info("Starting p2.tfvars Generation")
     try:
@@ -218,11 +213,6 @@ def generate_p2_tfvars(request: AppDeploymentRequest):
         
         tf_vars_output_dir = os.path.join(TERRAFORM_DIRECTORY, 'phase2')
         tf_template_source_dir = os.path.join(TEMPLATE_DIRECTORY, 'tf_configs')
-        
-        # Generate p2.tfvars (we force overwrite here by removing the file check in the template util or handling it differently)
-        # Note: _generate_file_from_template above skips if exists. 
-        # For tfvars, we typically want to update it. 
-        # I will inline the generation here to ensure it updates.
         
         template_j2_filename = TFVARS_TEMPLATE_NAME
         output_filename = template_j2_filename.replace('.j2', '')

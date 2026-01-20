@@ -195,7 +195,6 @@ async def websocket_deploy_application(websocket: WebSocket):
 
     try:
         app_request_payload = await websocket.receive_json()
-        logger.info(json.dumps(app_request_payload))
         app_deployment_request = AppDeploymentRequest(**app_request_payload)
         logger.info(f"Received application deployment request with payload: {app_deployment_request}")
 

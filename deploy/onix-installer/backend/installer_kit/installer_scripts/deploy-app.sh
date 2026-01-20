@@ -33,8 +33,7 @@ check_command "jq"  # required for parsing JSON outputs to read outputs.json
 
 echo -e "\nAll required tools are installed. Proceeding...\n"
 
-OUTPUTS_FILE="outputs.json" # Relative to CWD (backend/installer_kit/terraform)
-# Updated to point to new artifacts structure
+OUTPUTS_FILE="outputs.json" # Relative to CWD
 CONFIG_DIR="../../../artifacts/configs"
 SCHEMA_DIR="../../../artifacts/config/schemas"
 PLUGIN_DIR="../../../adapter_artifacts/plugins"

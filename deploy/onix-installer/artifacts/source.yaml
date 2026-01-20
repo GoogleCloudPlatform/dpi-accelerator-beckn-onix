@@ -32,7 +32,7 @@ modules:
       rediscache: plugins/rediscache/cmd
       pubsubpublisher: plugins/pubsubpublisher/cmd
       inmemorysecretkeymanager: plugins/inmemorysecretkeymanager/cmd
-registry: asia-east1-docker.pkg.dev/ondc-seller-dev/onix-artifacts-reg
+# registry: <REGISTRY_URL>
 output: ./deploy/onix-installer/artifacts/plugins
 zipFileName: plugins_bundle.zip
 # gsPath: gs://<BucketName>/plugins/
