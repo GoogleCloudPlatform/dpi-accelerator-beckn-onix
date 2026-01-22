@@ -207,7 +207,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         self.mock_logger.info.assert_any_call(f"Loading infrastructure outputs from {expected_path}")
 
 
-    def test_prepare_template_context_full_request(self):
+    def test_prepare_template_context(self):
         """
         Test that the Jinja2 context is prepared correctly with a full AppDeploymentRequest.
         Note: AppDeploymentRequest does NOT contain adapter_config, gateway_config, or registry_url.
@@ -222,10 +222,7 @@ class TestAppConfigGenerator(unittest.TestCase):
                 "registry": "registry.example.com"
             },
             image_urls={"adapter": "some-repo/adapter:1.0"},
-            # registry_url="http://reg.example.com", # Removed from AppDeploymentRequest
-            # adapter_config=AdapterConfig(enable_schema_validation=True), # Removed
             registry_config=RegistryConfig(subscriber_id="test_sub", key_id="test_key", enable_auto_approver=True),
-            # gateway_config=GatewayConfig(subscriber_id="test_gateway_sub"), # Removed
             domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
         infra_outputs = {
@@ -246,9 +243,14 @@ class TestAppConfigGenerator(unittest.TestCase):
         context = app_config_generator._prepare_template_context(app_req, infra_outputs)
 
         self.assertEqual(context["project_id"], "infra-proj")
+        self.assertEqual(context["cluster_region"], "infra-region")
+        self.assertEqual(context["redis_instance_ip"], "10.0.0.1")
+        self.assertEqual(context["onix_topic_name"], "onix-t")
+        self.assertEqual(context["adapter_topic_name"], "adapter-t")
+        self.assertEqual(context["database_user_sa_email"], "user@my-proj.iam")
+        self.assertEqual(context["registry_admin_database_user_sa_email"], "admin@my-proj.iam")
         self.assertEqual(context["suffix"], "test-app")
         
-        # FIX: Registry URL is not in AppDeploymentRequest, so it defaults to empty string
         self.assertEqual(context["registry_url"], "")
         
         self.assertEqual(context["domains"], {
@@ -258,7 +260,6 @@ class TestAppConfigGenerator(unittest.TestCase):
                 "registry": "registry.example.com"
             })
 
-        # FIX: Adapter and Gateway configs are not in AppDeploymentRequest, so context should be empty
         self.assertEqual(context["adapter"], {})
         self.assertEqual(context["gateway"], {})
         

@@ -208,4 +208,4 @@ jobs:
 
       - name: 'Build and Run onixctl'
         run: |
-          go build ./cmd/onixctl && ./onixctl --config deploy/onix-installer/adapter_artifacts/source.yaml
+          go build ./cmd/onixctl && ./onixctl --config deploy/onix-installer/artifacts/source.yaml
