@@ -27,19 +27,22 @@ logger = logging.getLogger(__name__)
 VALID_CONFIG_EXTENSIONS = {'.yaml', '.yml'}
 
 def generate_initial_configs(request: ConfigGenerationRequest):
-    """
-    Generates the initial configuration files based on the deployment request.
+    """Generates the initial configuration files based on the deployment request.
+    This function triggers the generation of application configuration YAMLs.
     If files already exist, they are NOT overwritten.
+    Args:
+        request: A ConfigGenerationRequest object containing component flags and settings.
     """
     logger.info("Triggering initial config generation.")
     app_config.generate_app_configs(request)
 
 
 def get_all_config_paths() -> List[str]:
-    """
-    Returns a list of all file paths relative to the ARTIFACTS_DIR.
-    Filters out files that are not valid configuration types.
-    Hides 'routing_configs' if the Adapter (BAP/BPP) is not being deployed.
+    """Retrieves a sorted list of valid configuration file paths relative to the artifacts directory.
+    Filters files based on valid extensions and visibility rules (e.g., hiding 
+    'routing_configs' if the Adapter component is not selected in the UI state).
+    Returns:
+        A sorted list of string paths relative to GENERATED_CONFIGS_DIR.
     """
     file_paths = []
     if not os.path.exists(GENERATED_CONFIGS_DIR):
@@ -79,25 +82,44 @@ def get_all_config_paths() -> List[str]:
 
     return sorted(file_paths)
 
+
 def get_config_content(relative_path: str) -> str:
-    """
-    Reads the content of a configuration file.
-    Validates that the path is safely within ARTIFACTS_DIR.
+    """Reads the raw text content of a specified configuration file.
+    Args:
+        relative_path: The file path relative to the GENERATED_CONFIGS_DIR.
+    Returns:
+        The content of the file as a string.
+    Raises:
+        ValueError: If the path resolves to a location outside the allowed directory.
+        FileNotFoundError: If the file does not exist.
+        IOError: If there is an error reading the file.
     """
     safe_path = _validate_path(relative_path)
     return utils.read_file_content(safe_path)
 
+
 def update_config_content(relative_path: str, content: str):
-    """
-    Updates the content of a configuration file.
-    Validates that the path is safely within ARTIFACTS_DIR.
+    """Overwrites the content of a specified configuration file.
+    Args:
+        relative_path: The file path relative to the GENERATED_CONFIGS_DIR.
+        content: The new text content to write to the file.
+    Raises:
+        ValueError: If the path resolves to a location outside the allowed directory.
+        IOError: If there is an error writing to the file.
     """
     safe_path = _validate_path(relative_path)
     utils.write_file_content(safe_path, content)
 
+
 def _validate_path(relative_path: str) -> str:
-    """
-    Ensures the requested path is inside the ARTIFACTS_DIR to prevent directory traversal.
+    """Validates and resolves a relative path to ensure it remains within the allowed directory.
+    Prevents directory traversal attacks by checking the absolute path.
+    Args:
+        relative_path: The user-provided relative path.
+    Returns:
+        The absolute, normalized path to the file.
+    Raises:
+        ValueError: If the resolved path attempts to escape the GENERATED_CONFIGS_DIR.
     """
     # Normalize path to remove .. and .
     full_path = os.path.abspath(os.path.join(GENERATED_CONFIGS_DIR, relative_path))

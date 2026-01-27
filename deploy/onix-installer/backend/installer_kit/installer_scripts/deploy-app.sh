@@ -36,7 +36,7 @@ echo -e "\nAll required tools are installed. Proceeding...\n"
 OUTPUTS_FILE="outputs.json" # Relative to CWD
 CONFIG_DIR="../../../artifacts/configs"
 SCHEMA_DIR="../../../artifacts/config/schemas"
-PLUGIN_DIR="../../../adapter_artifacts/plugins"
+PLUGIN_DIR="../../../artifacts/plugins"
 ROUTING_CONFIG_DIR="../../../artifacts/configs/routing_configs"
 # HTTPS_TFVARS="https.tfvars" # Relative to CWD
 

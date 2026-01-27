@@ -206,11 +206,9 @@ class TestAppConfigGenerator(unittest.TestCase):
                         self.mock_logger.exception.call_args[0][0])
         self.mock_logger.info.assert_any_call(f"Loading infrastructure outputs from {expected_path}")
 
-
-    def test_prepare_template_context(self):
+    def test_prepare_tfvars_context(self):
         """
         Test that the Jinja2 context is prepared correctly with a full AppDeploymentRequest.
-        Note: AppDeploymentRequest does NOT contain adapter_config, gateway_config, or registry_url.
         """
         app_req = AppDeploymentRequest(
             app_name="test-app",
@@ -240,18 +238,12 @@ class TestAppConfigGenerator(unittest.TestCase):
             "global_ip_address": "35.35.35.35",
         }
 
-        context = app_config_generator._prepare_template_context(app_req, infra_outputs)
+        # Call the new specific function
+        context = app_config_generator._prepare_tfvars_context(app_req, infra_outputs)
 
         self.assertEqual(context["project_id"], "infra-proj")
         self.assertEqual(context["cluster_region"], "infra-region")
-        self.assertEqual(context["redis_instance_ip"], "10.0.0.1")
-        self.assertEqual(context["onix_topic_name"], "onix-t")
-        self.assertEqual(context["adapter_topic_name"], "adapter-t")
-        self.assertEqual(context["database_user_sa_email"], "user@my-proj.iam")
-        self.assertEqual(context["registry_admin_database_user_sa_email"], "admin@my-proj.iam")
         self.assertEqual(context["suffix"], "test-app")
-        
-        self.assertEqual(context["registry_url"], "")
         
         self.assertEqual(context["domains"], {
                 "auth_domain": "auth.example.com",
@@ -260,21 +252,13 @@ class TestAppConfigGenerator(unittest.TestCase):
                 "registry": "registry.example.com"
             })
 
-        self.assertEqual(context["adapter"], {})
-        self.assertEqual(context["gateway"], {})
-        
-        self.assertEqual(context["registry"], app_req.registry_config.model_dump())
-
-        self.assertTrue(context["deploy_bap"])
-        self.assertFalse(context["deploy_bpp"])
         self.assertTrue(context["enable_subscriber"])
         self.assertTrue(context["enable_auto_approver"])
         self.assertTrue(context["is_google_domain"])
-        self.assertEqual(context["domain_name"], "example.com")
         self.assertEqual(context["dns_zone"], "example-zone")
         self.assertIn("adapter.example.com", context["domain_list"])
 
-    def test_prepare_template_context_config_generation_request(self):
+    def test_prepare_config_generation_context(self):
         """
         Test that the Jinja2 context is prepared correctly with a partial ConfigGenerationRequest.
         """
@@ -290,7 +274,8 @@ class TestAppConfigGenerator(unittest.TestCase):
             # ... other infra fields
         }
 
-        context = app_config_generator._prepare_template_context(config_req, infra_outputs)
+        # Call the new specific function
+        context = app_config_generator._prepare_config_generation_context(config_req, infra_outputs)
 
         # Check fields present in ConfigGenerationRequest
         self.assertEqual(context["registry_url"], "http://reg.example.com/")
@@ -298,18 +283,11 @@ class TestAppConfigGenerator(unittest.TestCase):
         self.assertTrue(context["deploy_bap"])
         self.assertTrue(context["enable_subscriber"])
 
-        # Check fields absent in ConfigGenerationRequest (should have safe defaults)
-        self.assertEqual(context["suffix"], "")
-        self.assertEqual(context["domains"], {})
-        self.assertFalse(context["is_google_domain"])
-        self.assertEqual(context["domain_name"], "")
-        self.assertEqual(context["domain_list"], [])
-
 
     @patch('config.app_config_generator.os.makedirs')
     @patch('config.app_config_generator.utils.write_file_content')
     @patch('config.app_config_generator.utils.render_jinja_template', return_value="rendered_content")
-    @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
+    @patch('config.app_config_generator._prepare_config_generation_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
         "project_id": "test-project", "cluster_name": "test-cluster", "cluster_region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
@@ -370,7 +348,7 @@ class TestAppConfigGenerator(unittest.TestCase):
 
     @patch('config.app_config_generator.utils.write_file_content')
     @patch('config.app_config_generator.utils.render_jinja_template', return_value="rendered_content")
-    @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
+    @patch('config.app_config_generator._prepare_tfvars_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={})
     @patch('os.path.join', side_effect=os.path.join)
     def test_generate_p2_tfvars(self, mock_os_path_join, mock_load_infra, mock_prepare_context, mock_render, mock_write_file):
@@ -408,7 +386,7 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('config.app_config_generator.os.makedirs')
     @patch('config.app_config_generator.utils.write_file_content')
     @patch('config.app_config_generator.utils.render_jinja_template', return_value="rendered_content")
-    @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
+    @patch('config.app_config_generator._prepare_config_generation_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
         "project_id": "test-project", "cluster_name": "test-cluster", "cluster_region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
@@ -460,7 +438,7 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('config.app_config_generator.os.makedirs')
     @patch('config.app_config_generator.utils.write_file_content')
     @patch('config.app_config_generator.utils.render_jinja_template', side_effect=FileNotFoundError("Missing J2"))
-    @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
+    @patch('config.app_config_generator._prepare_config_generation_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
         "project_id": "test-project", "cluster_name": "test-cluster", "cluster_region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
@@ -489,7 +467,7 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('config.app_config_generator.os.makedirs')
     @patch('config.app_config_generator.utils.write_file_content', side_effect=IOError("No disk space"))
     @patch('config.app_config_generator.utils.render_jinja_template', return_value="content")
-    @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
+    @patch('config.app_config_generator._prepare_config_generation_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
         "project_id": "test-project", "cluster_name": "test-cluster", "cluster_region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",

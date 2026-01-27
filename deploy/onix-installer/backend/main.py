@@ -93,8 +93,14 @@ async def get_regions():
 
 @app.post("/api/configs")
 def generate_configs(request: ConfigGenerationRequest):
-    """
-    Generates initial configuration files. Does NOT overwrite existing files.
+    """Generates initial configuration files based on the provided request.
+    Does not overwrite existing files if they are already present.
+    Args:
+        request: A ConfigGenerationRequest object containing component flags and settings.
+    Returns:
+        A dictionary containing a success message.
+    Raises:
+        HTTPException: If an internal error occurs during generation (500).
     """
     logger.info("Received request to generate initial configurations.")
     try:
@@ -104,10 +110,14 @@ def generate_configs(request: ConfigGenerationRequest):
         logger.error(f"Failed to generate configs: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/api/configs/path")
-def get_config_paths():
-    """
-    Returns a list of all configuration file paths in the artifacts directory.
+def get_config_paths() -> dict[str, Any]:
+    """Retrieves a list of all existing configuration file paths.
+    Returns:
+        A dictionary containing the count of files and a list of file paths.
+    Raises:
+        HTTPException: If an internal error occurs while listing paths (500).
     """
     logger.info("Received request to list config paths.")
     try:
@@ -117,11 +127,16 @@ def get_config_paths():
         logger.error(f"Failed to list config paths: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 @app.get("/api/config/data")
-def get_config_data(path: str):
-    """
-    Retrieves the content of a specific configuration file.
-    Usage: GET /api/config/data?path=generated_configs/adapter.yaml
+def get_config_data(path: str) -> dict[str, str]:
+    """Retrieves the raw text content of a specific configuration file.
+    Args:
+        path: The relative file path to the configuration file (e.g., 'generated_configs/adapter.yaml').
+    Returns:
+        A dictionary containing the content string of the file.
+    Raises:
+        HTTPException: If the path is invalid (403), the file is not found (404), or a server error occurs (500).
     """
     logger.info(f"Received request to read config: {path}")
     try:
@@ -139,9 +154,13 @@ def get_config_data(path: str):
 
 @app.put("/api/config/data")
 def update_config_data(request: ConfigUpdateRequest):
-    """
-    Updates a specific configuration file with new content.
-    Request Body: { "path": "generated_configs/adapter.yaml", "content": "..." }
+    """Updates the content of a specific configuration file.
+    Args:
+        request: A ConfigUpdateRequest object containing the file path and the new content.
+    Returns:
+        A dictionary containing a success message.
+    Raises:
+        HTTPException: If the path is invalid/forbidden (403) or a server error occurs (500).
     """
     logger.info(f"Received request to update config: {request.path}")
     try:
@@ -152,14 +171,7 @@ def update_config_data(request: ConfigUpdateRequest):
         raise HTTPException(status_code=403, detail="Invalid path")
     except Exception as e:
         logger.error(f"Failed to update config: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-    
-@app.post("/api/deploy")
-async def deploy(request: AppDeploymentRequest):
-    """uncninrci
-    """
-    generate_p2_tfvars(request)
-      
+        raise HTTPException(status_code=500, detail=str(e))  
 
 @app.websocket("/ws/deployInfra")
 async def websocket_deploy_infra(websocket: WebSocket):
@@ -241,7 +253,6 @@ async def websocket_health_check(websocket: WebSocket):
         if websocket.client_state == 1:
             await websocket.close()
         logger.info("WebSocket connection for /ws/healthCheck closed.")
-
 
 
 @app.post("/store/bulk", status_code=201)

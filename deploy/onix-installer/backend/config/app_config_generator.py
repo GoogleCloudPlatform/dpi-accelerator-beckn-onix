@@ -38,11 +38,13 @@ def _should_deploy_adapter(components: dict) -> bool:
     """
     return components.get("bap", False) or components.get("bpp", False)
 
+
 def should_deploy_subscriber(components: dict) -> bool:
     """
     Determines if the subscriber should be deployed based on the 'bap', 'bpp', or 'gateway' components.
     """
     return components.get("bap", False) or components.get("bpp", False) or components.get("gateway", False)
+
 
 def _load_infrastructure_outputs(terraform_outputs_dir: str) -> dict:
     """
@@ -66,69 +68,12 @@ def _load_infrastructure_outputs(terraform_outputs_dir: str) -> dict:
         raise
 
 
-def _prepare_template_context(request: Union[ConfigGenerationRequest, AppDeploymentRequest], infra_output_values: dict) -> dict:
-    """
-    Prepares the context dictionary for Jinja2 template rendering.
-    Adapts based on whether the input is a ConfigGenerationRequest or AppDeploymentRequest.
-    """
-    iam_sa_suffix = ".gserviceaccount.com"
-    
-    # Fields specific to AppDeploymentRequest
-    app_name = getattr(request, 'app_name', '')
-    domain_names = getattr(request, 'domain_names', {})
-    domain_config = getattr(request, 'domain_config', None)
-    
-    # Fields specific to ConfigGenerationRequest
-    registry_url = getattr(request, 'registry_url', '')
-    adapter_config = getattr(request, 'adapter_config', None)
-    gateway_config = getattr(request, 'gateway_config', None)
-
-    # Computed fields
-    is_google_domain = (domain_config.domainType == "google_domain") if domain_config else False
-    base_domain = domain_config.baseDomain if domain_config else ''
-    dns_zone = domain_config.dnsZone if domain_config else ''
-
-    logger.debug("Preparing Jinja2 template context for application configurations...")
-    context = {
-        "project_id": infra_output_values.get("project_id"),
-        "region": infra_output_values.get("cluster_region"),
-        "cluster_region": infra_output_values.get("cluster_region"),
-        "redis_instance_ip": infra_output_values.get("redis_instance_ip"),
-        "onix_topic_name": infra_output_values.get("onix_topic_name"),
-        "adapter_topic_name": infra_output_values.get("adapter_topic_name"),
-        "database_user_sa_email": (infra_output_values.get("database_user_sa_email") or "").removesuffix(iam_sa_suffix),
-        "registry_admin_database_user_sa_email": (infra_output_values.get("registry_admin_database_user_sa_email") or "").removesuffix(iam_sa_suffix),
-        "registry_database_name": infra_output_values.get("registry_database_name"),
-        "registry_db_connection_name": infra_output_values.get("registry_db_connection_name"),
-        "config_bucket_name": infra_output_values.get("config_bucket_name"),
-        "url_map": infra_output_values.get("url_map", ""),
-        "global_ip_address": infra_output_values.get("global_ip_address"),
-
-        "registry": request.registry_config.model_dump(),
-        "deploy_bap": request.components.get("bap", False),
-        "deploy_bpp": request.components.get("bpp", False),
-        "enable_subscriber": should_deploy_subscriber(request.components),
-        "enable_auto_approver": request.registry_config.enable_auto_approver,
-
-        "registry_url": str(registry_url) if registry_url else "",
-        "adapter": adapter_config.model_dump() if adapter_config else {},
-        "gateway": gateway_config.model_dump() if gateway_config else {},
-
-        "suffix": app_name,
-        "domains": domain_names,
-        "is_google_domain": is_google_domain,
-        "domain_name": base_domain,
-        "dns_zone": dns_zone,
-        "domain_list": list(domain_names.values()),
-    }
-    logger.debug("Jinja2 template context prepared.")
-    return context
-
 def _generate_file_from_template(
     template_source_dir: str,
     template_j2_filename: str,
     output_dir: str,
-    context: dict
+    context: dict,
+    skip_if_exists: bool = True
 ):
     """
     Helper function to render a Jinja2 template and write the content to a file.
@@ -136,7 +81,7 @@ def _generate_file_from_template(
     output_filename = template_j2_filename.replace('.j2', '')
     output_path = os.path.join(output_dir, output_filename)
 
-    if os.path.exists(output_path):
+    if os.path.exists(output_path) and skip_if_exists:
         logger.info(f"Skipping generation of '{output_path}' as it already exists.")
         return
 
@@ -153,16 +98,24 @@ def _generate_file_from_template(
         logger.error(f"Failed to generate '{output_filename}': {e}", exc_info=True)
         raise
 
-def generate_app_configs(request: ConfigGenerationRequest):
-    """
-    Generates application configuration YAML files (adapter.yaml, registry.yaml etc.) based on ConfigGenerationRequest and infrastructure outputs.
+
+def generate_app_configs(request: ConfigGenerationRequest) -> None:
+    """Generates application configuration YAML files based on the request.
+    Generates adapter.yaml, registry.yaml, etc., by loading infrastructure outputs
+    and rendering the corresponding Jinja2 templates.
+    Args:
+        request: A ConfigGenerationRequest containing configuration parameters.
+    Raises:
+        FileNotFoundError: If infrastructure outputs or templates are missing.
+        ValueError: If output data is invalid.
+        RuntimeError: If generation logic fails.
     """
     logger.info("Starting Application Configuration YAML Generation ")
 
     try:
         # Loading infrastructure outputs.
         infra_output_values = _load_infrastructure_outputs(TERRAFORM_DIRECTORY)
-        template_context = _prepare_template_context(request, infra_output_values)
+        template_context = _prepare_config_generation_context(request, infra_output_values)
 
         os.makedirs(GENERATED_CONFIGS_DIR, exist_ok=True)
 
@@ -201,38 +154,38 @@ def generate_app_configs(request: ConfigGenerationRequest):
 
     logger.info("Application Config YAML files generation completed")
 
-def generate_p2_tfvars(request: AppDeploymentRequest):
-    """
-    Generates the p2.tfvars file required for Phase 2 Terraform (HTTPS/SSL).
-    Requires AppDeploymentRequest.
+
+def generate_p2_tfvars(request: AppDeploymentRequest) -> None:
+    """Generates the p2.tfvars file required for Phase 2 Terraform (HTTPS/SSL).
+    Args:
+        request: An AppDeploymentRequest containing domain and application details.
+    Raises:
+        Exception: If any error occurs during the template rendering or file writing process.
     """
     logger.info("Starting p2.tfvars Generation")
     try:
         infra_output_values = _load_infrastructure_outputs(TERRAFORM_DIRECTORY)
-        template_context = _prepare_template_context(request, infra_output_values)
+        template_context = _prepare_tfvars_context(request, infra_output_values)
         
         tf_vars_output_dir = os.path.join(TERRAFORM_DIRECTORY, 'phase2')
         tf_template_source_dir = os.path.join(TEMPLATE_DIRECTORY, 'tf_configs')
         
         template_j2_filename = TFVARS_TEMPLATE_NAME
-        output_filename = template_j2_filename.replace('.j2', '')
-        output_path = os.path.join(tf_vars_output_dir, output_filename)
-        
-        logger.info(f"Processing template: '{template_j2_filename}' -> '{output_path}'...")
-        rendered_content = utils.render_jinja_template(
-            template_dir=tf_template_source_dir,
-            template_name=template_j2_filename,
-            context=template_context
-        )
-        utils.write_file_content(output_path, rendered_content)
-        logger.info("p2.tfvars generation completed")
 
+        _generate_file_from_template(
+                template_source_dir=tf_template_source_dir,
+                template_j2_filename=template_j2_filename,
+                output_dir=tf_vars_output_dir,
+                context=template_context,
+                skip_if_exists=False
+            )
+        logger.info("p2.tfvars generation completed")
     except Exception as e:
         logger.critical(f"Critical Error during p2.tfvars Generation: {e}", exc_info=True)
         raise
 
 
-def get_deployment_environment_variables(app_deployment_request: AppDeploymentRequest, services_to_deploy: List[str]) -> dict[str, str]:
+def get_deployment_environment_variables(app_deployment_request: AppDeploymentRequest, services_to_deploy: list[str]) -> dict[str, str]:
     """
     Prepares environment variables needed for the deploy-app.sh script based on the
     AppDeploymentRequest.
@@ -247,7 +200,7 @@ def get_deployment_environment_variables(app_deployment_request: AppDeploymentRe
     for key, domain in app_deployment_request.domain_names.items():
         env_var_name = f"{key.upper().replace('-', '_')}_DOMAIN"
         env_vars[env_var_name] = domain
-        logger.debug(f"  Setting ENV: {env_var_name}={domain}")
+        logger.debug(f"Setting ENV: {env_var_name}={domain}")
 
     # Add Image URLs to environment variables if provided.
     for key, url in app_deployment_request.image_urls.items():
@@ -256,33 +209,48 @@ def get_deployment_environment_variables(app_deployment_request: AppDeploymentRe
         logger.debug(f"  Setting ENV: {env_var_name}={url}")
 
      # Check config file content for schema validation
-    enable_schema_validation = "false"
-    adapter_config_path = os.path.join(GENERATED_CONFIGS_DIR, "adapter.yaml")
+    enable_schema_validation = False
 
-    # Only check if adapter is actually being deployed or configured
-    if os.path.exists(adapter_config_path) and "adapter" in services_to_deploy:
-        try:
-            logger.debug(f"Inspecting {adapter_config_path} for schema validation settings...")
-            adapter_data = utils.read_yaml_file(adapter_config_path)
-            
-            modules = adapter_data.get("modules", [])
-            if isinstance(modules, list):
-                for module in modules:
-                    if isinstance(module, dict):
-                        plugins = module.get("handler", {}).get("plugins", {})
-                        if "schemaValidator" in plugins:
-                            enable_schema_validation = "true"
-                            logger.info("Schema validation detected as ENABLED in adapter configuration.")
-                            break
-                            
-        except Exception as e:
-            logger.warning(f"Failed to parse adapter config to verify schema validation status: {e}. Defaulting to false.")
+    # Only check config if the adapter is actually being deployed
+    if "adapter" in services_to_deploy:
+        adapter_config_path = os.path.join(GENERATED_CONFIGS_DIR, "adapter.yaml")
+        enable_schema_validation = _is_schema_validation_enabled(adapter_config_path)
     
-    env_vars["ENABLE_SCHEMA_VALIDATION"] = enable_schema_validation
-    logger.debug(f"  Setting ENV: ENABLE_SCHEMA_VALIDATION={enable_schema_validation}")
+    # Convert bool to string for the environment variable
+    env_vars["ENABLE_SCHEMA_VALIDATION"] = str(enable_schema_validation).lower()
+    logger.debug(f"  Setting ENV: ENABLE_SCHEMA_VALIDATION={env_vars['ENABLE_SCHEMA_VALIDATION']}")
 
     logger.info("Environment variables prepared for deploy-app.sh.")
     return env_vars
+
+
+def _is_schema_validation_enabled(config_path: str) -> bool:
+    """
+    Parses the adapter configuration file to determine if schema validation
+    is enabled in any of the modules.
+    """
+    if not os.path.exists(config_path):
+        return False
+
+    try:
+        logger.debug(f"Inspecting {config_path} for schema validation settings...")
+        adapter_data = utils.read_yaml_file(config_path)
+        
+        modules = adapter_data.get("modules", [])
+        if isinstance(modules, list):
+            for module in modules:
+                if isinstance(module, dict):
+                    # Safely traverse the nested dictionary structure
+                    plugins = module.get("handler", {}).get("plugins", {})
+                    if "schemaValidator" in plugins:
+                        logger.info("Schema validation detected as ENABLED in adapter configuration.")
+                        return True
+                        
+    except Exception as e:
+        logger.warning(f"Failed to parse adapter config to verify schema validation status: {e}. Defaulting to false.")
+    
+    return False
+
 
 def extract_final_urls(domain_names: Dict[str, str], services: List[str]) -> Dict[str, str]:
 
@@ -330,6 +298,7 @@ def extract_final_urls(domain_names: Dict[str, str], services: List[str]) -> Dic
 
     return service_urls
 
+
 def generate_logs_explorer_urls(service_names: List[str]) -> Dict[str, str]:
     """
     Generates Cloud Logs Explorer URLs for a given list of services,
@@ -372,3 +341,89 @@ def generate_logs_explorer_urls(service_names: List[str]) -> Dict[str, str]:
 
     logger.info("Generated Logs Explorer URLs.")
     return logs_explorer_urls
+
+
+def _get_common_infra_context(infra_output_values: dict) -> dict:
+    """
+    Extracts and sanitizes common infrastructure values required by the templates.
+    """
+    iam_sa_suffix = ".gserviceaccount.com"
+    
+    # safely remove suffix if the value exists
+    def clean_email(email):
+        return email.removesuffix(iam_sa_suffix) if email else ""
+
+    return {
+        "project_id": infra_output_values.get("project_id"),
+        "region": infra_output_values.get("cluster_region"),
+        "cluster_region": infra_output_values.get("cluster_region"),
+        "redis_instance_ip": infra_output_values.get("redis_instance_ip"),
+        "onix_topic_name": infra_output_values.get("onix_topic_name"),
+        "adapter_topic_name": infra_output_values.get("adapter_topic_name"),
+        
+        # Database Users
+        "database_user_sa_email": clean_email(infra_output_values.get("database_user_sa_email")),
+        "registry_admin_database_user_sa_email": clean_email(infra_output_values.get("registry_admin_database_user_sa_email")),
+        
+        # Database Connection Info
+        "registry_database_name": infra_output_values.get("registry_database_name"),
+        "registry_db_connection_name": infra_output_values.get("registry_db_connection_name"),
+        
+        # Global Networking
+        "config_bucket_name": infra_output_values.get("config_bucket_name"),
+        "url_map": infra_output_values.get("url_map", ""),
+        "global_ip_address": infra_output_values.get("global_ip_address"),
+    }
+
+
+def _prepare_config_generation_context(request: ConfigGenerationRequest, infra_output_values: dict) -> dict:
+    """
+    Prepares the context dictionary specifically for generating App Configuration YAMLs.
+    Maps ConfigGenerationRequest fields to the Jinja2 variables identified in the templates.
+    """
+    logger.debug("Preparing Jinja2 template context for App Configuration...")
+    
+    context = _get_common_infra_context(infra_output_values)
+
+    registry_data = request.registry_config.model_dump()
+    adapter_data = request.adapter_config.model_dump() if request.adapter_config else {}
+    gateway_data = request.gateway_config.model_dump() if request.gateway_config else {}
+
+    context.update({
+        "deploy_bap": request.components.get("bap", False),
+        "deploy_bpp": request.components.get("bpp", False),
+        "enable_subscriber": should_deploy_subscriber(request.components),
+        "enable_auto_approver": request.registry_config.enable_auto_approver,
+
+        "registry": registry_data,
+        "adapter": adapter_data,
+        "gateway": gateway_data,
+
+        "registry_url": str(request.registry_url) if request.registry_url else "",
+    })
+    
+    return context
+
+
+def _prepare_tfvars_context(request: AppDeploymentRequest, infra_output_values: dict) -> dict:
+    """
+    Prepares the context dictionary specifically for generating p2.tfvars.
+    Maps AppDeploymentRequest fields and Infra Outputs to the variables in p2.tfvars.j2.
+    """
+    logger.debug("Preparing Jinja2 template context for Terraform Variables (p2.tfvars)...")
+
+    context = _get_common_infra_context(infra_output_values)
+
+    is_google_domain = (request.domain_config.domainType == "google_domain")
+    
+    context.update({
+        "suffix": request.app_name, 
+        "is_google_domain": is_google_domain,
+        "dns_zone": request.domain_config.dnsZone,
+        "domains": request.domain_names, 
+        "domain_list": list(request.domain_names.values()),
+        "enable_subscriber": should_deploy_subscriber(request.components),
+        "enable_auto_approver": request.registry_config.enable_auto_approver,
+    })
+
+    return context

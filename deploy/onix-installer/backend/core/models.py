@@ -92,9 +92,21 @@ class AppDeploymentRequest(BaseModel):
 
 
 class ProxyRequest(BaseModel):
+    """
+    Represents a request to be forwarded by the dynamic proxy service.
+    Attributes:
+        targetUrl: The full destination URL where the payload should be sent.
+        payload: The JSON-serializable body to send in the POST request.
+    """
     targetUrl: str
     payload: Dict[Any, Any]
 
 class ConfigUpdateRequest(BaseModel):
+    """
+    Represents a request to overwrite a configuration file's content.
+    Attributes:
+        path: The relative file path of the configuration to update (e.g., 'generated_configs/adapter.yaml').
+        content: The new text content to write to the file.
+    """
     path: str  
     content: str
