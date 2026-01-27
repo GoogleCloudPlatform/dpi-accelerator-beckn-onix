@@ -122,16 +122,27 @@ def _get_services_to_deploy(app_deployment_request: AppDeploymentRequest) -> Lis
     logger.debug(f"Determined services to deploy: {sorted_services}")
     return sorted_services
 
-async def run_app_deployment(app_deployment_request: AppDeploymentRequest, websocket):
-    """
-    Executes the application deployment script.
+async def run_app_deployment(app_deployment_request: AppDeploymentRequest, websocket) -> None:
+    """Executes the application deployment script and streams progress.
+    This function generates the necessary Terraform variables (p2.tfvars) and 
+    environment variables, then runs the underlying shell script (`deploy-app.sh`) 
+    in a subprocess. Real-time logs and final success/failure status are streamed 
+    back to the client via the provided websocket.
+    Args:
+        app_deployment_request: A configuration object containing deployment 
+            details such as domain names and services to deploy.
+        websocket: An open websocket connection used to send JSON-formatted 
+            status updates and stream standard output/error from the script.
+    Returns:
+        None. The function performs side effects (subprocess execution, 
+        websocket communication) and does not return a value.
     """
     logger.info(f"Initiating application deployment with payload: {app_deployment_request}")
 
     try:
         # Generate p2.tfvars (needed for SSL/Domains)
         app_config.generate_p2_tfvars(app_deployment_request)
-        logger.info("p2.tfvars generated for deployment phase.")
+        await websocket.send_text(json.dumps({"type": "info", "message": "p2.tfvars generated for deployment phase."}))
 
         services = _get_services_to_deploy(app_deployment_request)
     

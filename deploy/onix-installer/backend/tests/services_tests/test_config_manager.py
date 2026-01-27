@@ -12,20 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import os
 import shutil
+import sys
 import tempfile
+import unittest
 from unittest.mock import MagicMock, patch
 
-import sys
 # Adjust path to include project root if necessary
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.insert(0, project_root)
 
 # Import the module under test
-import services.config_manager as config_manager
 from core.models import ConfigGenerationRequest, RegistryConfig
+from services import config_manager
 
 class TestConfigManager(unittest.TestCase):
 

@@ -12,29 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
+import logging
 import os
 import sys
-import logging
-from unittest.mock import patch, MagicMock, call, mock_open
-
+import unittest
+from unittest.mock import MagicMock, call, mock_open, patch
 import urllib
 
-# Add the project root to sys.path for proper imports
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.path.insert(0, project_root)
 
+from config import app_config_generator
 from core.models import (
+    AdapterConfig,
     AppDeploymentRequest,
     ConfigGenerationRequest,
     DeploymentType,
-    AdapterConfig,
-    RegistryConfig,
+    DomainConfig,
     GatewayConfig,
-    DomainConfig
+    RegistryConfig
 )
-
-from config import app_config_generator
 
 
 class TestAppConfigGenerator(unittest.TestCase):

@@ -12,21 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import logging
-from typing import List, Dict, Any
-from core.constants import ARTIFACTS_DIR, GENERATED_CONFIGS_DIR
-from core import utils
+import os
+from typing import Any, Dict, List
+
 import config.app_config_generator as app_config
+from core import utils
+from core.constants import ARTIFACTS_DIR, GENERATED_CONFIGS_DIR
 from core.models import ConfigGenerationRequest
 from services import ui_state_manager
 
-logger = logging.getLogger(__name__)
-
-# Define allowed configuration file extensions
 VALID_CONFIG_EXTENSIONS = {'.yaml', '.yml'}
 
-def generate_initial_configs(request: ConfigGenerationRequest):
+logger = logging.getLogger(__name__)
+
+def generate_initial_configs(request: ConfigGenerationRequest) -> None:
     """Generates the initial configuration files based on the deployment request.
     This function triggers the generation of application configuration YAMLs.
     If files already exist, they are NOT overwritten.
@@ -98,7 +98,7 @@ def get_config_content(relative_path: str) -> str:
     return utils.read_file_content(safe_path)
 
 
-def update_config_content(relative_path: str, content: str):
+def update_config_content(relative_path: str, content: str) -> None:
     """Overwrites the content of a specified configuration file.
     Args:
         relative_path: The file path relative to the GENERATED_CONFIGS_DIR.
