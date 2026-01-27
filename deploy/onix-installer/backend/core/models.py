@@ -64,7 +64,18 @@ class DomainConfig(BaseModel):
     domainType: NonEmptyStr
     baseDomain: str
     dnsZone: str
-    
+
+class ConfigGenerationRequest(BaseModel):
+    """
+    Model for generating application configuration files (YAMLs).
+    Contains only the fields necessary for rendering service configs.
+    """
+    components: Dict[str, bool]
+    registry_url: HttpUrl
+    adapter_config: Optional[AdapterConfig] = None
+    registry_config: RegistryConfig
+    gateway_config: Optional[GatewayConfig] = None
+
 class AppDeploymentRequest(BaseModel):
     """
     Pydantic model for incoming application deployment requests.
@@ -76,15 +87,26 @@ class AppDeploymentRequest(BaseModel):
     # Expected keys for domain_names: "registry", "registry_admin", "subscriber", "gateway", "adapter"
     image_urls: Dict[str, NonEmptyStr]
     # Expected keys for image_urls: "registry", "registry_admin", "subscriber", "gateway", "adapter"
-
-    registry_url: HttpUrl
-
-    adapter_config: Optional[AdapterConfig] = None
-    registry_config: RegistryConfig
-    gateway_config: Optional[GatewayConfig] = None
     domain_config: DomainConfig
+    registry_config: RegistryConfig
 
 
 class ProxyRequest(BaseModel):
+    """
+    Represents a request to be forwarded by the dynamic proxy service.
+    Attributes:
+        targetUrl: The full destination URL where the payload should be sent.
+        payload: The JSON-serializable body to send in the POST request.
+    """
     targetUrl: str
     payload: Dict[Any, Any]
+
+class ConfigUpdateRequest(BaseModel):
+    """
+    Represents a request to overwrite a configuration file's content.
+    Attributes:
+        path: The relative file path of the configuration to update (e.g., 'generated_configs/adapter.yaml').
+        content: The new text content to write to the file.
+    """
+    path: str  
+    content: str

@@ -25,7 +25,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 sys.path.insert(0, project_root)
 
 from core.models import InfraDeploymentRequest, AppDeploymentRequest, DeploymentType, RegistryConfig, DomainConfig
-import core.utils as utils  # Import utils to allow its original function to be called
+import core.utils as utils 
 
 import config.app_config_generator as app_config
 import services.deployment_manager as dm
@@ -76,11 +76,11 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
     @patch('asyncio.create_subprocess_exec')
     @patch('builtins.open', new_callable=MagicMock)
     @patch('json.load', return_value={"output_key": {"value": "output_value"}})
-    # Removed: @patch('core.utils.stream_subprocess_output')
     async def test_run_infra_deployment_success(self, mock_json_load, mock_open, mock_create_subprocess_exec):
         mock_process = AsyncMock()
-        mock_process.stdout = AsyncMock() # Added to simulate stdout for the actual stream_subprocess_output
-        mock_process.stdout.readline.side_effect = [b"Infra log 1\n", b"Infra log 2\n", b""] # Added for actual stream_subprocess_output
+        mock_process.stdout = AsyncMock() 
+        # Simulate logs being read by utils.stream_subprocess_output
+        mock_process.stdout.readline.side_effect = [b"Infra log 1\n", b"Infra log 2\n", b""] 
         mock_process.wait.return_value = 0
         mock_create_subprocess_exec.return_value = mock_process
 
@@ -98,8 +98,9 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
             stderr=asyncio.subprocess.STDOUT,
             cwd=self.mock_terraform_directory
         )
-        # Removed assert for mock_stream_subprocess_output as it's no longer mocked
-        self.assertEqual(self.mock_websocket.send_text.call_count, 6) # 3 info + 2 log + 1 success (now that logs are simulated)
+        
+        # Verify call count: 3 info + 2 logs + 1 success
+        self.assertEqual(self.mock_websocket.send_text.call_count, 6) 
 
         expected_messages = [
             json.dumps({"type": "info", "message": "Generating Terraform configurations..."}),
@@ -110,6 +111,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
             json.dumps({"type": "success", "message": {"output_key": {"value": "output_value"}}}),
         ]
         
+        # Use assert_any_call to ensure all messages were sent
         for msg in expected_messages:
             self.mock_websocket.send_text.assert_any_call(msg)
 
@@ -156,11 +158,10 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
     @patch('asyncio.create_subprocess_exec')
     @patch('builtins.open')
-    # Removed: @patch('core.utils.stream_subprocess_output')
     async def test_run_infra_deployment_script_execution_failure(self, mock_open, mock_create_subprocess_exec):
         mock_process = AsyncMock()
-        mock_process.stdout = AsyncMock() # Added for actual stream_subprocess_output
-        mock_process.stdout.readline.side_effect = [b"Infra log error\n", b""] # Added for actual stream_subprocess_output
+        mock_process.stdout = AsyncMock() 
+        mock_process.stdout.readline.side_effect = [b"Infra log error\n", b""] 
         mock_process.wait.return_value = 1
         mock_create_subprocess_exec.return_value = mock_process
 
@@ -173,18 +174,16 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
         self.mock_tf_config.generate_config.assert_called_once()
         mock_create_subprocess_exec.assert_called_once()
-        # Removed assert for mock_stream_subprocess_output
         self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "log", "action": "infra_deploy_log", "message": "Infra log error"})) # Added expected log messages
         self.mock_websocket.send_text.assert_called_with(json.dumps({"type": "error", "message": "Script failed with exit code: 1"}))
         mock_open.assert_not_called()
 
     @patch('asyncio.create_subprocess_exec')
     @patch('builtins.open', side_effect=FileNotFoundError("Outputs JSON not found"))
-    # Removed: @patch('core.utils.stream_subprocess_output')
     async def test_run_infra_deployment_outputs_json_not_found(self, mock_open, mock_create_subprocess_exec):
         mock_process = AsyncMock()
-        mock_process.stdout = AsyncMock() # Added for actual stream_subprocess_output
-        mock_process.stdout.readline.side_effect = [b"Infra log\n", b""] # Added for actual stream_subprocess_output
+        mock_process.stdout = AsyncMock()
+        mock_process.stdout.readline.side_effect = [b"Infra log\n", b""]
         mock_process.wait.return_value = 0
         mock_create_subprocess_exec.return_value = mock_process
 
@@ -199,18 +198,17 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
         mock_create_subprocess_exec.assert_called_once()
         # Removed assert for mock_stream_subprocess_output
         mock_open.assert_called_once_with(os.path.join(self.mock_terraform_directory, "outputs.json"), "r")
-        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "log", "action": "infra_deploy_log", "message": "Infra log"})) # Added expected log messages
+        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "log", "action": "infra_deploy_log", "message": "Infra log"}))
         self.mock_websocket.send_text.assert_called_with(json.dumps({"type": "error", "message": f"Error: outputs.json not found at {os.path.join(self.mock_terraform_directory, 'outputs.json')}"}))
         self.mock_logger.error.assert_called_once()
 
     @patch('asyncio.create_subprocess_exec')
     @patch('builtins.open', new_callable=MagicMock)
     @patch('json.load', side_effect=json.JSONDecodeError("Invalid JSON", doc="{}", pos=1))
-    # Removed: @patch('core.utils.stream_subprocess_output')
     async def test_run_infra_deployment_outputs_json_decode_error(self, mock_json_load, mock_open, mock_create_subprocess_exec):
         mock_process = AsyncMock()
-        mock_process.stdout = AsyncMock() # Added for actual stream_subprocess_output
-        mock_process.stdout.readline.side_effect = [b"Infra log\n", b""] # Added for actual stream_subprocess_output
+        mock_process.stdout = AsyncMock()
+        mock_process.stdout.readline.side_effect = [b"Infra log\n", b""]
         mock_process.wait.return_value = 0
         mock_create_subprocess_exec.return_value = mock_process
 
@@ -223,10 +221,10 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
         self.mock_tf_config.generate_config.assert_called_once()
         mock_create_subprocess_exec.assert_called_once()
-        # Removed assert for mock_stream_subprocess_output
+
         mock_open.assert_called_once_with(os.path.join(self.mock_terraform_directory, "outputs.json"), "r")
         mock_json_load.assert_called_once()
-        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "log", "action": "infra_deploy_log", "message": "Infra log"})) # Added expected log messages
+        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "log", "action": "infra_deploy_log", "message": "Infra log"}))
         self.mock_websocket.send_text.assert_called_with(json.dumps({"type": "error", "message": f"Error: Could not decode outputs.json at {os.path.join(self.mock_terraform_directory, 'outputs.json')}"}))
         self.mock_logger.error.assert_called_once()
 
@@ -245,20 +243,20 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
         self.mock_websocket.send_text.assert_called_with(json.dumps({"type": "error", "message": "An error occurred during infrastructure deployment: Unexpected error"}))
         self.mock_logger.exception.assert_called_once()
 
+    # --- App Deployment Tests ---
+
     @patch('services.deployment_manager._get_services_to_deploy', return_value=["adapter", "registry"])
     @patch('asyncio.create_subprocess_exec')
-    # Removed: @patch('core.utils.stream_subprocess_output')
     async def test_run_app_deployment_success(self, mock_create_subprocess_exec, mock_get_services_to_deploy):
         mock_process = AsyncMock()
-        mock_process.stdout = AsyncMock() # Added for actual stream_subprocess_output
-        mock_process.stdout.readline.side_effect = [b"App log 1\n", b"App log 2\n", b""] # Added for actual stream_subprocess_output
+        mock_process.stdout = AsyncMock() 
+        mock_process.stdout.readline.side_effect = [b"App log 1\n", b"App log 2\n", b""] 
         mock_process.wait.return_value = 0
         mock_create_subprocess_exec.return_value = mock_process
 
         self.mock_app_config.get_deployment_environment_variables.return_value = {"TEST_ENV_VAR": "value"}
         self.mock_app_config.generate_logs_explorer_urls.return_value = {"adapter": "adapter-logs-url", "registry": "registry-logs-url"}
         self.mock_app_config.extract_final_urls.return_value = {"adapter": "https://adapter.com", "registry": "https://registry.com"}
-
 
         app_req = AppDeploymentRequest(
             app_name="test-app",
@@ -272,10 +270,16 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
         await dm.run_app_deployment(app_req, self.mock_websocket)
 
-        self.mock_app_config.generate_app_configs.assert_called_once_with(app_req)
+        # 1. Verify Config generation (Updated to generate_p2_tfvars)
+        self.mock_app_config.generate_p2_tfvars.assert_called_once_with(app_req)
+        
+        # 2. Verify Services Calculation
         mock_get_services_to_deploy.assert_called_once_with(app_req)
+        
+        # 3. Verify Env Vars
         self.mock_app_config.get_deployment_environment_variables.assert_called_once_with(app_req, ["adapter", "registry"])
         
+        # 4. Verify Subprocess Call
         args, kwargs = mock_create_subprocess_exec.call_args
         self.assertEqual(args[0], '/bin/bash')
         self.assertEqual(args[1], self.mock_app_script_path)
@@ -284,8 +288,9 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(kwargs['env']['TEST_ENV_VAR'], "value")
         self.assertIn("PATH", kwargs['env'])
 
-        # Removed assert for mock_stream_subprocess_output
-        self.assertEqual(self.mock_websocket.send_text.call_count, 6) # 3 info + 2 log + 1 success
+        # 5. Verify Websocket Messages
+        # Sequence: "Executing..." -> Log 1 -> Log 2 -> Success
+        self.assertEqual(self.mock_websocket.send_text.call_count, 4) 
 
         expected_success_message = json.dumps({
             "type": "success",
@@ -297,22 +302,18 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
                 "logs_explorer_urls": {"adapter": "adapter-logs-url", "registry": "registry-logs-url"},
             }
         })
-        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "info", "message": "Generating application configurations..."}))
-        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "info", "message": "Application configurations generated successfully."}))
         self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "info", "message": "Executing application deployment script..."}))
-        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "log", "action": "app_deploy_log", "message": "App log 1"})) # Added expected log messages
-        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "log", "action": "app_deploy_log", "message": "App log 2"})) # Added expected log messages
+        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "log", "action": "app_deploy_log", "message": "App log 1"})) 
+        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "log", "action": "app_deploy_log", "message": "App log 2"})) 
         self.mock_websocket.send_text.assert_called_with(expected_success_message)
 
+        # 6. Verify Post-Processing
         self.mock_app_config.generate_logs_explorer_urls.assert_called_once_with(["adapter", "registry"])
         self.mock_app_config.extract_final_urls.assert_called_once_with(app_req.domain_names, ["adapter", "registry"])
         self.mock_logger.info.assert_any_call("Environment variables for app script prepared.")
-        self.mock_logger.info.assert_any_call("Application configuration YAMLs generated successfully.")
-        self.mock_logger.info.assert_any_call(expected_success_message)
-
-
     async def test_run_app_deployment_config_generation_failure(self):
-        self.mock_app_config.generate_app_configs.side_effect = FileNotFoundError("App config template missing")
+        # Updated to mock generate_p2_tfvars
+        self.mock_app_config.generate_p2_tfvars.side_effect = FileNotFoundError("App config template missing")
 
         app_req = AppDeploymentRequest(
             app_name="test-app",
@@ -324,8 +325,9 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
         await dm.run_app_deployment(app_req, self.mock_websocket)
 
-        self.mock_app_config.generate_app_configs.assert_called_once_with(app_req)
-        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "info", "message": "Generating application configurations..."}))
+        self.mock_app_config.generate_p2_tfvars.assert_called_once_with(app_req)
+        
+        # Code does NOT send "Generating..." info message anymore
         self.mock_websocket.send_text.assert_called_with(json.dumps({
             "type": "error",
             "action": "app_config_error",
@@ -336,11 +338,10 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
     @patch('services.deployment_manager._get_services_to_deploy', return_value=["adapter"])
     @patch('asyncio.create_subprocess_exec')
-    # Removed: @patch('core.utils.stream_subprocess_output')
     async def test_run_app_deployment_script_execution_failure(self, mock_create_subprocess_exec, mock_get_services_to_deploy):
         mock_process = AsyncMock()
-        mock_process.stdout = AsyncMock() # Added for actual stream_subprocess_output
-        mock_process.stdout.readline.side_effect = [b"App log error\n", b""] # Added for actual stream_subprocess_output
+        mock_process.stdout = AsyncMock() 
+        mock_process.stdout.readline.side_effect = [b"App log error\n", b""] 
         mock_process.wait.return_value = 1
         mock_create_subprocess_exec.return_value = mock_process
 
@@ -356,12 +357,12 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
         await dm.run_app_deployment(app_req, self.mock_websocket)
 
-        self.mock_app_config.generate_app_configs.assert_called_once()
+        self.mock_app_config.generate_p2_tfvars.assert_called_once()
         mock_get_services_to_deploy.assert_called_once_with(app_req)
         self.mock_app_config.get_deployment_environment_variables.assert_called_once_with(app_req, ["adapter"])
         mock_create_subprocess_exec.assert_called_once()
-        # Removed assert for mock_stream_subprocess_output
-        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "log", "action": "app_deploy_log", "message": "App log error"})) # Added expected log messages
+        
+        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "log", "action": "app_deploy_log", "message": "App log error"}))
         self.mock_websocket.send_text.assert_called_with(json.dumps({
             "type": "error",
             "action": "app_deploy_failed",
@@ -381,10 +382,11 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
         await dm.run_app_deployment(app_req, self.mock_websocket)
 
-        self.mock_app_config.generate_app_configs.assert_called_once()
+        self.mock_app_config.generate_p2_tfvars.assert_called_once()
         mock_get_services_to_deploy.assert_called_once_with(app_req)
         self.mock_app_config.get_deployment_environment_variables.assert_called_once_with(app_req, ["adapter"])
         mock_create_subprocess_exec.assert_called_once()
+        
         self.mock_websocket.send_text.assert_called_with(json.dumps({
             "type": "error",
             "action": "app_deploy_exception",
@@ -394,7 +396,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
     @patch('services.deployment_manager.app_config.should_deploy_subscriber')
     def test_get_services_to_deploy_all_components(self, mock_should_deploy_subscriber):
-        mock_should_deploy_subscriber.return_value = True # For this test case, subscriber should be deployed if components imply it
+        mock_should_deploy_subscriber.return_value = True 
         app_req = AppDeploymentRequest(
             app_name="test-app",
             components={
@@ -408,9 +410,6 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
             registry_config=self.dummy_registry_config,
             domain_config=self.dummy_domain_config
         )
-        # Assuming the logic in app_config.should_deploy_subscriber is based on bap, bpp, gateway
-        # If 'bap' or 'bpp' or 'gateway' are True, then should_deploy_subscriber is True
-        # For 'all_components' case, it would be True.
         expected_services = ["adapter", "gateway", "registry", "registry_admin", "subscriber"]
         self.assertEqual(dm._get_services_to_deploy(app_req), sorted(expected_services))
         mock_should_deploy_subscriber.assert_called_once_with(app_req.components)
@@ -418,7 +417,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
     @patch('services.deployment_manager.app_config.should_deploy_subscriber')
     def test_get_services_to_deploy_bap_only(self, mock_should_deploy_subscriber):
-        mock_should_deploy_subscriber.return_value = True # 'bap' implies subscriber
+        mock_should_deploy_subscriber.return_value = True 
         app_req = AppDeploymentRequest(
             app_name="test-app",
             components={
@@ -438,7 +437,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
     @patch('services.deployment_manager.app_config.should_deploy_subscriber')
     def test_get_services_to_deploy_registry_only(self, mock_should_deploy_subscriber):
-        mock_should_deploy_subscriber.return_value = False # 'registry' alone does NOT imply subscriber
+        mock_should_deploy_subscriber.return_value = False 
         app_req = AppDeploymentRequest(
             app_name="test-app",
             components={
@@ -459,7 +458,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
     @patch('services.deployment_manager.app_config.should_deploy_subscriber')
     def test_get_services_to_deploy_no_components(self, mock_should_deploy_subscriber):
-        mock_should_deploy_subscriber.return_value = False # No relevant components implies no subscriber
+        mock_should_deploy_subscriber.return_value = False 
         app_req = AppDeploymentRequest(
             app_name="test-app",
             components={},

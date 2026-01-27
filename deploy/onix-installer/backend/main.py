@@ -20,11 +20,12 @@ import httpx
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from config.app_config_generator import generate_p2_tfvars
 
-from core.models import InfraDeploymentRequest, AppDeploymentRequest, ProxyRequest
+from core.models import InfraDeploymentRequest, AppDeploymentRequest, ProxyRequest, ConfigGenerationRequest, ConfigUpdateRequest
 from services.gcp_resource_manager import list_google_cloud_projects, list_google_cloud_regions
 from services.deployment_manager import run_infra_deployment, run_app_deployment
-from services import ui_state_manager as ui_state
+from services import ui_state_manager as ui_state, config_manager
 from services.health_checks import run_websocket_health_check
 
 logging.basicConfig(level=logging.DEBUG,
@@ -89,6 +90,88 @@ async def get_regions():
             status_code=500,
             detail=f"An unexpected internal server error occurred: {e}"
         )
+
+@app.post("/api/configs")
+def generate_configs(request: ConfigGenerationRequest):
+    """Generates initial configuration files based on the provided request.
+    Does not overwrite existing files if they are already present.
+    Args:
+        request: A ConfigGenerationRequest object containing component flags and settings.
+    Returns:
+        A dictionary containing a success message.
+    Raises:
+        HTTPException: If an internal error occurs during generation (500).
+    """
+    logger.info("Received request to generate initial configurations.")
+    try:
+        config_manager.generate_initial_configs(request)
+        return {"message": "Initial configurations generated successfully."}
+    except Exception as e:
+        logger.error(f"Failed to generate configs: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/configs/path")
+def get_config_paths() -> dict[str, Any]:
+    """Retrieves a list of all existing configuration file paths.
+    Returns:
+        A dictionary containing the count of files and a list of file paths.
+    Raises:
+        HTTPException: If an internal error occurs while listing paths (500).
+    """
+    logger.info("Received request to list config paths.")
+    try:
+        paths = config_manager.get_all_config_paths()
+        return {"count": len(paths), "files": paths}
+    except Exception as e:
+        logger.error(f"Failed to list config paths: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/config/data")
+def get_config_data(path: str) -> dict[str, str]:
+    """Retrieves the raw text content of a specific configuration file.
+    Args:
+        path: The relative file path to the configuration file (e.g., 'generated_configs/adapter.yaml').
+    Returns:
+        A dictionary containing the content string of the file.
+    Raises:
+        HTTPException: If the path is invalid (403), the file is not found (404), or a server error occurs (500).
+    """
+    logger.info(f"Received request to read config: {path}")
+    try:
+        content = config_manager.get_config_content(path)
+        return {"content": content}
+    except ValueError as e:
+        logger.warning(f"Invalid path access attempt: {e}")
+        raise HTTPException(status_code=403, detail="Invalid path")
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="File not found")
+    except Exception as e:
+        logger.error(f"Failed to read config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.put("/api/config/data")
+def update_config_data(request: ConfigUpdateRequest):
+    """Updates the content of a specific configuration file.
+    Args:
+        request: A ConfigUpdateRequest object containing the file path and the new content.
+    Returns:
+        A dictionary containing a success message.
+    Raises:
+        HTTPException: If the path is invalid/forbidden (403) or a server error occurs (500).
+    """
+    logger.info(f"Received request to update config: {request.path}")
+    try:
+        config_manager.update_config_content(request.path, request.content)
+        return {"message": "Configuration updated successfully."}
+    except ValueError as e:
+        logger.warning(f"Invalid path update attempt: {e}")
+        raise HTTPException(status_code=403, detail="Invalid path")
+    except Exception as e:
+        logger.error(f"Failed to update config: {e}")
+        raise HTTPException(status_code=500, detail=str(e))  
 
 @app.websocket("/ws/deployInfra")
 async def websocket_deploy_infra(websocket: WebSocket):
@@ -172,7 +255,6 @@ async def websocket_health_check(websocket: WebSocket):
         logger.info("WebSocket connection for /ws/healthCheck closed.")
 
 
-
 @app.post("/store/bulk", status_code=201)
 def store_or_update_values(items: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -244,4 +326,3 @@ async def dynamic_proxy(request: ProxyRequest) -> Any:
                 status_code=500,
                 detail="An internal server error occurred."
             )
-
