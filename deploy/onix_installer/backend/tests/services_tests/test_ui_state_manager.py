@@ -162,7 +162,7 @@ class TestUIStateManager(unittest.TestCase):
         """
         # This test is somewhat dependent on the project structure.
         # It assumes the 'backend' directory is one level up from the 'services' directory.
-        expected_path_fragment = os.path.join('onix_installer', 'backend', 'ui_state.json')
+        expected_path_fragment = os.path.join('onix-installer', 'backend', 'ui_state.json')
         
         actual_path = _get_db_file_path()
         
