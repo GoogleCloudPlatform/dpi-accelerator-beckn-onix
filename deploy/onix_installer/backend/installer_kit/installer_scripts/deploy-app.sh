@@ -160,19 +160,19 @@ gcloud container clusters get-credentials "$CLUSTER_NAME" --region "$CLUSTER_REG
 get_chart_path_for_service() {
     case "$1" in
         registry)
-            echo "./helm-charts/onix-registry"
+            echo "./helm_charts/onix_registry"
             ;;
         registry-admin)
-            echo "./helm-charts/onix-registry-admin"
+            echo "./helm_charts/onix_registry_admin"
             ;;
         subscriber)
-            echo "./helm-charts/onix-subscriber"
+            echo "./helm_charts/onix_subscriber"
             ;;
         gateway)
-            echo "./helm-charts/onix-gateway"
+            echo "./helm_charts/onix_gateway"
             ;;
         adapter)
-            echo "./helm-charts/onix-adapter"
+            echo "./helm_charts/onix_adapter"
             ;;
         *)
             echo "" # Return empty string for unknown service
