@@ -33,7 +33,7 @@ modules:
       pubsubpublisher: plugins/pubsubpublisher/cmd
       inmemorysecretkeymanager: plugins/inmemorysecretkeymanager/cmd
 # registry: <REGISTRY_URL>
-output: ./deploy/onix_installer/adapter_artifacts/plugins
+output: ./deploy/onix-installer/adapter_artifacts/plugins
 zipFileName: plugins_bundle.zip
 # gsPath: gs://<BucketName>/plugins/
 goVersion: 1.24
