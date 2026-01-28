@@ -48,7 +48,7 @@ import { startWith } from 'rxjs/operators';
   styleUrls: ['./step-goal.component.css']
 })
 export class StepGoalComponent implements OnInit, OnDestroy {
-  //  TODO: Create a base class for steps to reduce code duplication, especially for navigation and form handling.
+  //  NOTE: Create a base class for steps to reduce code duplication, especially for navigation and form handling.
   goalForm!: FormGroup;
   createNetworkComponentsForm!: FormGroup;
   joinNetworkComponentsForm!: FormGroup;
