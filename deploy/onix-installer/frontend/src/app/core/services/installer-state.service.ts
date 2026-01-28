@@ -99,7 +99,7 @@ export class InstallerStateService {
   installerState$: Observable<InstallerState> = this.installerStateSubject.asObservable();
 
 
-  // TODO: REMOVE HTTP Calls state service Components should call ApiService and then update the state in InstallerStateService with the results.
+  // NOTE: REMOVE HTTP Calls state service Components should call ApiService and then update the state in InstallerStateService with the results.
   constructor(private apiService: ApiService) {
     this.loadStateFromBackend();
   }
