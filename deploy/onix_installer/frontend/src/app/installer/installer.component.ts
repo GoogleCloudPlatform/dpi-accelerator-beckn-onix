@@ -111,7 +111,7 @@ export class InstallerComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!this.installerState) {
       return false;
     }
-    // TODO: Refactor this logic to use explicit status flags for each step
+    // NOTE: Refactor this logic to use explicit status flags for each step
     return index < this.installerState.highestStepReached;
   }
 }
