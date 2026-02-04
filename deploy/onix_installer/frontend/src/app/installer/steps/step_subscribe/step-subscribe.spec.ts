@@ -14,25 +14,31 @@
  * limitations under the License.
  */
 
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { Router } from '@angular/router';
-import { FormBuilder, ReactiveFormsModule, Validators, AbstractControl } from '@angular/forms';
-import { of, throwError } from 'rxjs';
-import { By } from '@angular/platform-browser';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import {ComponentFixture, fakeAsync, getTestBed, TestBed, tick} from '@angular/core/testing';
+import {AbstractControl, FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
+import {MatButtonModule} from '@angular/material/button';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIconModule} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatSelectModule} from '@angular/material/select';
+import {By} from '@angular/platform-browser';
+import {BrowserDynamicTestingModule, platformBrowserDynamicTesting} from '@angular/platform-browser-dynamic/testing';
+import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {Router} from '@angular/router';
+import {of, throwError} from 'rxjs';
 
-import { StepSubscribe } from './step-subscribe';
+import {ApiService} from '../../../core/services/api.service';
+import {InstallerStateService} from '../../../core/services/installer-state.service';
+import {jsonValidator} from '../../../shared/validators/custom-validators';
 
-import { InstallerStateService } from '../../../core/services/installer-state.service';
-import { ApiService } from '../../../core/services/api.service';
-import { MatSelectModule } from '@angular/material/select';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { jsonValidator } from '../../../shared/validators/custom-validators';
+import {StepSubscribe} from './step-subscribe';
 
+// Initialize the Angular testing environment.
+getTestBed().initTestEnvironment(
+    BrowserDynamicTestingModule,
+    platformBrowserDynamicTesting(),
+);
 
 const mockRouter = {
   navigate: jasmine.createSpy('navigate')
@@ -40,12 +46,7 @@ const mockRouter = {
 
 const mockInstallerStateService = {
   getCurrentState: () => ({
-    deploymentGoal: {
-      all: false,
-      bap: true,
-      bpp: true,
-      gateway: true
-    },
+    deploymentGoal: {all: false, bap: true, bpp: true, gateway: true},
 
     deployedServiceUrls: {
       'subscriber': 'https://subscriber.beckn.org',
@@ -68,29 +69,26 @@ describe('StepSubscribe', () => {
   let router: Router;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [
-        StepSubscribe,
-        ReactiveFormsModule,
-        NoopAnimationsModule,
-        MatSelectModule,
-        MatFormFieldModule,
-        MatInputModule,
-        MatButtonModule,
-        MatIconModule,
-        MatProgressSpinnerModule
-      ],
-      providers: [
-        FormBuilder,
-        { provide: Router, useValue: mockRouter },
-        { provide: InstallerStateService, useValue: mockInstallerStateService },
-        { provide: ApiService, useValue: mockApiService }
-      ]
-    }).compileComponents();
+    await TestBed
+        .configureTestingModule({
+          imports: [
+            StepSubscribe, ReactiveFormsModule, NoopAnimationsModule,
+            MatSelectModule, MatFormFieldModule, MatInputModule,
+            MatButtonModule, MatIconModule, MatProgressSpinnerModule
+          ],
+          providers: [
+            FormBuilder, {provide: Router, useValue: mockRouter}, {
+              provide: InstallerStateService,
+              useValue: mockInstallerStateService
+            },
+            {provide: ApiService, useValue: mockApiService}
+          ]
+        })
+        .compileComponents();
 
     fixture = TestBed.createComponent(StepSubscribe);
     component = fixture.componentInstance;
-    apiService = TestBed.inject(ApiService); // Get instance for spy checks
+    apiService = TestBed.inject(ApiService);  // Get instance for spy checks
     router = TestBed.inject(Router);
 
     fixture.detectChanges();
@@ -124,36 +122,37 @@ describe('StepSubscribe', () => {
       expect(component.subscriptionForm.get('url')?.disabled).toBeTrue();
     });
 
-    it('should update URL and add domain validator when type changes to BAP', () => {
-      const typeControl = component.subscriptionForm.get('type');
-      const domainControl = component.subscriptionForm.get('domain');
-      const urlControl = component.subscriptionForm.get('url');
+    it('should update URL and add domain validator when type changes to BAP',
+       () => {
+         const typeControl = component.subscriptionForm.get('type');
+         const domainControl = component.subscriptionForm.get('domain');
+         const urlControl = component.subscriptionForm.get('url');
 
-      typeControl?.setValue('BAP');
-      fixture.detectChanges();
+         typeControl?.setValue('BAP');
+         fixture.detectChanges();
 
-      expect(urlControl?.value).toBe('https://adapter-bap.beckn.org');
-      expect(domainControl?.hasValidator(Validators.required)).toBeTrue();
-    });
+         expect(urlControl?.value).toBe('https://adapter-bap.beckn.org');
+         expect(domainControl?.hasValidator(Validators.required)).toBeTrue();
+       });
 
-    it('should update URL and remove domain validator when type changes to BG (Gateway)', () => {
-      const typeControl = component.subscriptionForm.get('type');
-      const domainControl = component.subscriptionForm.get('domain');
-      const urlControl = component.subscriptionForm.get('url');
-      typeControl?.setValue('BAP');
-      fixture.detectChanges();
-      expect(domainControl?.hasValidator(Validators.required)).toBeTrue();
-      typeControl?.setValue('BG');
-      fixture.detectChanges();
+    it('should update URL and remove domain validator when type changes to BG (Gateway)',
+       () => {
+         const typeControl = component.subscriptionForm.get('type');
+         const domainControl = component.subscriptionForm.get('domain');
+         const urlControl = component.subscriptionForm.get('url');
+         typeControl?.setValue('BAP');
+         fixture.detectChanges();
+         expect(domainControl?.hasValidator(Validators.required)).toBeTrue();
+         typeControl?.setValue('BG');
+         fixture.detectChanges();
 
-      expect(urlControl?.value).toBe('https://gateway.beckn.org');
-      expect(domainControl?.hasValidator(Validators.required)).toBeFalse();
-    });
+         expect(urlControl?.value).toBe('https://gateway.beckn.org');
+         expect(domainControl?.hasValidator(Validators.required)).toBeFalse();
+       });
   });
 
   describe('onSubscriptionSubmit', () => {
     beforeEach(() => {
-
       component.subscriptionForm.setValue({
         type: 'BAP',
         subscriberId: 'test-bap-subscriber',
@@ -161,7 +160,8 @@ describe('StepSubscribe', () => {
         domain: 'retail',
         location: '{"country": {"code": "IND"}}'
       });
-      component.subscriptionForm.get('type')?.updateValueAndValidity({ emitEvent: true });
+      component.subscriptionForm.get('type')?.updateValueAndValidity(
+          {emitEvent: true});
       fixture.detectChanges();
     });
 
@@ -173,72 +173,76 @@ describe('StepSubscribe', () => {
       expect(apiService.subscribeToNetwork).not.toHaveBeenCalled();
     });
 
-    it('should call the API with the correct payload when form is valid', () => {
-      mockApiService.subscribeToNetwork.and.returnValue(of('12345' ));
-      component.onSubscriptionSubmit();
+    it('should call the API with the correct payload when form is valid',
+       () => {
+         mockApiService.subscribeToNetwork.and.returnValue(of('12345'));
+         component.onSubscriptionSubmit();
 
-      const expectedPayload = {
-        targetUrl: 'https://subscriber.beckn.org/subscribe',
-        payload: {
-          subscriber_id: 'test-bap-subscriber',
-          type: 'BAP',
-          domain: 'retail',
-          url: 'https://adapter-bap.beckn.org',
-          location: { country: { code: 'IND' } }
-        }
-      };
+         const expectedPayload = {
+           targetUrl: 'https://subscriber.beckn.org/subscribe',
+           payload: {
+             subscriber_id: 'test-bap-subscriber',
+             type: 'BAP',
+             domain: 'retail',
+             url: 'https://adapter-bap.beckn.org',
+             location: {country: {code: 'IND'}}
+           }
+         };
 
-      expect(apiService.subscribeToNetwork).toHaveBeenCalledWith(expectedPayload);
-    });
+         expect(apiService.subscribeToNetwork)
+             .toHaveBeenCalledWith(expectedPayload);
+       });
 
-    it('should show a success popup and reset the form on successful subscription', fakeAsync(() => {
-      mockApiService.subscribeToNetwork.and.returnValue(of({ messageId: 'ack-123' }));
+    it('should show a success popup and reset the form on successful subscription',
+       fakeAsync(() => {
+         mockApiService.subscribeToNetwork.and.returnValue(
+             of({messageId: 'ack-123'}));
 
-      component.onSubscriptionSubmit();
-      tick();
-      fixture.detectChanges();
+         component.onSubscriptionSubmit();
+         tick();
+         fixture.detectChanges();
 
-      expect(component.showStatusPopup).toBeTrue();
-      expect(component.isError).toBeFalse();
-      expect(component.popupMessage).toBe('Subscription request sent successfully!');
-      expect(component.popupIcon).toBe('check_circle');
+         expect(component.showStatusPopup).toBeTrue();
+         expect(component.isError).toBeFalse();
+         expect(component.popupMessage)
+             .toBe('Subscription request sent successfully!');
+         expect(component.popupIcon).toBe('check_circle');
 
-      expect(component.subscriptionForm.get('subscriberId')?.value).toBeNull();
-      expect(component.subscriptionForm.pristine).toBeTrue();
-    }));
+         expect(component.subscriptionForm.get('subscriberId')?.value)
+             .toBeNull();
+         expect(component.subscriptionForm.pristine).toBeTrue();
+       }));
 
     it('should show an error popup on failed subscription', fakeAsync(() => {
-      const errorResponse = { error: { message: 'Gateway timeout' } };
-      mockApiService.subscribeToNetwork.and.returnValue(throwError(() => errorResponse));
+         const errorResponse = {error: {message: 'Gateway timeout'}};
+         mockApiService.subscribeToNetwork.and.returnValue(
+             throwError(() => errorResponse));
 
-      component.onSubscriptionSubmit();
-      tick();
-      fixture.detectChanges();
+         component.onSubscriptionSubmit();
+         tick();
+         fixture.detectChanges();
 
-      expect(component.showStatusPopup).toBeTrue();
-      expect(component.isError).toBeTrue();
-      expect(component.popupMessage).toContain('Gateway timeout');
-      expect(component.popupIcon).toBe('error_outline');
-    }));
+         expect(component.showStatusPopup).toBeTrue();
+         expect(component.isError).toBeTrue();
+         expect(component.popupMessage).toContain('Gateway timeout');
+         expect(component.popupIcon).toBe('error_outline');
+       }));
   });
 
   describe('Navigation and UI', () => {
     it('should navigate to health-checks page onBack()', () => {
       component.onBack();
-      expect(router.navigate).toHaveBeenCalledWith(['installer', 'health-checks']);
+      expect(router.navigate).toHaveBeenCalledWith([
+        'installer', 'health-checks'
+      ]);
     });
 
     it('should hide the popup when closePopupAndNavigate() is called', () => {
-        component.showStatusPopup = true;
-        fixture.detectChanges();
-
-        component.closePopupAndNavigate();
-        fixture.detectChanges();
-
-        expect(component.showStatusPopup).toBeFalse();
+      component.showStatusPopup = true;
+      component.closePopupAndNavigate();
+      expect(component.showStatusPopup).toBeFalse();
     });
   });
-
 });
 
 
@@ -246,23 +250,24 @@ describe('jsonValidator', () => {
   const validator = jsonValidator();
 
   it('should return null for valid JSON', () => {
-    const control = { value: '{ "key": "value" }' } as AbstractControl;
+    const control = {value: '{ "key": "value" }'} as AbstractControl;
     expect(validator(control)).toBeNull();
   });
 
   it('should return { jsonInvalid: true } for invalid JSON', () => {
-    const control = { value: '{ key: "value" }' } as AbstractControl;
-    expect(validator(control)).toEqual({ jsonInvalid: true });
+    const control = {value: '{ key: "value" }'} as AbstractControl;
+    expect(validator(control)).toEqual({jsonInvalid: true});
   });
 
-  it('should return null for an empty string or null value (to be handled by `required` validator)', () => {
-    let control = { value: '' } as AbstractControl;
-    expect(validator(control)).toBeNull();
+  it('should return null for an empty string or null value (to be handled by `required` validator)',
+     () => {
+       let control = {value: ''} as AbstractControl;
+       expect(validator(control)).toBeNull();
 
-    control = { value: null } as AbstractControl;
-    expect(validator(control)).toBeNull();
+       control = {value: null} as AbstractControl;
+       expect(validator(control)).toBeNull();
 
-    control = { value: '   ' } as AbstractControl;
-    expect(validator(control)).toBeNull();
-  });
+       control = {value: '   '} as AbstractControl;
+       expect(validator(control)).toBeNull();
+     });
 });

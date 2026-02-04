@@ -14,27 +14,13 @@
  * limitations under the License.
  */
 
-import { Injectable } from '@angular/core';
-import {  BehaviorSubject, Observable, catchError, of  } from 'rxjs';
-import {
-  InstallerState,
-  DeploymentGoal,
-  GcpConfiguration,
-  InfraDetails,
-  SubdomainConfig,
-  DockerImageConfig,
-  AppSpecificConfig,
-  HealthCheckStatus,
-  DeploymentStatus,
-  DomainConfig,
-  ComponentSubdomainPrefix,
-  DeploymentSize,
-  AppDeployImageConfig,
-  AppDeployRegistryConfig,
-  AppDeployGatewayConfig,
-  AppDeployAdapterConfig
-} from '../../installer/types/installer.types';
-import { ApiService } from './api.service';
+import {Injectable} from '@angular/core';
+import {BehaviorSubject, Observable, of} from 'rxjs';
+import {catchError} from 'rxjs/operators';
+
+import {AppDeployAdapterConfig, AppDeployGatewayConfig, AppDeployImageConfig, AppDeployRegistryConfig, AppSpecificConfig, ComponentSubdomainPrefix, DeploymentGoal, DeploymentSize, DeploymentStatus, DockerImageConfig, DomainConfig, GcpConfiguration, HealthCheckStatus, InfraDetails, InstallerState, SubdomainConfig} from '../../installer/types/installer.types';
+
+import {ApiService} from './api.service';
 
 
 @Injectable({
@@ -106,39 +92,66 @@ export class InstallerStateService {
 
    private loadStateFromBackend(): void {
     this.isStateLoadingSubject.next(true);
-    this.apiService.getState().pipe(
-      catchError(error => {
-        console.error("Could not load state from backend, starting with initial state.", error);
-        return of(null);
-      })
-    ).subscribe(storedState => {
-      if (storedState && Object.keys(storedState).length > 0) {
-        console.log("Successfully loaded state from backend:", storedState);
-        const mergedState: InstallerState = { ...this.initialState };
-        for (const key in storedState) {
-          if (Object.prototype.hasOwnProperty.call(storedState, key) && key in mergedState) {
-             if (key === 'appDeployImageConfig' && storedState.appDeployImageConfig && typeof storedState.appDeployImageConfig === 'object') {
-              mergedState.appDeployImageConfig = { ...this.initialState.appDeployImageConfig, ...storedState.appDeployImageConfig };
-            } else if (key === 'appDeployRegistryConfig' && storedState.appDeployRegistryConfig && typeof storedState.appDeployRegistryConfig === 'object') {
-              mergedState.appDeployRegistryConfig = { ...this.initialState.appDeployRegistryConfig, ...storedState.appDeployRegistryConfig };
-            } else if (key === 'appDeployGatewayConfig' && storedState.appDeployGatewayConfig && typeof storedState.appDeployGatewayConfig === 'object') {
-              mergedState.appDeployGatewayConfig = { ...this.initialState.appDeployGatewayConfig, ...storedState.appDeployGatewayConfig };
-            } else if (key === 'appDeployAdapterConfig' && storedState.appDeployAdapterConfig && typeof storedState.appDeployAdapterConfig === 'object') {
-              mergedState.appDeployAdapterConfig = { ...this.initialState.appDeployAdapterConfig, ...storedState.appDeployAdapterConfig };
-            } else {
-              (mergedState as any)[key] = storedState[key];
+    this.apiService.getState()
+        .pipe(catchError((error: any) => {
+          console.error(
+              "Could not load state from backend, starting with initial state.",
+              error);
+          return of(null);
+        }))
+        .subscribe((storedState: any) => {
+          if (storedState && Object.keys(storedState).length > 0) {
+            console.log("Successfully loaded state from backend:", storedState);
+            const mergedState: InstallerState = {...this.initialState};
+            for (const key in storedState) {
+              if (Object.prototype.hasOwnProperty.call(storedState, key) &&
+                  key in mergedState) {
+                if (key === 'appDeployImageConfig' &&
+                    storedState.appDeployImageConfig &&
+                    typeof storedState.appDeployImageConfig === 'object') {
+                  mergedState.appDeployImageConfig = {
+                    ...this.initialState.appDeployImageConfig,
+                    ...storedState.appDeployImageConfig
+                  };
+                } else if (
+                    key === 'appDeployRegistryConfig' &&
+                    storedState.appDeployRegistryConfig &&
+                    typeof storedState.appDeployRegistryConfig === 'object') {
+                  mergedState.appDeployRegistryConfig = {
+                    ...this.initialState.appDeployRegistryConfig,
+                    ...storedState.appDeployRegistryConfig
+                  };
+                } else if (
+                    key === 'appDeployGatewayConfig' &&
+                    storedState.appDeployGatewayConfig &&
+                    typeof storedState.appDeployGatewayConfig === 'object') {
+                  mergedState.appDeployGatewayConfig = {
+                    ...this.initialState.appDeployGatewayConfig,
+                    ...storedState.appDeployGatewayConfig
+                  };
+                } else if (
+                    key === 'appDeployAdapterConfig' &&
+                    storedState.appDeployAdapterConfig &&
+                    typeof storedState.appDeployAdapterConfig === 'object') {
+                  mergedState.appDeployAdapterConfig = {
+                    ...this.initialState.appDeployAdapterConfig,
+                    ...storedState.appDeployAdapterConfig
+                  };
+                } else {
+                  (mergedState as any)[key] = storedState[key];
+                }
+              }
             }
+            this.installerStateSubject.next(mergedState);
+            this.isStateLoadingSubject.next(false);
+          } else {
+            console.log(
+                "No state found in backend, initializing with default state.");
+            this.installerStateSubject.next(this.initialState);
+            this.resetState();
           }
-        }
-        this.installerStateSubject.next(mergedState);
-       this.isStateLoadingSubject.next(false);
-      } else {
-        console.log("No state found in backend, initializing with default state.");
-        this.installerStateSubject.next(this.initialState);
-         this.resetState();
-      }
-       this.isStateLoadingSubject.next(false);
-    });
+          this.isStateLoadingSubject.next(false);
+        });
   }
 
 
@@ -230,7 +243,8 @@ export class InstallerStateService {
 
   updateHealthCheckStatus(serviceName: string, status: 'pending' | 'checking' | 'success' | 'failed', message?: string): void {
     const currentStatuses = this.getCurrentState().healthCheckStatuses;
-    const existingIndex = currentStatuses.findIndex(s => s.serviceName === serviceName);
+    const existingIndex = currentStatuses.findIndex(
+        (s: HealthCheckStatus) => s.serviceName === serviceName);
 
     if (existingIndex > -1) {
       const updatedStatuses = [...currentStatuses];

@@ -14,18 +14,26 @@
  * limitations under the License.
  */
 
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { Router } from '@angular/router';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { BehaviorSubject, Subject, of, throwError, EMPTY } from 'rxjs';
-import { MatTabsModule } from '@angular/material/tabs';
-import { Clipboard } from '@angular/cdk/clipboard';
+import {Clipboard} from '@angular/cdk/clipboard';
+import {ComponentFixture, fakeAsync, getTestBed, TestBed, tick} from '@angular/core/testing';
+import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
+import {MatTabsModule} from '@angular/material/tabs';
+import {BrowserDynamicTestingModule, platformBrowserDynamicTesting} from '@angular/platform-browser-dynamic/testing';
+import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {Router} from '@angular/router';
+import {BehaviorSubject, EMPTY, of, Subject, throwError} from 'rxjs';
 
-import { StepAppDeployComponent } from './step-deploy-app.component';
-import { InstallerStateService } from '../../../core/services/installer-state.service';
-import { WebSocketService } from '../../../core/services/websocket.service';
-import { InstallerState, DeploymentGoal, DeploymentStatus } from '../../types/installer.types';
+import {InstallerStateService} from '../../../core/services/installer-state.service';
+import {WebSocketService} from '../../../core/services/websocket.service';
+import {DeploymentGoal, DeploymentStatus, InstallerState} from '../../types/installer.types';
+
+import {StepAppDeployComponent} from './step-deploy-app.component';
+
+// Initialize the Angular testing environment.
+getTestBed().initTestEnvironment(
+    BrowserDynamicTestingModule,
+    platformBrowserDynamicTesting(),
+);
 
 const initialMockState: InstallerState = {
     currentStepIndex: 6,
@@ -84,26 +92,33 @@ const initialMockState: InstallerState = {
 };
 
 class MockInstallerStateService {
-    private state = new BehaviorSubject<InstallerState>(JSON.parse(JSON.stringify(initialMockState)));
-    installerState$ = this.state.asObservable();
+  private state = new BehaviorSubject<InstallerState>(
+      JSON.parse(JSON.stringify(initialMockState)) as InstallerState);
+  installerState$ = this.state.asObservable();
 
-    getCurrentState = () => this.state.getValue();
-    updateAppDeploymentStatus = jasmine.createSpy('updateAppDeploymentStatus').and.callFake((status: DeploymentStatus) => {
-        this.setState({ appDeploymentStatus: status });
-    });
-    updateState = jasmine.createSpy('updateState').and.callFake((newState: Partial<InstallerState>) => {
-        this.setState(newState);
-    });
+  getCurrentState = () => this.state.getValue();
+  updateAppDeploymentStatus =
+      jasmine.createSpy('updateAppDeploymentStatus')
+          .and.callFake((status: DeploymentStatus) => {
+            this.setState({appDeploymentStatus: status});
+          });
+  updateState = jasmine.createSpy('updateState')
+                    .and.callFake((newState: Partial<InstallerState>) => {
+                      this.setState(newState);
+                    });
 
-    updateAppDeployImageConfig = jasmine.createSpy('updateAppDeployImageConfig');
-    updateAppDeployRegistryConfig = jasmine.createSpy('updateAppDeployRegistryConfig');
-    updateAppDeployGatewayConfig = jasmine.createSpy('updateAppDeployGatewayConfig');
-    updateAppDeployAdapterConfig = jasmine.createSpy('updateAppDeployAdapterConfig');
+  updateAppDeployImageConfig = jasmine.createSpy('updateAppDeployImageConfig');
+  updateAppDeployRegistryConfig =
+      jasmine.createSpy('updateAppDeployRegistryConfig');
+  updateAppDeployGatewayConfig =
+      jasmine.createSpy('updateAppDeployGatewayConfig');
+  updateAppDeployAdapterConfig =
+      jasmine.createSpy('updateAppDeployAdapterConfig');
 
-    setState(newState: Partial<InstallerState>) {
-        const currentState = this.state.getValue();
-        this.state.next({ ...currentState, ...newState });
-    }
+  setState(newState: Partial<InstallerState>) {
+    const currentState = this.state.getValue();
+    this.state.next({...currentState, ...newState});
+  }
 }
 
 class MockWebSocketService {
