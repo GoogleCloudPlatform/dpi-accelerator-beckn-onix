@@ -15,21 +15,23 @@
  */
 
 // src/app/installer/installer-routing.module.ts
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { InstallerComponent } from './installer.component';
-import { InstallerStepGuard } from '../core/guards/installer-step.guard';
+import {NgModule} from '@angular/core';
+import {RouterModule, Routes} from '@angular/router';
 
+import {InstallerStepGuard} from '../core/guards/installer-step.guard';
+
+import {InstallerComponent} from './installer.component';
+import {StepAppDeployComponent} from './steps/step_deploy_app/step-deploy-app.component';
+import {StepDeployInfraComponent} from './steps/step_deploy_infra/step-deploy-infra.component';
+import {StepDomainConfigComponent} from './steps/step_domain_configuration/step-domain-configuration.component';
+import {StepGcpConnectionComponent} from './steps/step_gcp_connection/step-gcp-connection.component';
+import {StepGoalComponent} from './steps/step_goal/step-goal.component';
+import {StepHealthCheck} from './steps/step_health_check/step-health-check';
+import {StepPrerequisitesComponent} from './steps/step_prerequisites/step-prerequisites.component';
+import {StepSubscribe} from './steps/step_subscribe/step-subscribe';
 // Import the new step component
-import { StepWelcomeComponent } from './steps/step-welcome/step-welcome.component';
-import { StepGoalComponent } from './steps/step-goal/step-goal.component';
-import { StepPrerequisitesComponent } from './steps/step-prerequisites/step-prerequisites.component';
-import { StepGcpConnectionComponent } from './steps/step-gcp-connection/step-gcp-connection.component';
-import { StepDeployInfraComponent } from './steps/step-deploy-infra/step-deploy-infra.component';
-import { StepDomainConfigComponent } from './steps/step-domain-configuration/step-domain-configuration.component';
-import { StepAppDeployComponent} from './steps/step-deploy-app/step-deploy-app.component';
-import { StepHealthCheck } from './steps/step-health-check/step-health-check';
-import { StepSubscribe } from './steps/step-subscribe/step-subscribe';
+import {StepWelcomeComponent} from './steps/step_welcome/step-welcome.component';
+
 const routes: Routes = [
   {
     path: '',
