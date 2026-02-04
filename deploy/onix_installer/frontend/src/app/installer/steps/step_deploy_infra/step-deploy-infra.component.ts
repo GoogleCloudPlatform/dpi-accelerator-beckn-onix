@@ -76,6 +76,15 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit(): void {
+    const currentState = this.installerStateService.getCurrentState();
+    this.deployInfraForm = this.fb.group({
+      appName: [
+        currentState.appName || '',
+        [Validators.required, Validators.maxLength(6)]
+      ],
+      deploymentSize: [currentState.deploymentSize || '', Validators.required]
+    });
+
     this.installerStateService.installerState$
       .pipe(takeUntil(this.unsubscribe$))
       .subscribe((state: InstallerState) => {
@@ -83,12 +92,6 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
         this.cdr.detectChanges();
         this.scrollToBottom();
       });
-
-    const currentState = this.installerStateService.getCurrentState();
-    this.deployInfraForm = this.fb.group({
-      appName: [currentState.appName || '', [Validators.required, Validators.maxLength(6)]],
-      deploymentSize: [currentState.deploymentSize || '', Validators.required]
-    });
 
     this.deployInfraForm.valueChanges.pipe(
       takeUntil(this.unsubscribe$),

@@ -27,7 +27,8 @@ export function allControlsTrue(): ValidatorFn {
     }
 
     const formArray = control as FormArray;
-    const allTrue = formArray.controls.every(c => c.value === true);
+    const allTrue =
+        formArray.controls.every((c: AbstractControl) => c.value === true);
 
     return allTrue ? null : { notAllChecked: true };
   };

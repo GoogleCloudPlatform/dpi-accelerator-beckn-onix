@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { CommonModule } from '@angular/common';
-import { InstallerStateService } from './core/services/installer-state.service';
-import { Observable } from 'rxjs/internal/Observable';
-import { LoadingSpinnerComponent } from "./shared/components/loading-spinner/loading-spinner.component";
+import {CommonModule} from '@angular/common';
+import {Component} from '@angular/core';
+import {RouterOutlet} from '@angular/router';
+import {Observable} from 'rxjs';
+
+import {InstallerStateService} from './core/services/installer-state.service';
+import {LoadingSpinnerComponent} from './shared/components/loading_spinner/loading-spinner.component';
 
 @Component({
   selector: 'app-root',
