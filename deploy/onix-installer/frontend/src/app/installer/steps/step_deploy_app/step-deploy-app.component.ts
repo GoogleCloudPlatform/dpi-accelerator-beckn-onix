@@ -14,42 +14,31 @@
  * limitations under the License.
  */
 
-import { Component, OnInit, OnDestroy, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef, Input, ViewChild, ElementRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, AbstractControl, FormControl, ReactiveFormsModule, ValidationErrors } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatRadioModule } from '@angular/material/radio';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatCardModule } from '@angular/material/card';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatTabGroup } from '@angular/material/tabs';
-import { ClipboardModule, Clipboard } from '@angular/cdk/clipboard';
-import { Router } from '@angular/router';
+import {Clipboard, ClipboardModule} from '@angular/cdk/clipboard';
+import {CommonModule} from '@angular/common';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild} from '@angular/core';
+import {AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, Validators} from '@angular/forms';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCardModule} from '@angular/material/card';
+import {MatCheckboxModule} from '@angular/material/checkbox';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIconModule} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatRadioModule} from '@angular/material/radio';
+import {MatTabGroup, MatTabsModule} from '@angular/material/tabs';
+import {MatTooltipModule} from '@angular/material/tooltip';
+import {Router} from '@angular/router';
+import {EMPTY, Subject, Subscription} from 'rxjs';
+import {catchError, finalize, takeUntil} from 'rxjs/operators';
+import {trySanitizeUrl} from 'safevalues';
+import {windowOpen} from 'safevalues/dom';
 
-import { Subject, EMPTY, Subscription } from 'rxjs';
-import { takeUntil, catchError, finalize } from 'rxjs/operators';
-
-import { InstallerStateService } from '../../../core/services/installer-state.service';
-import { ApiService } from '../../../core/services/api.service';
-import { WebSocketService } from '../../../core/services/websocket.service';
-
-import {
-  InstallerState,
-  DeploymentGoal,
-  SubdomainConfig,
-  BackendAppDeploymentRequest,
-  DomainConfig,
-  AppDeployImageConfig,
-  AppDeployRegistryConfig,
-  AppDeployGatewayConfig,
-  AppDeployAdapterConfig
-} from '../../types/installer.types';
-import { removeEmptyValues } from '../../../shared/utils';
+import {ApiService} from '../../../core/services/api.service';
+import {InstallerStateService} from '../../../core/services/installer-state.service';
+import {WebSocketService} from '../../../core/services/websocket.service';
+import {removeEmptyValues} from '../../../shared/utils';
+import {AppDeployAdapterConfig, AppDeployGatewayConfig, AppDeployImageConfig, AppDeployRegistryConfig, BackendAppDeploymentRequest, DeploymentGoal, DomainConfig, InstallerState, SubdomainConfig} from '../../types/installer.types';
 
 @Component({
   selector: 'app-step-app-deploy',
@@ -741,7 +730,7 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
 
   openUrl(url: string | null): void {
     if (url) {
-      window.open(url, '_blank');
+        windowOpen(window, url, '_blank');
     }
   }
 
