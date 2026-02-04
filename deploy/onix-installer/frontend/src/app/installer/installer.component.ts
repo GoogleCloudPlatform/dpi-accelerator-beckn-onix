@@ -14,23 +14,19 @@
  * limitations under the License.
  */
 
-import {
-  Component,
-  OnInit,
-  OnDestroy,
-  ViewChild,
-  ChangeDetectorRef,
-  AfterViewInit,
-} from '@angular/core';
-import { MatStepper } from '@angular/material/stepper';
-import { StepperSelectionEvent } from '@angular/cdk/stepper';
-import { Router, RouterModule, ActivatedRoute, NavigationEnd } from '@angular/router';
-import { CommonModule } from '@angular/common';
-import { Subscription, filter, startWith } from 'rxjs';
-import { InstallerState } from './types/installer.types';
-import { InstallerStateService } from '../core/services/installer-state.service';
-import { InstallerConstants } from './constants/installer-constants';
-import { SharedModule } from '../shared/shared.module';
+import {StepperSelectionEvent} from '@angular/cdk/stepper';
+import {CommonModule} from '@angular/common';
+import {AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild,} from '@angular/core';
+import {MatStepper} from '@angular/material/stepper';
+import {ActivatedRoute, Event, NavigationEnd, Router, RouterModule} from '@angular/router';
+import {Subscription} from 'rxjs';
+import {filter, startWith} from 'rxjs/operators';
+
+import {InstallerStateService} from '../core/services/installer-state.service';
+import {SharedModule} from '../shared/shared.module';
+
+import {InstallerConstants} from './constants/installer-constants';
+import {InstallerState} from './types/installer.types';
 
 @Component({
   selector: 'app-installer',
@@ -69,18 +65,24 @@ export class InstallerComponent implements OnInit, OnDestroy, AfterViewInit {
       this.cdr.detectChanges();
     });
 
-    this.routerSubscription = this.router.events.pipe(
-      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
-      startWith(this.router)
-    ).subscribe((event: NavigationEnd | Router) => {
-      const url = ('url' in event) ? event.url : this.router.url;
-      const currentPath = url.split('/').pop() || '';
-      const foundIndex = this.stepPaths.indexOf(currentPath);
+    this.routerSubscription =
+        this.router.events
+            .pipe(
+                filter(
+                    (event: Event): event is NavigationEnd =>
+                        event instanceof NavigationEnd),
+                startWith(this.router))
+            .subscribe((event: NavigationEnd|Router) => {
+              const url = (event instanceof NavigationEnd) ? event.url :
+                                                             this.router.url;
+              const currentPath = url.split('/').pop() || '';
+              const foundIndex = this.stepPaths.indexOf(currentPath);
 
-      if (foundIndex !== -1 && foundIndex !== this.installerState.currentStepIndex) {
-        this.installerStateService.updateCurrentStep(foundIndex);
-      }
-    });
+              if (foundIndex !== -1 &&
+                  foundIndex !== this.installerState.currentStepIndex) {
+                this.installerStateService.updateCurrentStep(foundIndex);
+              }
+            });
   }
 
   ngAfterViewInit(): void {

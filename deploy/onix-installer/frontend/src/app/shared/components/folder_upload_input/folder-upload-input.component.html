@@ -47,9 +47,9 @@
     {{ infoText }}
   </div>
 
-  <mat-error *ngIf="control?.invalid && (control?.touched || control?.dirty)">
-    <span *ngIf="control?.errors?.['required']">This field is required.</span>
-    <span *ngIf="control?.errors?.['folderEmpty']">Please select a folder with at least one file.</span>
-    <span *ngIf="control?.errors?.['invalidFileType']">Some files have disallowed types.</span>
+  <mat-error *ngIf="control.invalid && (control.touched || control.dirty)">
+    <span *ngIf="control.errors?.['required']">This field is required.</span>
+    <span *ngIf="control.errors?.['folderEmpty']">Please select a folder with at least one file.</span>
+    <span *ngIf="control.errors?.['invalidFileType']">Some files have disallowed types.</span>
   </mat-error>
 </div>
