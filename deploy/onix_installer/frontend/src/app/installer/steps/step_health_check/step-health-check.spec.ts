@@ -14,23 +14,31 @@
  * limitations under the License.
  */
 
-import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { BehaviorSubject, Subject, throwError } from 'rxjs';
+import {ComponentFixture, getTestBed, TestBed} from '@angular/core/testing';
+import {BrowserDynamicTestingModule, platformBrowserDynamicTesting} from '@angular/platform-browser-dynamic/testing';
+import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {Router} from '@angular/router';
+import {BehaviorSubject, Subject, throwError} from 'rxjs';
 
-import { StepHealthCheck } from './step-health-check';
-import { InstallerStateService } from '../../../core/services/installer-state.service';
-import { WebSocketService } from '../../../core/services/websocket.service';
-import { InstallerState } from '../../types/installer.types';
+import {InstallerStateService} from '../../../core/services/installer-state.service';
+import {WebSocketService} from '../../../core/services/websocket.service';
+import {InstallerState} from '../../types/installer.types';
 
+import {StepHealthCheck} from './step-health-check';
+
+// Initialize the Angular testing environment.
+getTestBed().initTestEnvironment(
+    BrowserDynamicTestingModule,
+    platformBrowserDynamicTesting(),
+);
 
 const initialMockState: InstallerState = {
   currentStepIndex: 8,
   installerGoal: 'create_new_open_network',
   prerequisitesMet: true,
-  deploymentGoal: { all: true, gateway: true, registry: true, bap: true, bpp: true },
-  gcpConfiguration: { projectId: 'test-project', region: 'us-central1' },
+  deploymentGoal:
+      {all: true, gateway: true, registry: true, bap: true, bpp: true},
+  gcpConfiguration: {projectId: 'test-project', region: 'us-central1'},
   appName: 'onix-app',
   deploymentSize: 'small',
   deploymentStatus: 'completed',
@@ -38,11 +46,11 @@ const initialMockState: InstallerState = {
   infraDetails: null,
   appExternalIp: '1.2.3.4',
   componentSubdomainPrefixes: [
-    { component: 'registry', subdomainPrefix: 'registry.example.com' },
-    { component: 'registry_admin', subdomainPrefix: 'admin.example.com' },
-    { component: 'gateway', subdomainPrefix: 'gateway.example.com' },
-    { component: 'adapter', subdomainPrefix: 'adapter.example.com' },
-    { component: 'subscriber', subdomainPrefix: 'subscriber.example.com' }
+    {component: 'registry', subdomainPrefix: 'registry.example.com'},
+    {component: 'registry_admin', subdomainPrefix: 'admin.example.com'},
+    {component: 'gateway', subdomainPrefix: 'gateway.example.com'},
+    {component: 'adapter', subdomainPrefix: 'adapter.example.com'},
+    {component: 'subscriber', subdomainPrefix: 'subscriber.example.com'}
   ],
   subdomainConfigs: [],
   appSpecificConfigs: [],
@@ -50,13 +58,20 @@ const initialMockState: InstallerState = {
   healthCheckStatuses: [],
   deployedServiceUrls: {},
   appDeployImageConfig: {
-    registryImageUrl: '', registryAdminImageUrl: '', gatewayImageUrl: '', adapterImageUrl: '', subscriptionImageUrl: ''
+    registryImageUrl: '',
+    registryAdminImageUrl: '',
+    gatewayImageUrl: '',
+    adapterImageUrl: '',
+    subscriptionImageUrl: ''
   },
   appDeployRegistryConfig: {
-    registryUrl: '', registryKeyId: '', registrySubscriberId: '', enableAutoApprover: false
+    registryUrl: '',
+    registryKeyId: '',
+    registrySubscriberId: '',
+    enableAutoApprover: false
   },
-  appDeployGatewayConfig: { gatewaySubscriptionId: '' },
-  appDeployAdapterConfig: { enableSchemaValidation: false },
+  appDeployGatewayConfig: {gatewaySubscriptionId: ''},
+  appDeployAdapterConfig: {enableSchemaValidation: false},
   globalDomainConfig: null,
   highestStepReached: 8,
   appDeploymentStatus: 'completed',
@@ -72,7 +87,8 @@ class MockInstallerStateService {
 
 class MockWebSocketService {
   connectionSubject = new Subject<any>();
-  connect = jasmine.createSpy('connect').and.returnValue(this.connectionSubject.asObservable());
+  connect = jasmine.createSpy('connect').and.returnValue(
+      this.connectionSubject.asObservable());
   sendMessage = jasmine.createSpy('sendMessage');
   closeConnection = jasmine.createSpy('closeConnection');
 
@@ -93,14 +109,21 @@ describe('StepHealthCheck', () => {
   let router: Router;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [StepHealthCheck, NoopAnimationsModule],
-      providers: [
-        { provide: InstallerStateService, useClass: MockInstallerStateService },
-        { provide: WebSocketService, useClass: MockWebSocketService },
-        { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } }
-      ]
-    }).compileComponents();
+    await TestBed
+        .configureTestingModule({
+          imports: [StepHealthCheck, NoopAnimationsModule],
+          providers: [
+            {
+              provide: InstallerStateService,
+              useClass: MockInstallerStateService
+            },
+            {provide: WebSocketService, useClass: MockWebSocketService}, {
+              provide: Router,
+              useValue: {navigate: jasmine.createSpy('navigate')}
+            }
+          ]
+        })
+        .compileComponents();
 
     fixture = TestBed.createComponent(StepHealthCheck);
     component = fixture.componentInstance;
@@ -115,7 +138,8 @@ describe('StepHealthCheck', () => {
     // With 'all: true', we expect all 5 services to be configured
     expect(component.checkResults.length).toBe(5);
     expect(component.checkResults.some(c => c.name === 'Gateway')).toBeTrue();
-    expect(component.checkResults.find(c => c.name === 'Registry')?.url).toBe('registry.example.com');
+    expect(component.checkResults.find(c => c.name === 'Registry')?.url)
+        .toBe('registry.example.com');
   });
 
   it('should start health check process on runHealthCheck()', () => {
@@ -123,14 +147,20 @@ describe('StepHealthCheck', () => {
     fixture.detectChanges();
 
     expect(component.healthCheckStatus).toBe('inProgress');
-    expect(webSocketService.connect).toHaveBeenCalledWith('ws://localhost:8000/ws/healthCheck');
+    expect(webSocketService.connect)
+        .toHaveBeenCalledWith('ws://localhost:8000/ws/healthCheck');
     expect(webSocketService.sendMessage).toHaveBeenCalled();
-    expect(component.checkResults.every(c => c.status === 'pending')).toBeTrue();
+    expect(component.checkResults.every(c => c.status === 'pending'))
+        .toBeTrue();
   });
 
   it('should handle individual service success message from WebSocket', () => {
     component.runHealthCheck();
-    const successMessage = { service: 'Gateway', type: 'success', message: 'Gateway is healthy' };
+    const successMessage = {
+      service: 'Gateway',
+      type: 'success',
+      message: 'Gateway is healthy'
+    };
     webSocketService.receiveMessage(successMessage);
     fixture.detectChanges();
 
@@ -141,40 +171,55 @@ describe('StepHealthCheck', () => {
 
   it('should handle individual service error message from WebSocket', () => {
     component.runHealthCheck();
-    const errorMessage = { service: 'Registry', type: 'error', message: 'Registry connection failed' };
+    const errorMessage = {
+      service: 'Registry',
+      type: 'error',
+      message: 'Registry connection failed'
+    };
     webSocketService.receiveMessage(errorMessage);
     fixture.detectChanges();
 
-    const registryCheck = component.checkResults.find(c => c.name === 'Registry');
+    const registryCheck =
+        component.checkResults.find(c => c.name === 'Registry');
     expect(registryCheck?.status).toBe('failed');
   });
 
   it('should handle final success message and update all statuses', () => {
     component.runHealthCheck();
-    webSocketService.receiveMessage({ service: 'Gateway', type: 'success', message: 'Gateway OK' });
+    webSocketService.receiveMessage(
+        {service: 'Gateway', type: 'success', message: 'Gateway OK'});
     fixture.detectChanges();
-    const finalSuccessMessage = { action: 'all_services_healthy', message: 'All services are responsive.' };
+    const finalSuccessMessage = {
+      action: 'all_services_healthy',
+      message: 'All services are responsive.'
+    };
     webSocketService.receiveMessage(finalSuccessMessage);
     fixture.detectChanges();
 
     expect(component.healthCheckStatus).toBe('success');
     expect(component.showSuccessModal).toBeTrue();
-    expect(component.checkResults.every(c => c.status === 'success')).toBeTrue();
+    expect(component.checkResults.every(c => c.status === 'success'))
+        .toBeTrue();
     expect(webSocketService.closeConnection).toHaveBeenCalled();
   });
 
   it('should handle timeout message and mark pending as failed', () => {
     component.runHealthCheck();
-    webSocketService.receiveMessage({ service: 'Gateway', type: 'success', message: 'Gateway OK' });
+    webSocketService.receiveMessage(
+        {service: 'Gateway', type: 'success', message: 'Gateway OK'});
     fixture.detectChanges();
 
-    const timeoutMessage = { action: 'health_check_timeout', message: 'Health check timed out.' };
+    const timeoutMessage = {
+      action: 'health_check_timeout',
+      message: 'Health check timed out.'
+    };
     webSocketService.receiveMessage(timeoutMessage);
     fixture.detectChanges();
 
     expect(component.healthCheckStatus).toBe('failed');
     const gatewayCheck = component.checkResults.find(c => c.name === 'Gateway');
-    const registryCheck = component.checkResults.find(c => c.name === 'Registry');
+    const registryCheck =
+        component.checkResults.find(c => c.name === 'Registry');
 
     expect(gatewayCheck?.status).toBe('success');
     expect(registryCheck?.status).toBe('failed');
@@ -182,7 +227,8 @@ describe('StepHealthCheck', () => {
   });
 
   it('should handle WebSocket connection error', () => {
-    webSocketService.connect.and.returnValue(throwError(() => new Error('Connection failed')));
+    webSocketService.connect.and.returnValue(
+        throwError(() => new Error('Connection failed')));
     component.runHealthCheck();
     fixture.detectChanges();
 
