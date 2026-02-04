@@ -14,17 +14,25 @@
  * limitations under the License.
  */
 
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
-import { of, BehaviorSubject, Subscription } from 'rxjs';
-import { ChangeDetectorRef } from '@angular/core';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import {ChangeDetectorRef} from '@angular/core';
+import {ComponentFixture, fakeAsync, getTestBed, TestBed, tick} from '@angular/core/testing';
+import {ReactiveFormsModule} from '@angular/forms';
+import {BrowserDynamicTestingModule, platformBrowserDynamicTesting} from '@angular/platform-browser-dynamic/testing';
+import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {Router} from '@angular/router';
+import {RouterTestingModule} from '@angular/router/testing';
+import {BehaviorSubject, of, Subscription} from 'rxjs';
 
-import { StepPrerequisitesComponent } from './step-prerequisites.component';
-import { InstallerStateService } from '../../../core/services/installer-state.service';
-import { InstallerConstants } from '../../constants/installer-constants';
+import {InstallerStateService} from '../../../core/services/installer-state.service';
+import {InstallerConstants} from '../../constants/installer-constants';
+
+import {StepPrerequisitesComponent} from './step-prerequisites.component';
+
+// Initialize the Angular testing environment.
+getTestBed().initTestEnvironment(
+    BrowserDynamicTestingModule,
+    platformBrowserDynamicTesting(),
+);
 
 const mockPrerequisitesList = [
   'You have admin access to the GCP project.',
@@ -34,14 +42,14 @@ const mockPrerequisitesList = [
 InstallerConstants.PREREQUISITES_LIST = mockPrerequisitesList;
 
 class MockInstallerStateService {
-  private state = new BehaviorSubject<any>({ prerequisitesMet: false });
+  private state = new BehaviorSubject<any>({prerequisitesMet: false});
 
   getCurrentState() {
     return this.state.getValue();
   }
 
   updatePrerequisitesMet(isMet: boolean) {
-    this.state.next({ ...this.state.getValue(), prerequisitesMet: isMet });
+    this.state.next({...this.state.getValue(), prerequisitesMet: isMet});
   }
 
   setInitialState(initialState: any) {
@@ -57,18 +65,21 @@ describe('StepPrerequisitesComponent', () => {
   let cdr: ChangeDetectorRef;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [
-        ReactiveFormsModule,
-        RouterTestingModule.withRoutes([]),
-        NoopAnimationsModule,
-        StepPrerequisitesComponent
-      ],
-      providers: [
-        { provide: InstallerStateService, useClass: MockInstallerStateService },
-        ChangeDetectorRef,
-      ],
-    }).compileComponents();
+    await TestBed
+        .configureTestingModule({
+          imports: [
+            ReactiveFormsModule, RouterTestingModule.withRoutes([]),
+            NoopAnimationsModule, StepPrerequisitesComponent
+          ],
+          providers: [
+            {
+              provide: InstallerStateService,
+              useClass: MockInstallerStateService
+            },
+            ChangeDetectorRef,
+          ],
+        })
+        .compileComponents();
   });
 
   beforeEach(() => {
@@ -76,7 +87,8 @@ describe('StepPrerequisitesComponent', () => {
     component = fixture.componentInstance;
     router = TestBed.inject(Router);
     // Get the instance of the mock service
-    installerStateService = TestBed.inject(InstallerStateService) as unknown as MockInstallerStateService;
+    installerStateService = TestBed.inject(InstallerStateService) as unknown as
+        MockInstallerStateService;
     cdr = TestBed.inject(ChangeDetectorRef);
     // Initial data binding and ngOnInit call
     fixture.detectChanges();
@@ -87,113 +99,125 @@ describe('StepPrerequisitesComponent', () => {
   });
 
   describe('Component Initialization (ngOnInit)', () => {
-    it('should initialize the form with unchecked boxes if state is initially false', () => {
-      const formArray = component.prerequisitesForm.get('items');
-      expect(formArray).toBeDefined();
-      expect(formArray?.value.length).toBe(mockPrerequisitesList.length);
-      expect(formArray?.value.every((val: boolean) => !val)).toBeTrue();
-      expect(component.allPrerequisitesMet).toBeTrue();
-    });
+    it('should initialize the form with unchecked boxes if state is initially false',
+       () => {
+         const formArray = component.prerequisitesForm.get('items');
+         expect(formArray).toBeDefined();
+         expect(formArray?.value.length).toBe(mockPrerequisitesList.length);
+         expect(formArray?.value.every((val: boolean) => !val)).toBeTrue();
+         expect(component.allPrerequisitesMet).toBeTrue();
+       });
 
-    it('should initialize the form with all boxes checked if state is initially true', () => {
-      installerStateService.setInitialState({ prerequisitesMet: true });
-      component.ngOnInit();
-      fixture.detectChanges();
+    it('should initialize the form with all boxes checked if state is initially true',
+       () => {
+         installerStateService.setInitialState({prerequisitesMet: true});
+         component.ngOnInit();
+         fixture.detectChanges();
 
-      const formArray = component.prerequisitesForm.get('items');
-      expect(formArray?.value.every((val: boolean) => val)).toBeTrue();
-      expect(component.allPrerequisitesMet).toBeTrue();
-    });
+         const formArray = component.prerequisitesForm.get('items');
+         expect(formArray?.value.every((val: boolean) => val)).toBeTrue();
+         expect(component.allPrerequisitesMet).toBeTrue();
+       });
 
-    it('should subscribe to form value changes and call updatePrerequisitesState', fakeAsync(() => {
-        const updateSpy = spyOn(component as any, 'updatePrerequisitesState').and.callThrough();
+    it('should subscribe to form value changes and call updatePrerequisitesState',
+       fakeAsync(() => {
+         const updateSpy = spyOn(component as any, 'updatePrerequisitesState')
+                               .and.callThrough();
 
-        const checkbox = component.getCheckboxControl(0);
-        checkbox.setValue(true);
+         const checkbox = component.getCheckboxControl(0);
+         checkbox.setValue(true);
 
-        tick();
-        expect(updateSpy).toHaveBeenCalledTimes(1);
-    }));
+         tick();
+         expect(updateSpy).toHaveBeenCalledTimes(1);
+       }));
   });
 
   describe('Form Validation and State', () => {
     it('should be invalid if not all checkboxes are checked', fakeAsync(() => {
-        component.getCheckboxControl(0).setValue(true);
-        component.getCheckboxControl(1).setValue(true);
-        component.getCheckboxControl(2).setValue(false);
-        tick();
+         component.getCheckboxControl(0).setValue(true);
+         component.getCheckboxControl(1).setValue(true);
+         component.getCheckboxControl(2).setValue(false);
+         tick();
 
-        expect(component.prerequisitesForm.valid).toBeFalse();
-        expect(component.allPrerequisitesMet).toBeFalse();
-    }));
+         expect(component.prerequisitesForm.valid).toBeFalse();
+         expect(component.allPrerequisitesMet).toBeFalse();
+       }));
 
     it('should be valid when all checkboxes are checked', fakeAsync(() => {
-        mockPrerequisitesList.forEach((_, index) => {
-          component.getCheckboxControl(index).setValue(true);
-        });
-        tick();
+         mockPrerequisitesList.forEach((_, index) => {
+           component.getCheckboxControl(index).setValue(true);
+         });
+         tick();
 
-        expect(component.prerequisitesForm.valid).toBeTrue();
-        expect(component.allPrerequisitesMet).toBeTrue();
-    }));
+         expect(component.prerequisitesForm.valid).toBeTrue();
+         expect(component.allPrerequisitesMet).toBeTrue();
+       }));
 
-    it('should call updatePrerequisitesMet on the service when state changes', fakeAsync(() => {
-        const serviceSpy = spyOn(installerStateService, 'updatePrerequisitesMet').and.callThrough();
+    it('should call updatePrerequisitesMet on the service when state changes',
+       fakeAsync(() => {
+         const serviceSpy =
+             spyOn(installerStateService, 'updatePrerequisitesMet')
+                 .and.callThrough();
 
-        mockPrerequisitesList.forEach((_, index) => {
-            component.getCheckboxControl(index).setValue(true);
-            tick();
-        });
-        expect(serviceSpy).toHaveBeenCalledWith(true);
-    }));
+         mockPrerequisitesList.forEach((_, index) => {
+           component.getCheckboxControl(index).setValue(true);
+           tick();
+         });
+         expect(serviceSpy).toHaveBeenCalledWith(true);
+       }));
 
     it('getCheckboxControl should return the correct form control', () => {
-        const control = component.getCheckboxControl(1);
-        expect(control).toBeDefined();
-        expect(control.value).toBeFalse();
+      const control = component.getCheckboxControl(1);
+      expect(control).toBeDefined();
+      expect(control.value).toBeFalse();
     });
   });
 
   describe('Navigation', () => {
-    it('onNext should navigate to gcp-connection if form is valid', fakeAsync(() => {
-        const navigateSpy = spyOn(router, 'navigate');
+    it('onNext should navigate to gcp-connection if form is valid',
+       fakeAsync(() => {
+         const navigateSpy = spyOn(router, 'navigate');
 
-        mockPrerequisitesList.forEach((_, index) => {
-          component.getCheckboxControl(index).setValue(true);
-        });
-        tick();
+         mockPrerequisitesList.forEach((_, index) => {
+           component.getCheckboxControl(index).setValue(true);
+         });
+         tick();
 
-        component.onNext();
+         component.onNext();
 
-        expect(navigateSpy).toHaveBeenCalledWith(['installer', 'gcp-connection']);
-    }));
+         expect(navigateSpy).toHaveBeenCalledWith([
+           'installer', 'gcp-connection'
+         ]);
+       }));
 
-    it('onNext should not navigate and should mark form as touched if invalid', () => {
-        const navigateSpy = spyOn(router, 'navigate');
-        const markTouchedSpy = spyOn(component.prerequisitesForm, 'markAllAsTouched').and.callThrough();
+    it('onNext should not navigate and should mark form as touched if invalid',
+       () => {
+         const navigateSpy = spyOn(router, 'navigate');
+         const markTouchedSpy =
+             spyOn(component.prerequisitesForm, 'markAllAsTouched')
+                 .and.callThrough();
 
-        component.getCheckboxControl(0).setValue(true);
-        component.onNext();
+         component.getCheckboxControl(0).setValue(true);
+         component.onNext();
 
-        expect(markTouchedSpy).toHaveBeenCalled();
-        expect(navigateSpy).not.toHaveBeenCalled();
-    });
+         expect(markTouchedSpy).toHaveBeenCalled();
+         expect(navigateSpy).not.toHaveBeenCalled();
+       });
 
     it('onBack should navigate to goal', () => {
-        const navigateSpy = spyOn(router, 'navigate');
-        component.onBack();
-        expect(navigateSpy).toHaveBeenCalledWith(['installer', 'goal']);
+      const navigateSpy = spyOn(router, 'navigate');
+      component.onBack();
+      expect(navigateSpy).toHaveBeenCalledWith(['installer', 'goal']);
     });
   });
 
   describe('Component Destruction (ngOnDestroy)', () => {
     it('should unsubscribe from the form subscription', () => {
+      const formSubscription = component['formSubscription'] as Subscription;
+      const unsubscribeSpy = spyOn(formSubscription, 'unsubscribe');
+      component.ngOnDestroy();
 
-        const formSubscription = component['formSubscription'] as Subscription;
-        const unsubscribeSpy = spyOn(formSubscription, 'unsubscribe');
-        component.ngOnDestroy();
-
-        expect(unsubscribeSpy).toHaveBeenCalled();
+      expect(unsubscribeSpy).toHaveBeenCalled();
     });
   });
 });
