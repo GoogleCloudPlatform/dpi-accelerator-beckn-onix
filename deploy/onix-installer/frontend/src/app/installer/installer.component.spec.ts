@@ -30,10 +30,6 @@ import {InstallerComponent} from './installer.component';
 import {InstallerState} from './types/installer.types';
 
 // Initialize the Angular testing environment.
-getTestBed().initTestEnvironment(
-    BrowserDynamicTestingModule,
-    platformBrowserDynamicTesting(),
-);
 
 // A baseline mock state for the installer.
 const mockInitialState: InstallerState = {

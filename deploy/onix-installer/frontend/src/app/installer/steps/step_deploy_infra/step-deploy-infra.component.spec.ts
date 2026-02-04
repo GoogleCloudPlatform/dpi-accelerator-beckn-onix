@@ -29,10 +29,6 @@ import {DeploymentStatus, InfraDetails, InstallerState} from '../../types/instal
 import {StepDeployInfraComponent} from './step-deploy-infra.component';
 
 // Initialize the Angular testing environment.
-getTestBed().initTestEnvironment(
-    BrowserDynamicTestingModule,
-    platformBrowserDynamicTesting(),
-);
 
 const initialMockState: InstallerState = {
   currentStepIndex: 4,
