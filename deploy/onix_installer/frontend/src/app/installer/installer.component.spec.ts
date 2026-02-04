@@ -14,18 +14,26 @@
  * limitations under the License.
  */
 
-import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { Router, NavigationEnd } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
-import { BehaviorSubject, Subject } from 'rxjs';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { MatStepperModule } from '@angular/material/stepper';
-import { StepperSelectionEvent } from '@angular/cdk/stepper';
+import {StepperSelectionEvent} from '@angular/cdk/stepper';
+import {ComponentFixture, fakeAsync, getTestBed, TestBed, tick} from '@angular/core/testing';
+import {MatStepperModule} from '@angular/material/stepper';
+import {BrowserDynamicTestingModule, platformBrowserDynamicTesting} from '@angular/platform-browser-dynamic/testing';
+import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {NavigationEnd, Router} from '@angular/router';
+import {RouterTestingModule} from '@angular/router/testing';
+import {BehaviorSubject, Subject} from 'rxjs';
 
-import { InstallerComponent } from './installer.component';
-import { InstallerStateService } from '../core/services/installer-state.service';
-import { InstallerState } from './types/installer.types';
-import { SharedModule } from '../shared/shared.module';
+import {InstallerStateService} from '../core/services/installer-state.service';
+import {SharedModule} from '../shared/shared.module';
+
+import {InstallerComponent} from './installer.component';
+import {InstallerState} from './types/installer.types';
+
+// Initialize the Angular testing environment.
+getTestBed().initTestEnvironment(
+    BrowserDynamicTestingModule,
+    platformBrowserDynamicTesting(),
+);
 
 // A baseline mock state for the installer.
 const mockInitialState: InstallerState = {
