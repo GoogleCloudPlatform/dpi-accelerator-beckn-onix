@@ -19,7 +19,7 @@ import logging
 from unittest.mock import MagicMock, AsyncMock, patch, call
 import httpx
 
-import services.health_checks as hc
+from services import health_checks
 
 class TestHealthChecks(unittest.IsolatedAsyncioTestCase):
 
@@ -52,7 +52,7 @@ class TestHealthChecks(unittest.IsolatedAsyncioTestCase):
         mock_client_instance = AsyncMock() 
         mock_client_instance.get.return_value = mock_response
 
-        result = await hc.perform_single_health_check(
+        result = await health_checks.perform_single_health_check(
             "test_service", "test-url.com", self.mock_websocket, mock_client_instance
         )
 
@@ -84,7 +84,7 @@ class TestHealthChecks(unittest.IsolatedAsyncioTestCase):
         mock_client_instance = AsyncMock()
         mock_client_instance.get.return_value = mock_response
 
-        result = await hc.perform_single_health_check(
+        result = await health_checks.perform_single_health_check(
             "test_service", "test-url.com", self.mock_websocket, mock_client_instance
         )
 
@@ -112,7 +112,7 @@ class TestHealthChecks(unittest.IsolatedAsyncioTestCase):
         mock_client_instance = AsyncMock()
         mock_client_instance.get.side_effect = httpx.RequestError("Connection failed", request=httpx.Request("GET", "https://test-url.com/health")) 
 
-        result = await hc.perform_single_health_check(
+        result = await health_checks.perform_single_health_check(
             "test_service", "test-url.com", self.mock_websocket, mock_client_instance
         )
 
@@ -137,7 +137,7 @@ class TestHealthChecks(unittest.IsolatedAsyncioTestCase):
         mock_client_instance = AsyncMock()
         mock_client_instance.get.side_effect = Exception("Unexpected error")
 
-        result = await hc.perform_single_health_check(
+        result = await health_checks.perform_single_health_check(
             "test_service", "test-url.com", self.mock_websocket, mock_client_instance
         )
 
@@ -157,7 +157,7 @@ class TestHealthChecks(unittest.IsolatedAsyncioTestCase):
         """
         Test run_websocket_health_check with invalid input type.
         """
-        await hc.run_websocket_health_check(self.mock_websocket, "not_a_dict")
+        await health_checks.run_websocket_health_check(self.mock_websocket, "not_a_dict")
 
         self.mock_logger.error.assert_called_once_with("Invalid payload format received for healthCheck in service.")
         self.mock_websocket.send_text.assert_called_once_with(json.dumps({
@@ -169,7 +169,7 @@ class TestHealthChecks(unittest.IsolatedAsyncioTestCase):
         """
         Test run_websocket_health_check with an empty dictionary of services.
         """
-        await hc.run_websocket_health_check(self.mock_websocket, {})
+        await health_checks.run_websocket_health_check(self.mock_websocket, {})
 
         self.mock_logger.warning.assert_called_once_with("No service URLs provided for health check.")
         self.mock_websocket.send_text.assert_any_call(json.dumps({
@@ -205,7 +205,7 @@ class TestHealthChecks(unittest.IsolatedAsyncioTestCase):
         mock_loop = MagicMock()
         mock_loop.time.side_effect = [0, 0] 
         with patch('asyncio.get_event_loop', return_value=mock_loop):
-            await hc.run_websocket_health_check(self.mock_websocket, service_urls)
+            await health_checks.run_websocket_health_check(self.mock_websocket, service_urls)
 
         self.mock_websocket.send_text.assert_any_call(json.dumps({
             "type": "info",
@@ -270,7 +270,7 @@ class TestHealthChecks(unittest.IsolatedAsyncioTestCase):
         mock_loop = MagicMock()
         mock_loop.time.side_effect = [0, 0, 1] 
         with patch('asyncio.get_event_loop', return_value=mock_loop):
-            await hc.run_websocket_health_check(self.mock_websocket, service_urls)
+            await health_checks.run_websocket_health_check(self.mock_websocket, service_urls)
 
         self.mock_logger.info.assert_any_call("Starting comprehensive health checks for: service_a, service_b")
 
@@ -339,7 +339,7 @@ class TestHealthChecks(unittest.IsolatedAsyncioTestCase):
         mock_loop.time.side_effect = [0] + list(range(62)) 
         
         with patch('asyncio.get_event_loop', return_value=mock_loop):
-            await hc.run_websocket_health_check(self.mock_websocket, service_urls)
+            await health_checks.run_websocket_health_check(self.mock_websocket, service_urls)
 
         self.mock_websocket.send_text.assert_any_call(json.dumps({
             "type": "error",
@@ -386,7 +386,7 @@ class TestHealthChecks(unittest.IsolatedAsyncioTestCase):
         mock_loop.time.side_effect = [0, 0] 
         with patch('asyncio.get_event_loop', return_value=mock_loop):
             with self.assertRaises(Exception) as cm:
-                await hc.run_websocket_health_check(self.mock_websocket, service_urls)
+                await health_checks.run_websocket_health_check(self.mock_websocket, service_urls)
 
         self.assertEqual(str(cm.exception), "Loop error")
         self.mock_logger.exception.assert_called_once_with("An unexpected error occurred within run_websocket_health_check: Loop error")
