@@ -14,7 +14,9 @@
 
 from enum import Enum
 from typing import Annotated, Dict, Optional, Any
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic.main import BaseModel
+from pydantic.networks import HttpUrl
+from pydantic.fields import Field
 
 
 # Define a type alias for non-empty strings
@@ -79,10 +81,10 @@ class AppDeploymentRequest(BaseModel):
 
     registry_url: HttpUrl
 
-    adapter_config: Optional[AdapterConfig] = None
     registry_config: RegistryConfig
-    gateway_config: Optional[GatewayConfig] = None
     domain_config: DomainConfig
+    adapter_config: Optional[AdapterConfig] = None
+    gateway_config: Optional[GatewayConfig] = None
 
 
 class ProxyRequest(BaseModel):
