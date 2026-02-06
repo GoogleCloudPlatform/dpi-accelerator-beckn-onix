@@ -21,11 +21,11 @@ import logging
 import subprocess
 from unittest.mock import MagicMock, AsyncMock, patch, call
 
-from fastapi import HTTPException
+import fastapi
 from google.auth.exceptions import GoogleAuthError
 
 # Import the module under test
-import services.gcp_resource_manager as gcp_resource_manager
+from services import gcp_resource_manager
 
 class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
 
@@ -71,7 +71,7 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
         """
         Test handling of GoogleAuthError when listing projects.
         """
-        with self.assertRaises(HTTPException) as cm:
+        with self.assertRaises(fastapi.HTTPException) as cm:
             await gcp_resource_manager.list_google_cloud_projects()
 
         self.assertEqual(cm.exception.status_code, 500)
@@ -85,7 +85,7 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
         """
         Test handling of a general unexpected Exception when listing projects.
         """
-        with self.assertRaises(HTTPException) as cm:
+        with self.assertRaises(fastapi.HTTPException) as cm:
             await gcp_resource_manager.list_google_cloud_projects()
 
         self.assertEqual(cm.exception.status_code, 500)
@@ -133,7 +133,7 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
         """
         Test handling of FileNotFoundError when gcloud command is not found.
         """
-        with self.assertRaises(HTTPException) as cm:
+        with self.assertRaises(fastapi.HTTPException) as cm:
             await gcp_resource_manager.list_google_cloud_regions()
 
         self.assertEqual(cm.exception.status_code, 500)
@@ -157,7 +157,7 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
             stderr=mock_error_string 
         )
 
-        with self.assertRaises(HTTPException) as cm:
+        with self.assertRaises(fastapi.HTTPException) as cm:
             await gcp_resource_manager.list_google_cloud_regions()
 
         self.assertEqual(cm.exception.status_code, 500)
@@ -176,7 +176,7 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
         
         mock_to_thread.return_value = mock_result
 
-        with self.assertRaises(HTTPException) as cm:
+        with self.assertRaises(fastapi.HTTPException) as cm:
             await gcp_resource_manager.list_google_cloud_regions()
 
         self.assertEqual(cm.exception.status_code, 500)
@@ -189,7 +189,7 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
         """
         Test handling of a general unexpected Exception when listing regions.
         """
-        with self.assertRaises(HTTPException) as cm:
+        with self.assertRaises(fastapi.HTTPException) as cm:
             await gcp_resource_manager.list_google_cloud_regions()
 
         self.assertEqual(cm.exception.status_code, 500)
