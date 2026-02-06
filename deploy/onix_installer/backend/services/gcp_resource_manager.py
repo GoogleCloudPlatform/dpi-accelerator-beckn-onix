@@ -18,7 +18,7 @@ import logging
 import subprocess
 from typing import List
 
-from fastapi import HTTPException
+from fastapi.exceptions import HTTPException
 from google.auth.exceptions import GoogleAuthError
 from google.cloud import resourcemanager_v3
 
