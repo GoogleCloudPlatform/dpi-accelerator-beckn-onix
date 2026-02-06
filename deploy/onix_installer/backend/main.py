@@ -18,7 +18,9 @@ import sys
 from typing import Dict, Any
 import httpx
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.applications import FastAPI
+from fastapi.exceptions import HTTPException
+from fastapi.websockets import WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.models import InfraDeploymentRequest, AppDeploymentRequest, ProxyRequest

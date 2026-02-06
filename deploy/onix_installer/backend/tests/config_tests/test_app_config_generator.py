@@ -14,25 +14,12 @@
 
 import unittest
 import os
-import sys
 import logging
 from unittest.mock import patch, MagicMock, call
 
 import urllib
 
-# Add the project root to sys.path for proper imports
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-sys.path.insert(0, project_root)
-
-from core.models import (
-    AppDeploymentRequest,
-    DeploymentType,
-    AdapterConfig,
-    RegistryConfig,
-    GatewayConfig,
-    DomainConfig
-)
-
+from core import models
 from config import app_config_generator
 
 
@@ -210,7 +197,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test that the Jinja2 context is prepared correctly, including SA email stripping.
         """
-        app_req = AppDeploymentRequest(
+        app_req = models.AppDeploymentRequest(
             app_name="test-app",
             components={"bap": True, "bpp": False, "gateway": True, "registry": False}, # Using string keys
             domain_names={
@@ -221,10 +208,10 @@ class TestAppConfigGenerator(unittest.TestCase):
             },
             image_urls={"adapter": "some-repo/adapter:1.0"},
             registry_url="http://reg.example.com",
-            adapter_config=AdapterConfig(enable_schema_validation=True),
-            registry_config=RegistryConfig(subscriber_id="test_sub", key_id="test_key", enable_auto_approver=True),
-            gateway_config=GatewayConfig(subscriber_id="test_gateway_sub"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            adapter_config=models.AdapterConfig(enable_schema_validation=True),
+            registry_config=models.RegistryConfig(subscriber_id="test_sub", key_id="test_key", enable_auto_approver=True),
+            gateway_config=models.GatewayConfig(subscriber_id="test_gateway_sub"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
         infra_outputs = {
             "project_id": "infra-proj",
@@ -290,7 +277,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test generation of app configs when all components that create config files are enabled.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={
                 "bap": True,
@@ -301,8 +288,8 @@ class TestAppConfigGenerator(unittest.TestCase):
             domain_names={},
             image_urls={},
             registry_url="http://mock-reg.com",
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
 
         app_config_generator.generate_app_configs(req)
@@ -367,7 +354,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test generation of app configs when only registry component is enabled.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={
                 "registry": True
@@ -375,8 +362,8 @@ class TestAppConfigGenerator(unittest.TestCase):
             domain_names={},
             image_urls={},
             registry_url="http://mock-reg.com",
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
 
         app_config_generator.generate_app_configs(req)
@@ -433,14 +420,14 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test that FileNotFoundError during template rendering is caught and re-raised.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={"bap": True},
             domain_names={},
             image_urls={},
             registry_url="http://mock-reg.com",
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
 
         with self.assertRaisesRegex(FileNotFoundError, "Missing J2"):
@@ -466,14 +453,14 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test that IOError during file writing is caught and re-raised.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={"gateway": True},
             domain_names={},
             image_urls={},
             registry_url="http://mock-reg.com",
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
 
         with self.assertRaisesRegex(IOError, "No disk space"):
@@ -489,7 +476,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test that all relevant environment variables are generated correctly for all components.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={
                 "bap": True,
@@ -510,8 +497,8 @@ class TestAppConfigGenerator(unittest.TestCase):
                 "subscriber": "repo/subscriber:1.0"
             },
             registry_url="http://mock-reg.com",
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
 
         # Call with an explicit list of services to deploy
@@ -549,14 +536,14 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test environment variables when no deployable components are selected.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={},
             domain_names={},
             image_urls={},
             registry_url="http://mock-reg.com",
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
         services_to_deploy = []
         env_vars = app_config_generator.get_deployment_environment_variables(req, services_to_deploy)
@@ -570,7 +557,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test environment variables for a subset of components.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={
                 "registry": True,
@@ -584,8 +571,8 @@ class TestAppConfigGenerator(unittest.TestCase):
                 "registry": "repo/reg:1.0"
             },
             registry_url="http://mock-reg.com",
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
         services_to_deploy = ["adapter", "registry", "registry-admin", "subscriber"]
         env_vars = app_config_generator.get_deployment_environment_variables(req, services_to_deploy)
@@ -601,15 +588,15 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test that ENABLE_SCHEMA_VALIDATION is set to 'true' when enabled in the request.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={"bap": True},
             domain_names={},
             image_urls={},
             registry_url="http://mock-reg.com",
-            adapter_config=AdapterConfig(enable_schema_validation=True),
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            adapter_config=models.AdapterConfig(enable_schema_validation=True),
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
         services_to_deploy = ["adapter"]
         env_vars = app_config_generator.get_deployment_environment_variables(req, services_to_deploy)
