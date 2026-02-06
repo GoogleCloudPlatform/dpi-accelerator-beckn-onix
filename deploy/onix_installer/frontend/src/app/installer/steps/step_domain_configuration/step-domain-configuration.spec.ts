@@ -26,12 +26,6 @@ import {ComponentSubdomainPrefix, DomainConfig, InstallerState} from '../../type
 
 import {StepDomainConfigComponent} from './step-domain-configuration.component';
 
-// Initialize the Angular testing environment.
-getTestBed().initTestEnvironment(
-    BrowserDynamicTestingModule,
-    platformBrowserDynamicTesting(),
-);
-
 const initialMockState: InstallerState = {
   currentStepIndex: 5,
   installerGoal: 'create_new_open_network',
