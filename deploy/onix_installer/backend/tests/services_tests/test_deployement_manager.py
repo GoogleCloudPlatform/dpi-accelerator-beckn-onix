@@ -20,15 +20,10 @@ import logging
 import re
 from unittest.mock import MagicMock, AsyncMock, patch, call
 
-import sys
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-sys.path.insert(0, project_root)
+from core import models
 
-from core.models import InfraDeploymentRequest, AppDeploymentRequest, DeploymentType, RegistryConfig, DomainConfig
-import core.utils as utils  # Import utils to allow its original function to be called
-
-import config.app_config_generator as app_config
-import services.deployment_manager as dm
+from config import app_config_generator
+from services import deployment_manager
 
 
 class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
@@ -57,12 +52,12 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
         self.mock_websocket.send_text = AsyncMock()
 
         # Common dummy data for AppDeploymentRequest to satisfy Pydantic.
-        self.dummy_registry_config = RegistryConfig(
+        self.dummy_registry_config = models.RegistryConfig(
             server_url="http://mock-registry.com",
             subscriber_id="mock_subscriber_id",
             key_id="mock_key_id"
         )
-        self.dummy_domain_config = DomainConfig(
+        self.dummy_domain_config = models.DomainConfig(
             domainType="mock_type",
             baseDomain="mock.com",
             dnsZone="mock-zone"
@@ -84,12 +79,12 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
         mock_process.wait.return_value = 0
         mock_create_subprocess_exec.return_value = mock_process
 
-        config_request = InfraDeploymentRequest(
+        config_request = models.InfraDeploymentRequest(
             project_id="test-proj", region="us-central1", app_name="test-app",
-            type=DeploymentType.SMALL, components={"bap": True}
+            type=models.DeploymentType.SMALL, components={"bap": True}
         )
 
-        await dm.run_infra_deployment(config_request, self.mock_websocket)
+        await deployment_manager.run_infra_deployment(config_request, self.mock_websocket)
 
         self.mock_tf_config.generate_config.assert_called_once_with(config_request)
         mock_create_subprocess_exec.assert_called_once_with(
@@ -121,12 +116,12 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
     async def test_run_infra_deployment_config_generation_failure(self):
         self.mock_tf_config.generate_config.side_effect = Exception("Config error")
 
-        config_request = InfraDeploymentRequest(
+        config_request = models.InfraDeploymentRequest(
             project_id="test-proj", region="us-central1", app_name="test-app",
-            type=DeploymentType.SMALL, components={"bap": True}
+            type=models.DeploymentType.SMALL, components={"bap": True}
         )
 
-        await dm.run_infra_deployment(config_request, self.mock_websocket)
+        await deployment_manager.run_infra_deployment(config_request, self.mock_websocket)
 
         self.mock_tf_config.generate_config.assert_called_once_with(config_request)
         self.assertEqual(self.mock_websocket.send_text.call_count, 2) # 1 info + 1 error
@@ -140,12 +135,12 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
     @patch('asyncio.create_subprocess_exec', side_effect=FileNotFoundError("Script not found"))
     async def test_run_infra_deployment_script_not_found(self, mock_create_subprocess_exec):
-        config_request = InfraDeploymentRequest(
+        config_request = models.InfraDeploymentRequest(
             project_id="test-proj", region="us-central1", app_name="test-app",
-            type=DeploymentType.SMALL, components={"bap": True}
+            type=models.DeploymentType.SMALL, components={"bap": True}
         )
 
-        await dm.run_infra_deployment(config_request, self.mock_websocket)
+        await deployment_manager.run_infra_deployment(config_request, self.mock_websocket)
 
         self.mock_tf_config.generate_config.assert_called_once()
         mock_create_subprocess_exec.assert_called_once()
@@ -164,12 +159,12 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
         mock_process.wait.return_value = 1
         mock_create_subprocess_exec.return_value = mock_process
 
-        config_request = InfraDeploymentRequest(
+        config_request = models.InfraDeploymentRequest(
             project_id="test-proj", region="us-central1", app_name="test-app",
-            type=DeploymentType.SMALL, components={"bap": True}
+            type=models.DeploymentType.SMALL, components={"bap": True}
         )
 
-        await dm.run_infra_deployment(config_request, self.mock_websocket)
+        await deployment_manager.run_infra_deployment(config_request, self.mock_websocket)
 
         self.mock_tf_config.generate_config.assert_called_once()
         mock_create_subprocess_exec.assert_called_once()
@@ -188,12 +183,12 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
         mock_process.wait.return_value = 0
         mock_create_subprocess_exec.return_value = mock_process
 
-        config_request = InfraDeploymentRequest(
+        config_request = models.InfraDeploymentRequest(
             project_id="test-proj", region="us-central1", app_name="test-app",
-            type=DeploymentType.SMALL, components={"bap": True}
+            type=models.DeploymentType.SMALL, components={"bap": True}
         )
 
-        await dm.run_infra_deployment(config_request, self.mock_websocket)
+        await deployment_manager.run_infra_deployment(config_request, self.mock_websocket)
 
         self.mock_tf_config.generate_config.assert_called_once()
         mock_create_subprocess_exec.assert_called_once()
@@ -214,12 +209,12 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
         mock_process.wait.return_value = 0
         mock_create_subprocess_exec.return_value = mock_process
 
-        config_request = InfraDeploymentRequest(
+        config_request = models.InfraDeploymentRequest(
             project_id="test-proj", region="us-central1", app_name="test-app",
-            type=DeploymentType.SMALL, components={"bap": True}
+            type=models.DeploymentType.SMALL, components={"bap": True}
         )
 
-        await dm.run_infra_deployment(config_request, self.mock_websocket)
+        await deployment_manager.run_infra_deployment(config_request, self.mock_websocket)
 
         self.mock_tf_config.generate_config.assert_called_once()
         mock_create_subprocess_exec.assert_called_once()
@@ -232,12 +227,12 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
     @patch('asyncio.create_subprocess_exec', side_effect=Exception("Unexpected error"))
     async def test_run_infra_deployment_general_exception_during_subprocess(self, mock_create_subprocess_exec):
-        config_request = InfraDeploymentRequest(
+        config_request = models.InfraDeploymentRequest(
             project_id="test-proj", region="us-central1", app_name="test-app",
-            type=DeploymentType.SMALL, components={"bap": True}
+            type=models.DeploymentType.SMALL, components={"bap": True}
         )
 
-        await dm.run_infra_deployment(config_request, self.mock_websocket)
+        await deployment_manager.run_infra_deployment(config_request, self.mock_websocket)
 
         self.mock_tf_config.generate_config.assert_called_once()
         mock_create_subprocess_exec.assert_called_once()
@@ -260,7 +255,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
         self.mock_app_config.extract_final_urls.return_value = {"adapter": "https://adapter.com", "registry": "https://registry.com"}
 
 
-        app_req = AppDeploymentRequest(
+        app_req = models.AppDeploymentRequest(
             app_name="test-app",
             components={"bap": True, "registry": True},
             domain_names={"app": "my-app.com", "adapter": "adapter.com", "registry": "registry.com"},
@@ -270,7 +265,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
             domain_config=self.dummy_domain_config
         )
 
-        await dm.run_app_deployment(app_req, self.mock_websocket)
+        await deployment_manager.run_app_deployment(app_req, self.mock_websocket)
 
         self.mock_app_config.generate_app_configs.assert_called_once_with(app_req)
         mock_get_services_to_deploy.assert_called_once_with(app_req)
@@ -314,7 +309,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
     async def test_run_app_deployment_config_generation_failure(self):
         self.mock_app_config.generate_app_configs.side_effect = FileNotFoundError("App config template missing")
 
-        app_req = AppDeploymentRequest(
+        app_req = models.AppDeploymentRequest(
             app_name="test-app",
             components={"bap": True}, domain_names={}, image_urls={},
             registry_url=self.dummy_registry_url,
@@ -322,7 +317,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
             domain_config=self.dummy_domain_config
         )
 
-        await dm.run_app_deployment(app_req, self.mock_websocket)
+        await deployment_manager.run_app_deployment(app_req, self.mock_websocket)
 
         self.mock_app_config.generate_app_configs.assert_called_once_with(app_req)
         self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "info", "message": "Generating application configurations..."}))
@@ -346,7 +341,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
         self.mock_app_config.get_deployment_environment_variables.return_value = {}
 
-        app_req = AppDeploymentRequest(
+        app_req = models.AppDeploymentRequest(
             app_name="test-app",
             components={"bap": True}, domain_names={}, image_urls={},
             registry_url=self.dummy_registry_url,
@@ -354,7 +349,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
             domain_config=self.dummy_domain_config
         )
 
-        await dm.run_app_deployment(app_req, self.mock_websocket)
+        await deployment_manager.run_app_deployment(app_req, self.mock_websocket)
 
         self.mock_app_config.generate_app_configs.assert_called_once()
         mock_get_services_to_deploy.assert_called_once_with(app_req)
@@ -371,7 +366,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
     @patch('services.deployment_manager._get_services_to_deploy', return_value=["adapter"])
     @patch('asyncio.create_subprocess_exec', side_effect=Exception("Unexpected app process error"))
     async def test_run_app_deployment_general_exception(self, mock_create_subprocess_exec, mock_get_services_to_deploy):
-        app_req = AppDeploymentRequest(
+        app_req = models.AppDeploymentRequest(
             app_name="test-app",
             components={"bap": True}, domain_names={}, image_urls={},
             registry_url=self.dummy_registry_url,
@@ -379,7 +374,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
             domain_config=self.dummy_domain_config
         )
 
-        await dm.run_app_deployment(app_req, self.mock_websocket)
+        await deployment_manager.run_app_deployment(app_req, self.mock_websocket)
 
         self.mock_app_config.generate_app_configs.assert_called_once()
         mock_get_services_to_deploy.assert_called_once_with(app_req)
@@ -395,7 +390,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
     @patch('services.deployment_manager.app_config.should_deploy_subscriber')
     def test_get_services_to_deploy_all_components(self, mock_should_deploy_subscriber):
         mock_should_deploy_subscriber.return_value = True # For this test case, subscriber should be deployed if components imply it
-        app_req = AppDeploymentRequest(
+        app_req = models.AppDeploymentRequest(
             app_name="test-app",
             components={
                 "bap": True,
@@ -408,18 +403,18 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
             registry_config=self.dummy_registry_config,
             domain_config=self.dummy_domain_config
         )
-        # Assuming the logic in app_config.should_deploy_subscriber is based on bap, bpp, gateway
+        # Assuming the logic in app_config_generator.should_deploy_subscriber is based on bap, bpp, gateway
         # If 'bap' or 'bpp' or 'gateway' are True, then should_deploy_subscriber is True
         # For 'all_components' case, it would be True.
         expected_services = ["adapter", "gateway", "registry", "registry_admin", "subscriber"]
-        self.assertEqual(dm._get_services_to_deploy(app_req), sorted(expected_services))
+        self.assertEqual(deployment_manager._get_services_to_deploy(app_req), sorted(expected_services))
         mock_should_deploy_subscriber.assert_called_once_with(app_req.components)
 
 
     @patch('services.deployment_manager.app_config.should_deploy_subscriber')
     def test_get_services_to_deploy_bap_only(self, mock_should_deploy_subscriber):
         mock_should_deploy_subscriber.return_value = True # 'bap' implies subscriber
-        app_req = AppDeploymentRequest(
+        app_req = models.AppDeploymentRequest(
             app_name="test-app",
             components={
                 "bap": True,
@@ -433,13 +428,13 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
             domain_config=self.dummy_domain_config
         )
         expected_services = ["adapter", "subscriber"]
-        self.assertEqual(dm._get_services_to_deploy(app_req), sorted(expected_services))
+        self.assertEqual(deployment_manager._get_services_to_deploy(app_req), sorted(expected_services))
         mock_should_deploy_subscriber.assert_called_once_with(app_req.components)
 
     @patch('services.deployment_manager.app_config.should_deploy_subscriber')
     def test_get_services_to_deploy_registry_only(self, mock_should_deploy_subscriber):
         mock_should_deploy_subscriber.return_value = False # 'registry' alone does NOT imply subscriber
-        app_req = AppDeploymentRequest(
+        app_req = models.AppDeploymentRequest(
             app_name="test-app",
             components={
                 "bap": False,
@@ -453,14 +448,14 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
             domain_config=self.dummy_domain_config
         )
         expected_services = ["registry", "registry_admin"]
-        self.assertEqual(dm._get_services_to_deploy(app_req), sorted(expected_services))
+        self.assertEqual(deployment_manager._get_services_to_deploy(app_req), sorted(expected_services))
         mock_should_deploy_subscriber.assert_called_once_with(app_req.components)
 
 
     @patch('services.deployment_manager.app_config.should_deploy_subscriber')
     def test_get_services_to_deploy_no_components(self, mock_should_deploy_subscriber):
         mock_should_deploy_subscriber.return_value = False # No relevant components implies no subscriber
-        app_req = AppDeploymentRequest(
+        app_req = models.AppDeploymentRequest(
             app_name="test-app",
             components={},
             domain_names={}, image_urls={},
@@ -469,5 +464,9 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
             domain_config=self.dummy_domain_config
         )
         expected_services = []
-        self.assertEqual(dm._get_services_to_deploy(app_req), sorted(expected_services))
+        self.assertEqual(deployment_manager._get_services_to_deploy(app_req), sorted(expected_services))
         mock_should_deploy_subscriber.assert_called_once_with(app_req.components)
+
+
+if __name__ == '__main__':
+    unittest.main()
