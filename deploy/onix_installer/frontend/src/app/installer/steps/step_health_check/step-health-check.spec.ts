@@ -26,12 +26,6 @@ import {InstallerState} from '../../types/installer.types';
 
 import {StepHealthCheck} from './step-health-check';
 
-// Initialize the Angular testing environment.
-getTestBed().initTestEnvironment(
-    BrowserDynamicTestingModule,
-    platformBrowserDynamicTesting(),
-);
-
 const initialMockState: InstallerState = {
   currentStepIndex: 8,
   installerGoal: 'create_new_open_network',

@@ -29,12 +29,6 @@ import {GcpConfiguration} from '../../types/installer.types';
 
 import {StepGcpConnectionComponent} from './step-gcp-connection.component';
 
-// Initialize the Angular testing environment.
-getTestBed().initTestEnvironment(
-    BrowserDynamicTestingModule,
-    platformBrowserDynamicTesting(),
-);
-
 const mockProjects = ['gcp-project-1', 'gcp-project-2', 'another-project'];
 const mockRegions = ['us-central1', 'us-east1', 'europe-west1'];
 

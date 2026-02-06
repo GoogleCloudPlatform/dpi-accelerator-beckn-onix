@@ -34,12 +34,6 @@ import {jsonValidator} from '../../../shared/validators/custom-validators';
 
 import {StepSubscribe} from './step-subscribe';
 
-// Initialize the Angular testing environment.
-getTestBed().initTestEnvironment(
-    BrowserDynamicTestingModule,
-    platformBrowserDynamicTesting(),
-);
-
 const mockRouter = {
   navigate: jasmine.createSpy('navigate')
 };
