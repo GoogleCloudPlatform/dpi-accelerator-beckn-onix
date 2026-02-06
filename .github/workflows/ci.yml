@@ -127,7 +127,7 @@ jobs:
     - name: Install Dependencies
       run: |
         cd deploy/onix-installer/frontend
-        npm install
+        npm install --verbose
    
     - name: Run Tests with Coverage
       run: |
