@@ -29,12 +29,6 @@ import {DeploymentGoal, DeploymentStatus, InstallerState} from '../../types/inst
 
 import {StepAppDeployComponent} from './step-deploy-app.component';
 
-// Initialize the Angular testing environment.
-getTestBed().initTestEnvironment(
-    BrowserDynamicTestingModule,
-    platformBrowserDynamicTesting(),
-);
-
 const initialMockState: InstallerState = {
     currentStepIndex: 6,
     highestStepReached: 6,
