@@ -28,12 +28,6 @@ import {InstallerConstants} from '../../constants/installer-constants';
 
 import {StepPrerequisitesComponent} from './step-prerequisites.component';
 
-// Initialize the Angular testing environment.
-getTestBed().initTestEnvironment(
-    BrowserDynamicTestingModule,
-    platformBrowserDynamicTesting(),
-);
-
 const mockPrerequisitesList = [
   'You have admin access to the GCP project.',
   'You have enabled the required APIs.',
