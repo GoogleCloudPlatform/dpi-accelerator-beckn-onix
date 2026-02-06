@@ -18,7 +18,7 @@ from unittest.mock import patch, mock_open, MagicMock
 import os
 
 # Import the functions and logger to be tested
-from services.ui_state_manager import load_all_data, _save_data, store_bulk_values, logger, _get_db_file_path
+from services import ui_state_manager
 
 class TestUIStateManager(unittest.TestCase):
 
@@ -28,7 +28,7 @@ class TestUIStateManager(unittest.TestCase):
         Test that load_all_data returns an empty dict if the file does not exist.
         """
         with patch('os.path.exists', return_value=False):
-            result = load_all_data()
+            result = ui_state_manager.load_all_data()
             self.assertEqual(result, {})
 
     @patch('services.ui_state_manager._get_db_file_path', return_value='dummy/path/ui_state.json')
@@ -38,7 +38,7 @@ class TestUIStateManager(unittest.TestCase):
         """
         with patch('os.path.exists', return_value=True), \
              patch('os.path.getsize', return_value=0):
-            result = load_all_data()
+            result = ui_state_manager.load_all_data()
             self.assertEqual(result, {})
 
     @patch('services.ui_state_manager._get_db_file_path', return_value='dummy/path/ui_state.json')
@@ -53,7 +53,7 @@ class TestUIStateManager(unittest.TestCase):
              patch('os.path.getsize', return_value=len(mock_json_content)), \
              patch('builtins.open', m):
             
-            result = load_all_data()
+            result = ui_state_manager.load_all_data()
             expected = {"key1": "value1", "key2": 42}
             self.assertEqual(result, expected)
             # Ensure the file was opened for reading
@@ -70,9 +70,9 @@ class TestUIStateManager(unittest.TestCase):
         with patch('os.path.exists', return_value=True), \
              patch('os.path.getsize', return_value=len(mock_corrupted_content)), \
              patch('builtins.open', m), \
-             self.assertLogs(logger, level='WARNING') as cm: # Capture log output
+             self.assertLogs(ui_state_manager.logger, level='WARNING') as cm: # Capture log output
             
-            result = load_all_data()
+            result = ui_state_manager.load_all_data()
             self.assertEqual(result, {})
             # Check if the correct warning was logged
             self.assertIn("is corrupted or not valid JSON", cm.output[0])
@@ -88,9 +88,9 @@ class TestUIStateManager(unittest.TestCase):
         with patch('os.path.exists', return_value=True), \
              patch('os.path.getsize', return_value=100), \
              patch('builtins.open', m), \
-             self.assertLogs(logger, level='ERROR') as cm:
+             self.assertLogs(ui_state_manager.logger, level='ERROR') as cm:
             
-            result = load_all_data()
+            result = ui_state_manager.load_all_data()
             self.assertEqual(result, {})
             self.assertIn("Error reading UI state file", cm.output[0])
 
@@ -103,7 +103,7 @@ class TestUIStateManager(unittest.TestCase):
         data_to_save = {"user": "test", "is_active": True}
         
         with patch('builtins.open', m):
-            _save_data(data_to_save)
+            ui_state_manager._save_data(data_to_save)
             
             # Check that the file was opened in write mode
             m.assert_called_once_with('dummy/path/ui_state.json', 'w')
@@ -126,7 +126,7 @@ class TestUIStateManager(unittest.TestCase):
 
         with patch('builtins.open', m), \
              self.assertRaises(IOError):
-            _save_data({"key": "value"})
+            ui_state_manager._save_data({"key": "value"})
 
     @patch('services.ui_state_manager._save_data')
     @patch('services.ui_state_manager.load_all_data')
@@ -142,7 +142,7 @@ class TestUIStateManager(unittest.TestCase):
         items_to_store = {"new_key": "new_value", "existing_key": "updated_value"}
         
         # Act: call the function we are testing
-        store_bulk_values(items_to_store)
+        ui_state_manager.store_bulk_values(items_to_store)
 
         # Assert
         # 1. Ensure load_all_data was called
@@ -162,9 +162,9 @@ class TestUIStateManager(unittest.TestCase):
         """
         # This test is somewhat dependent on the project structure.
         # It assumes the 'backend' directory is one level up from the 'services' directory.
-        expected_path_fragment = os.path.join('onix-installer', 'backend', 'ui_state.json')
+        expected_path_fragment = os.path.join('onix_installer', 'backend', 'ui_state.json')
         
-        actual_path = _get_db_file_path()
+        actual_path = ui_state_manager._get_db_file_path()
         
         # Instead of asserting the full absolute path (which can be brittle),
         # we check if the constructed path ends with the expected structure.

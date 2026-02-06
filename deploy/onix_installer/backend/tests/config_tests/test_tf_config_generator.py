@@ -12,20 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# your_project/tests/configs_tests/test_tf_config_generator.py
 import unittest
 import os
-import sys
 import logging
 from unittest.mock import patch
 
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-sys.path.insert(0, project_root)
-
-from core.models import InfraDeploymentRequest, DeploymentType
-
+from core import models
 from config import tf_config_generator
 
+# Added comment to force refresh
 
 class TestTerraformConfigGenerator(unittest.TestCase):
 
@@ -60,11 +55,11 @@ class TestTerraformConfigGenerator(unittest.TestCase):
         """
         mock_render_template.return_value = "main_config_content"
 
-        req = InfraDeploymentRequest(
+        req = models.InfraDeploymentRequest(
             project_id="test-proj",
             region="us-west1",
             app_name="my-app",
-            type=DeploymentType.SMALL,
+            type=models.DeploymentType.SMALL,
             components={
                 "bap": True,
                 "gateway": False,
@@ -108,11 +103,11 @@ class TestTerraformConfigGenerator(unittest.TestCase):
         """
         mock_render_template.return_value = "main_config_content_medium"
 
-        req = InfraDeploymentRequest(
+        req = models.InfraDeploymentRequest(
             project_id="test-medium",
             region="us-east1",
             app_name="my-app-medium",
-            type=DeploymentType.MEDIUM,
+            type=models.DeploymentType.MEDIUM,
             components={
                 "bap": False,
                 "bpp": False,
@@ -150,11 +145,11 @@ class TestTerraformConfigGenerator(unittest.TestCase):
         """
         Test error handling when writing the merged tfvars file fails.
         """
-        req = InfraDeploymentRequest(
+        req = models.InfraDeploymentRequest(
             project_id="test-proj-write",
             region="us-west1",
             app_name="my-app-write",
-            type=DeploymentType.SMALL,
+            type=models.DeploymentType.SMALL,
             components={}
         )
 
@@ -172,11 +167,11 @@ class TestTerraformConfigGenerator(unittest.TestCase):
         """
         Test error handling when rendering the main template fails.
         """
-        req = InfraDeploymentRequest(
+        req = models.InfraDeploymentRequest(
             project_id="test-proj-render",
             region="us-west1",
             app_name="my-app-render",
-            type=DeploymentType.SMALL,
+            type=models.DeploymentType.SMALL,
             components={}
         )
 
