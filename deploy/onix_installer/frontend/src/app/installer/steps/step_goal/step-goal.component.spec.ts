@@ -28,12 +28,6 @@ import {DeploymentGoal, InstallerGoal} from '../../types/installer.types';
 
 import {StepGoalComponent} from './step-goal.component';
 
-// Initialize the Angular testing environment.
-getTestBed().initTestEnvironment(
-    BrowserDynamicTestingModule,
-    platformBrowserDynamicTesting(),
-);
-
 class MockInstallerStateService {
   private state = new BehaviorSubject<any>({
     installerGoal: null,
