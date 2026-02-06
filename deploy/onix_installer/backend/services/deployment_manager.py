@@ -17,11 +17,11 @@ import json
 import logging
 import os
 from typing import List
-import core.utils as utils
+from core import utils
 from core.models import InfraDeploymentRequest, AppDeploymentRequest
 from core.constants import INFRA_SCRIPT_PATH, APP_SCRIPT_PATH, TERRAFORM_DIRECTORY, ANSI_ESCAPE_PATTERN
-import config.tf_config_generator as tf_config
-import config.app_config_generator as app_config
+from config import tf_config_generator as tf_config
+from config import app_config_generator as app_config
 
 logger = logging.getLogger(__name__)
 
