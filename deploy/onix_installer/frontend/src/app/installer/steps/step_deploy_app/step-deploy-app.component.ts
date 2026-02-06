@@ -31,7 +31,6 @@ import {MatTooltipModule} from '@angular/material/tooltip';
 import {Router} from '@angular/router';
 import {EMPTY, Subject, Subscription} from 'rxjs';
 import {catchError, finalize, takeUntil} from 'rxjs/operators';
-import {trySanitizeUrl} from 'safevalues';
 import {windowOpen} from 'safevalues/dom';
 
 import {ApiService} from '../../../core/services/api.service';
