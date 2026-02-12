@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/dpi-accelerator-beckn-onix/internal/event/mock"
+	"github.com/google/dpi-accelerator-beckn-onix/internal/event/mock/mock"
 	"github.com/google/dpi-accelerator-beckn-onix/pkg/model"
 
 	"github.com/google/go-cmp/cmp"

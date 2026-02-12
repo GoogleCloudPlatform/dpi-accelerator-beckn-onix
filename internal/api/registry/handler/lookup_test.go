@@ -28,7 +28,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/google/go-cmp/cmpopts/cmpopts"
 )
 
 // mockLookupService is a mock implementation of the lookupService interface for testing.

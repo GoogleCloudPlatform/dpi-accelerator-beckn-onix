@@ -28,8 +28,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/dpi-accelerator-beckn-onix/internal/api/registry"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/api/registry/handler"
+	"github.com/google/dpi-accelerator-beckn-onix/internal/api/registry"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/event"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/log"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/repository"
@@ -37,7 +37,7 @@ import (
 
 	"github.com/beckn/beckn-onix/pkg/plugin/definition"
 	"github.com/beckn/beckn-onix/pkg/plugin/implementation/signvalidator"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // config represents application configuration.

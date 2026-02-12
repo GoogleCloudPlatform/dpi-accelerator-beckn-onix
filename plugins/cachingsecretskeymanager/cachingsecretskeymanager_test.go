@@ -197,13 +197,13 @@ func TestGenerateKeyset(t *testing.T) {
 
 func TestInsertKeyset(t *testing.T) {
 	tests := []struct {
-		name       string
-		keyID      string
-		keyset     *model.Keyset
-		mockSecret *mockSecretMgr
+		name                string
+		keyID               string
+		keyset              *model.Keyset
+		mockSecret          *mockSecretMgr
 		subscriberKeysCache bool
-		networkKeysCache bool
-		mockCache    *mockCache
+		networkKeysCache    bool
+		mockCache           *mockCache
 	}{
 		{
 			name:  "valid store",
@@ -221,9 +221,9 @@ func TestInsertKeyset(t *testing.T) {
 					return &secretmanagerpb.SecretVersion{}, nil
 				},
 			},
-			subscriberKeysCache:  false,
-			networkKeysCache:  false,
-			mockCache:      &mockCache{},
+			subscriberKeysCache: false,
+			networkKeysCache:    false,
+			mockCache:           &mockCache{},
 		},
 		{
 			name:  "secret already exists - successful re-insert",
@@ -251,9 +251,9 @@ func TestInsertKeyset(t *testing.T) {
 					},
 				}
 			}(),
-			subscriberKeysCache:  false,
-			networkKeysCache:  false,
-			mockCache:      &mockCache{},
+			subscriberKeysCache: false,
+			networkKeysCache:    false,
+			mockCache:           &mockCache{},
 		},
 		{
 			name:  "valid store with caching enabled",
@@ -271,7 +271,7 @@ func TestInsertKeyset(t *testing.T) {
 					return &secretmanagerpb.SecretVersion{}, nil
 				},
 			},
-			subscriberKeysCache:  true,
+			subscriberKeysCache: true,
 			mockCache: &mockCache{
 				set: func(ctx context.Context, key string, value string, ttl time.Duration) error {
 					return nil // Simulate successful cache set
@@ -284,9 +284,9 @@ func TestInsertKeyset(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			km := &keyMgr{
-				projectID:    "test-project",
-				secretClient: tt.mockSecret,
-				cache:        tt.mockCache,
+				projectID:           "test-project",
+				secretClient:        tt.mockSecret,
+				cache:               tt.mockCache,
 				subscriberKeysCache: tt.subscriberKeysCache,
 			}
 			err := km.InsertKeyset(ctx, tt.keyID, tt.keyset)
@@ -401,20 +401,20 @@ func TestKeyset(t *testing.T) {
 	expectedPayload, _ := json.Marshal(expectedKeyset)
 
 	tests := []struct {
-		name           string
-		keyID          string
+		name                string
+		keyID               string
 		subscriberKeysCache bool
-		networkKeysCache bool
-		mockCache      *mockCache
-		mockSecret     *mockSecretMgr
-		expected       *model.Keyset
+		networkKeysCache    bool
+		mockCache           *mockCache
+		mockSecret          *mockSecretMgr
+		expected            *model.Keyset
 	}{
 		{
-			name:           "fetch from secret manager successfully (caching disabled)",
-			keyID:          "key1",
+			name:                "fetch from secret manager successfully (caching disabled)",
+			keyID:               "key1",
 			subscriberKeysCache: false,
-			networkKeysCache: false,
-			mockCache:      &mockCache{},
+			networkKeysCache:    false,
+			mockCache:           &mockCache{},
 			mockSecret: &mockSecretMgr{
 				accessSecretVersion: func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
 					return &secretmanagerpb.AccessSecretVersionResponse{
@@ -425,10 +425,10 @@ func TestKeyset(t *testing.T) {
 			expected: expectedKeyset,
 		},
 		{
-			name:           "cache hit - successful unmarshal",
-			keyID:          "key2",
-			subscriberKeysCache:  true,
-			networkKeysCache:  true,
+			name:                "cache hit - successful unmarshal",
+			keyID:               "key2",
+			subscriberKeysCache: true,
+			networkKeysCache:    true,
 			mockCache: &mockCache{
 				get: func(ctx context.Context, key string) (string, error) {
 					// Simulate cache hit with valid data
@@ -445,10 +445,10 @@ func TestKeyset(t *testing.T) {
 			expected: expectedKeyset,
 		},
 		{
-			name:           "cache hit - unmarshal cached data fails",
-			keyID:          "key3",
-			subscriberKeysCache:  true,
-			networkKeysCache:  true,
+			name:                "cache hit - unmarshal cached data fails",
+			keyID:               "key3",
+			subscriberKeysCache: true,
+			networkKeysCache:    true,
 			mockCache: &mockCache{
 				get: func(ctx context.Context, key string) (string, error) {
 					return "{invalid json", nil // Simulate invalid JSON in cache
@@ -470,10 +470,10 @@ func TestKeyset(t *testing.T) {
 			expected: expectedKeyset,
 		},
 		{
-			name:           "cache miss - fetch from secret manager and cache it successfully",
-			keyID:          "key4",
-			subscriberKeysCache:  true,
-			networkKeysCache:  true,
+			name:                "cache miss - fetch from secret manager and cache it successfully",
+			keyID:               "key4",
+			subscriberKeysCache: true,
+			networkKeysCache:    true,
 			mockCache: &mockCache{
 				get: func(ctx context.Context, key string) (string, error) {
 					return "", fmt.Errorf("cache miss error") // Simulate cache miss
@@ -495,10 +495,10 @@ func TestKeyset(t *testing.T) {
 			expected: expectedKeyset,
 		},
 		{
-			name:           "cache miss - fetch from secret manager, cache set fails (logged)",
-			keyID:          "key5",
-			subscriberKeysCache:  true,
-			networkKeysCache:  true,
+			name:                "cache miss - fetch from secret manager, cache set fails (logged)",
+			keyID:               "key5",
+			subscriberKeysCache: true,
+			networkKeysCache:    true,
 			mockCache: &mockCache{
 				get: func(ctx context.Context, key string) (string, error) {
 					return "", fmt.Errorf("cache miss error") // Simulate cache miss
@@ -522,11 +522,11 @@ func TestKeyset(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			km := &keyMgr{
-				projectID:      "test-project",
-				secretClient:   tt.mockSecret,
-				subscriberKeysCache:  tt.subscriberKeysCache,
-				networkKeysCache:  tt.networkKeysCache,
-				cache:          tt.mockCache,
+				projectID:           "test-project",
+				secretClient:        tt.mockSecret,
+				subscriberKeysCache: tt.subscriberKeysCache,
+				networkKeysCache:    tt.networkKeysCache,
+				cache:               tt.mockCache,
 			}
 
 			retrievedKeyset, err := km.Keyset(ctx, tt.keyID)
@@ -550,20 +550,20 @@ func TestKeyset(t *testing.T) {
 
 func TestKeysetErrors(t *testing.T) {
 	tests := []struct {
-		name        string
-		keyID       string
+		name                string
+		keyID               string
 		subscriberKeysCache bool
-		networkKeysCache bool
-		mockCache    *mockCache
-		mockSecret  *mockSecretMgr
-		errContains string
+		networkKeysCache    bool
+		mockCache           *mockCache
+		mockSecret          *mockSecretMgr
+		errContains         string
 	}{
 		{
-			name:  "access secret fails",
-			keyID: "key1",
-			subscriberKeysCache:  false,
-			networkKeysCache:  false,
-			mockCache:      &mockCache{},
+			name:                "access secret fails",
+			keyID:               "key1",
+			subscriberKeysCache: false,
+			networkKeysCache:    false,
+			mockCache:           &mockCache{},
 			mockSecret: &mockSecretMgr{
 				accessSecretVersion: func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
 					return nil, fmt.Errorf("access failed")
@@ -572,11 +572,11 @@ func TestKeysetErrors(t *testing.T) {
 			errContains: "failed to access secret version",
 		},
 		{
-			name:  "keys with keyID not found",
-			keyID: "key1",
-			subscriberKeysCache:  false,
-			networkKeysCache:  false,
-			mockCache:      &mockCache{},
+			name:                "keys with keyID not found",
+			keyID:               "key1",
+			subscriberKeysCache: false,
+			networkKeysCache:    false,
+			mockCache:           &mockCache{},
 			mockSecret: &mockSecretMgr{
 				accessSecretVersion: func(ctx context.Context, req *secretmanagerpb.AccessSecretVersionRequest, opts ...gax.CallOption) (*secretmanagerpb.AccessSecretVersionResponse, error) {
 					return nil, status.Error(codes.NotFound, "not found")
@@ -629,21 +629,21 @@ func TestLookupNPKeys(t *testing.T) {
 	encrPublic := "test-encr-public"
 
 	tests := []struct {
-		name            string
-		subscriberID    string
-		uniqueKeyID     string
+		name             string
+		subscriberID     string
+		uniqueKeyID      string
 		networkKeysCache bool
-		mockRegistry    *mockRegistry
-		mockCache       *mockCache
-		expectedSigning string
-		expectedEncr    string
+		mockRegistry     *mockRegistry
+		mockCache        *mockCache
+		expectedSigning  string
+		expectedEncr     string
 	}{
 		{
-			name:         "cache hit",
-			subscriberID: subscriberID,
-			uniqueKeyID:  uniqueKeyID,
+			name:             "cache hit",
+			subscriberID:     subscriberID,
+			uniqueKeyID:      uniqueKeyID,
 			networkKeysCache: true,
-			mockRegistry: &mockRegistry{}, // Not called in this scenario
+			mockRegistry:     &mockRegistry{}, // Not called in this scenario
 			mockCache: &mockCache{
 				get: func(ctx context.Context, key string) (string, error) {
 					cachedKeyset := &model.Keyset{
@@ -662,9 +662,9 @@ func TestLookupNPKeys(t *testing.T) {
 			expectedEncr:    encrPublic,
 		},
 		{
-			name:         "cache miss, registry success, cache set success",
-			subscriberID: subscriberID,
-			uniqueKeyID:  uniqueKeyID,
+			name:             "cache miss, registry success, cache set success",
+			subscriberID:     subscriberID,
+			uniqueKeyID:      uniqueKeyID,
 			networkKeysCache: true,
 			mockRegistry: &mockRegistry{
 				lookup: func(ctx context.Context, req *model.Subscription) ([]model.Subscription, error) {
@@ -688,9 +688,9 @@ func TestLookupNPKeys(t *testing.T) {
 			expectedEncr:    encrPublic,
 		},
 		{
-			name:         "cache hit unmarshal error, then registry success",
-			subscriberID: subscriberID,
-			uniqueKeyID:  uniqueKeyID,
+			name:             "cache hit unmarshal error, then registry success",
+			subscriberID:     subscriberID,
+			uniqueKeyID:      uniqueKeyID,
 			networkKeysCache: true,
 			mockRegistry: &mockRegistry{
 				lookup: func(ctx context.Context, req *model.Subscription) ([]model.Subscription, error) {
@@ -714,9 +714,9 @@ func TestLookupNPKeys(t *testing.T) {
 			expectedEncr:    encrPublic,
 		},
 		{
-			name:         "cache miss, registry success, cache set fails (should still return keys)",
-			subscriberID: subscriberID,
-			uniqueKeyID:  uniqueKeyID,
+			name:             "cache miss, registry success, cache set fails (should still return keys)",
+			subscriberID:     subscriberID,
+			uniqueKeyID:      uniqueKeyID,
 			networkKeysCache: true,
 			mockRegistry: &mockRegistry{
 				lookup: func(ctx context.Context, req *model.Subscription) ([]model.Subscription, error) {
@@ -745,9 +745,9 @@ func TestLookupNPKeys(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
 			km := &keyMgr{
-				registry:          tt.mockRegistry,
-				cache:             tt.mockCache,
-				networkKeysCache:  tt.networkKeysCache,
+				registry:         tt.mockRegistry,
+				cache:            tt.mockCache,
+				networkKeysCache: tt.networkKeysCache,
 			}
 
 			signingPublic, encrPublic, err := km.LookupNPKeys(ctx, tt.subscriberID, tt.uniqueKeyID)
@@ -770,36 +770,36 @@ func TestLookupNPKeysErrors(t *testing.T) {
 	uniqueKeyID := "key1"
 
 	tests := []struct {
-		name         string
-		subscriberID string
-		uniqueKeyID  string
+		name             string
+		subscriberID     string
+		uniqueKeyID      string
 		networkKeysCache bool
-		mockRegistry *mockRegistry
-		mockCache    *mockCache
-		errContains  string
+		mockRegistry     *mockRegistry
+		mockCache        *mockCache
+		errContains      string
 	}{
 		{
-			name:         "empty subscriber ID",
-			subscriberID: "",
-			uniqueKeyID:  uniqueKeyID,
-			mockRegistry: &mockRegistry{},
-			mockCache:    &mockCache{},
+			name:             "empty subscriber ID",
+			subscriberID:     "",
+			uniqueKeyID:      uniqueKeyID,
+			mockRegistry:     &mockRegistry{},
+			mockCache:        &mockCache{},
 			networkKeysCache: true,
-			errContains:  ErrEmptySubscriberID.Error(),
+			errContains:      ErrEmptySubscriberID.Error(),
 		},
 		{
-			name:         "empty unique key ID",
-			subscriberID: subscriberID,
-			uniqueKeyID:  "",
-			mockRegistry: &mockRegistry{},
-			mockCache:    &mockCache{},
+			name:             "empty unique key ID",
+			subscriberID:     subscriberID,
+			uniqueKeyID:      "",
+			mockRegistry:     &mockRegistry{},
+			mockCache:        &mockCache{},
 			networkKeysCache: true,
-			errContains:  ErrEmptyUniqueKeyID.Error(),
+			errContains:      ErrEmptyUniqueKeyID.Error(),
 		},
 		{
-			name:         "registry lookup fails",
-			subscriberID: subscriberID,
-			uniqueKeyID:  uniqueKeyID,
+			name:             "registry lookup fails",
+			subscriberID:     subscriberID,
+			uniqueKeyID:      uniqueKeyID,
 			networkKeysCache: true,
 			mockRegistry: &mockRegistry{
 				lookup: func(ctx context.Context, req *model.Subscription) ([]model.Subscription, error) {
@@ -814,9 +814,9 @@ func TestLookupNPKeysErrors(t *testing.T) {
 			errContains: "failed to lookup registry: registry lookup API error",
 		},
 		{
-			name:         "empty subscriber list from registry",
-			subscriberID: subscriberID,
-			uniqueKeyID:  uniqueKeyID,
+			name:             "empty subscriber list from registry",
+			subscriberID:     subscriberID,
+			uniqueKeyID:      uniqueKeyID,
 			networkKeysCache: true,
 			mockRegistry: &mockRegistry{
 				lookup: func(ctx context.Context, req *model.Subscription) ([]model.Subscription, error) {
@@ -831,9 +831,9 @@ func TestLookupNPKeysErrors(t *testing.T) {
 			errContains: ErrSubscriberNotFound.Error(),
 		},
 		{
-			name:         "nil subscriber list from registry",
-			subscriberID: subscriberID,
-			uniqueKeyID:  uniqueKeyID,
+			name:             "nil subscriber list from registry",
+			subscriberID:     subscriberID,
+			uniqueKeyID:      uniqueKeyID,
 			networkKeysCache: true,
 			mockRegistry: &mockRegistry{
 				lookup: func(ctx context.Context, req *model.Subscription) ([]model.Subscription, error) {
@@ -852,9 +852,9 @@ func TestLookupNPKeysErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			km := &keyMgr{
-				registry: tt.mockRegistry,
-				cache:    tt.mockCache,
-				networkKeysCache:  tt.networkKeysCache,
+				registry:         tt.mockRegistry,
+				cache:            tt.mockCache,
+				networkKeysCache: tt.networkKeysCache,
 			}
 
 			_, _, err := km.LookupNPKeys(ctx, tt.subscriberID, tt.uniqueKeyID)

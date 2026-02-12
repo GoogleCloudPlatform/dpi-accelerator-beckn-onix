@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	keymgr "github.com/google/dpi-accelerator-beckn-onix/plugins/cachingsecretskeymanager"
+	keymgr "github.com/google/dpi-accelerator-beckn-onix/plugins/cachingsecretskeymanager/cachingsecretskeymanager"
 	"github.com/beckn/beckn-onix/pkg/model"
 	plugin "github.com/beckn/beckn-onix/pkg/plugin/definition"
 )
