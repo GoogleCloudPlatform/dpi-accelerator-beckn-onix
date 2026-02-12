@@ -273,7 +273,7 @@ func TestServeHttp_QueueTaskError(t *testing.T) {
 		t.Errorf("ServeHttp() status code = %v, want %v", rr.Code, http.StatusInternalServerError)
 	}
 	var errResp model.TxnResponse
-    _ = json.Unmarshal(rr.Body.Bytes(), &errResp)
+	_ = json.Unmarshal(rr.Body.Bytes(), &errResp)
 	if errResp.Message.Error.Code != "QUEUEING_FAILED" {
 		t.Errorf("Error Code = %q, want %q", errResp.Message.Error.Code, "QUEUEING_FAILED")
 	}

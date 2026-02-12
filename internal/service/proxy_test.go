@@ -118,7 +118,7 @@ func TestNewProxyTaskProcessor(t *testing.T) {
 			keyID:    "test-key-id",
 			retryCfg: RetryConfig{},
 			wantErr:  "",
-			check:   checkClientConfig,
+			check:    checkClientConfig,
 		},
 	}
 

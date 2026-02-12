@@ -36,10 +36,11 @@ import (
 	"github.com/google/dpi-accelerator-beckn-onix/internal/repository"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/service"
 
+	"gopkg.in/yaml.v3"
+
+	"github.com/google/dpi-accelerator-beckn-onix/plugins/encrypter"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"github.com/beckn/beckn-onix/pkg/plugin/definition"
-	"github.com/beckn/beckn-onix/pkg/plugin/implementation/encrypter"
-	"gopkg.in/yaml.v2"
 )
 
 // config represents application configuration.
