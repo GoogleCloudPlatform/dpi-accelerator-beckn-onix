@@ -27,7 +27,8 @@ import (
 
 // Workspace manages the temporary directory where modules are checked out and built.
 type Workspace struct {
-	path string
+	path   string
+	runner CommandRunner
 }
 
 // NewWorkspace creates a new temporary workspace.
@@ -36,7 +37,10 @@ func NewWorkspace() (*Workspace, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create temp workspace directory: %w", err)
 	}
-	return &Workspace{path: tmpDir}, nil
+	return &Workspace{
+		path:   tmpDir,
+		runner: &OSCommandRunner{},
+	}, nil
 }
 
 // Path returns the absolute path of the workspace directory.
@@ -165,5 +169,5 @@ func (w *Workspace) runCommand(dir, name string, args ...string) error {
 	cmd.Dir = dir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	return w.runner.Run(cmd)
 }

@@ -51,3 +51,5 @@ func (p pubsubPublisherProvider) New(ctx context.Context, config map[string]stri
 }
 
 var Provider = pubsubPublisherProvider{}
+
+func main() {}
