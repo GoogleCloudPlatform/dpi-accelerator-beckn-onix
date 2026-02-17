@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common'; // Needed for *ngIf
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -22,7 +22,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { ReactiveFormsModule, FormControl } from '@angular/forms';
 
 @Component({
-  selector: 'app-file-upload-input',
+  changeDetection: ChangeDetectionStrategy.Eager,selector: 'app-file-upload-input',
   templateUrl: './file-upload-input.component.html',
   styleUrls: ['./file-upload-input.component.css'],
   standalone: true,
