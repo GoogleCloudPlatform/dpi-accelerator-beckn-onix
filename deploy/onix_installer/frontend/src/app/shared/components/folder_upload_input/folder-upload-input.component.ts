@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, Self, Optional } from '@angular/core'; // Added Optional
+import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, Self, Optional, ChangeDetectionStrategy } from '@angular/core'; // Added Optional
 import { CommonModule } from '@angular/common';
 import { AbstractControl, ControlValueAccessor, FormControl, NgControl, ReactiveFormsModule, ValidatorFn, ValidationErrors } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -24,7 +24,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
 @Component({
-  selector: 'app-folder-upload-input',
+  changeDetection: ChangeDetectionStrategy.Eager,selector: 'app-folder-upload-input',
   standalone: true,
   imports: [
     CommonModule,

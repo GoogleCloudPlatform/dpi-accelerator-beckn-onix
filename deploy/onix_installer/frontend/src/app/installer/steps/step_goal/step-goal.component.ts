@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormControl } from '@angular/forms';
@@ -32,7 +32,7 @@ import { Subscription, combineLatest } from 'rxjs';
 import { startWith } from 'rxjs/operators';
 
 @Component({
-  selector: 'app-step-goal',
+  changeDetection: ChangeDetectionStrategy.Eager,selector: 'app-step-goal',
   standalone: true,
   imports: [
     CommonModule,
