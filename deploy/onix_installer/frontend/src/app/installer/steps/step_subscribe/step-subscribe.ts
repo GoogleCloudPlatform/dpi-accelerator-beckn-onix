@@ -16,7 +16,7 @@
 
 // src/app/installer/steps/step-subscribe/step-subscribe.component.ts
 
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
@@ -35,7 +35,7 @@ import { jsonValidator } from '../../../shared/validators/custom-validators';
 
 
 @Component({
-  selector: 'app-step-subscription',
+  changeDetection: ChangeDetectionStrategy.Eager,selector: 'app-step-subscription',
   standalone: true,
   imports: [
     CommonModule,

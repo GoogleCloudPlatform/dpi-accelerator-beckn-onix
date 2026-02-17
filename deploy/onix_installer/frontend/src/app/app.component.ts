@@ -15,7 +15,7 @@
  */
 
 import {CommonModule} from '@angular/common';
-import {Component} from '@angular/core';
+import {Component, ChangeDetectionStrategy} from '@angular/core';
 import {RouterOutlet} from '@angular/router';
 import {Observable} from 'rxjs';
 
@@ -23,7 +23,7 @@ import {InstallerStateService} from './core/services/installer-state.service';
 import {LoadingSpinnerComponent} from './shared/components/loading_spinner/loading-spinner.component';
 
 @Component({
-  selector: 'app-root',
+  changeDetection: ChangeDetectionStrategy.Eager,selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css'],
   standalone: true,
