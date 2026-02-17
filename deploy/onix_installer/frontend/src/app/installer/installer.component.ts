@@ -16,7 +16,7 @@
 
 import {StepperSelectionEvent} from '@angular/cdk/stepper';
 import {CommonModule} from '@angular/common';
-import {AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild,} from '@angular/core';
+import {AfterViewInit, ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild, ChangeDetectionStrategy,} from '@angular/core';
 import {MatStepper} from '@angular/material/stepper';
 import {ActivatedRoute, Event, NavigationEnd, Router, RouterModule} from '@angular/router';
 import {Subscription} from 'rxjs';
@@ -29,7 +29,7 @@ import {InstallerConstants} from './constants/installer-constants';
 import {InstallerState} from './types/installer.types';
 
 @Component({
-  selector: 'app-installer',
+  changeDetection: ChangeDetectionStrategy.Eager,selector: 'app-installer',
   templateUrl: './installer.component.html',
   styleUrls: ['./installer.component.css'],
   standalone: true,

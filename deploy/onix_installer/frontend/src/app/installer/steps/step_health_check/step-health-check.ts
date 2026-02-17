@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { Component, OnDestroy, ChangeDetectorRef, OnInit } from '@angular/core';
+import { Component, OnDestroy, ChangeDetectorRef, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject, EMPTY } from 'rxjs';
 import { takeUntil, catchError, finalize } from 'rxjs/operators';
@@ -29,7 +29,7 @@ import { HealthCheckItem } from '../../types/installer.types';
 
 
 @Component({
-  selector: 'app-step-health-check',
+  changeDetection: ChangeDetectionStrategy.Eager,selector: 'app-step-health-check',
   standalone: true,
   imports: [CommonModule, MatIconModule, MatProgressSpinnerModule,MatButtonModule],
   templateUrl: './step-health-check.html',
