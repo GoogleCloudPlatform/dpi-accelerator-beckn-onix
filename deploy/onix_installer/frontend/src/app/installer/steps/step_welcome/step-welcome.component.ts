@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { Router } from '@angular/router';
 
 @Component({
-  selector: 'app-step-welcome',
+  changeDetection: ChangeDetectionStrategy.Eager,selector: 'app-step-welcome',
   standalone: true,
   imports: [
     CommonModule,
