@@ -21,7 +21,7 @@ import (
 
 	"github.com/google/dpi-accelerator-beckn-onix/plugins/pubsubpublisher"
 
-	"github.com/beckn/beckn-onix/pkg/plugin/definition"
+	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/definition/definition"
 )
 
 type pubsubPublisherProvider struct{}
@@ -51,3 +51,5 @@ func (p pubsubPublisherProvider) New(ctx context.Context, config map[string]stri
 }
 
 var Provider = pubsubPublisherProvider{}
+
+func main() {}
