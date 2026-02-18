@@ -21,7 +21,7 @@ import (
 	"log"
 	"strings"
 
-	"cloud.google.com/go/pubsub"
+	"cloud.google.com/go/pubsub" //lint:ignore SA1019 v2 is not yet available in google3, see yaqs/2071311681450934272
 	"google.golang.org/api/option"
 )
 
