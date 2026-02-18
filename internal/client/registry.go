@@ -80,7 +80,7 @@ func NewRegistryClient(cfg *RegistryClientConfig) (*httpRegistryClient, error) {
 	}
 
 	client := &http.Client{
-		Timeout: cfg.Timeout,
+		Timeout:   cfg.Timeout,
 		Transport: transport,
 	}
 	return &httpRegistryClient{
