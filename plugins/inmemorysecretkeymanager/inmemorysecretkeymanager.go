@@ -27,14 +27,16 @@ import (
 	"regexp"
 	"sync"
 	"time"
+
+	
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 
 	"github.com/beckn/beckn-onix/pkg/model"
 	plugin "github.com/beckn/beckn-onix/pkg/plugin/definition"
+	"github.com/googleapis/gax-go/v2"
 
 	"github.com/google/uuid"
-	"github.com/googleapis/gax-go/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -63,8 +65,8 @@ type inFlightRequest struct {
 }
 
 type fetchResult struct {
-    keyset *model.Keyset
-    err    error
+	keyset *model.Keyset
+	err    error
 }
 
 // Config holds the configuration for the key manager.
@@ -136,8 +138,8 @@ type keyMgr struct {
 	redisCache        plugin.Cache
 	inMemoryCache     *inMemoryCache
 	publicKeyCacheTTL time.Duration
-	requestMutex sync.Mutex
-    requests     map[string]*inFlightRequest
+	requestMutex      sync.Mutex
+	requests          map[string]*inFlightRequest
 }
 
 // Constants for secret ID generation.
@@ -185,9 +187,6 @@ func newWithClient(redisCache plugin.Cache, registryLookup plugin.RegistryLookup
 
 	return km, km.close, nil
 }
-
-
-
 
 // generates new signing and encryption key pairs.
 func (km *keyMgr) GenerateKeyset() (*model.Keyset, error) {
@@ -483,7 +482,6 @@ func validateParams(subscriberID, uniqueKeyID string) error {
 	return nil
 }
 
-
 // securelyWipeKeyset overwrites the private key data within the Keyset with zeros
 // to prevent sensitive information from being recovered from memory.
 func securelyWipeKeyset(ks *model.Keyset) {
@@ -522,5 +520,3 @@ func (km *keyMgr) securelyWipeAndClearCache() {
 		delete(km.inMemoryCache.items, key)
 	}
 }
-
-

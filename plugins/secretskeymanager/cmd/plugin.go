@@ -55,3 +55,5 @@ func parseConfig(config map[string]string) (*keymgr.Config, error) {
 
 // Provider is the exported symbol that the plugin manager will look for.
 var Provider = keyMgrProvider{}
+
+func main() {}
