@@ -31,8 +31,8 @@ import (
 
 // mockAdminEventPublisher is a mock implementation of adminEventPublisher.
 type mockAdminEventPublisher struct {
-	msgID      string
-	err        error
+	msgID string
+	err   error
 }
 
 func (m *mockAdminEventPublisher) PublishSubscriptionRequestApprovedEvent(ctx context.Context, req *model.LRO) (string, error) {

@@ -22,14 +22,14 @@ import (
 
 	"github.com/google/dpi-accelerator-beckn-onix/pkg/model"
 
-	"cloud.google.com/go/pubsub"
 	"cloud.google.com/go/pubsub/pstest"
+	"cloud.google.com/go/pubsub" //lint:ignore SA1019 v2 is not yet available in google3, see yaqs/2071311681450934272
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/api/option"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 
 	pb "cloud.google.com/go/pubsub/apiv1/pubsubpb"

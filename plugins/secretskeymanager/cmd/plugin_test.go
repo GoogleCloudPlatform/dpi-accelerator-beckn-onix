@@ -23,8 +23,8 @@ import (
 
 	keymgr "github.com/google/dpi-accelerator-beckn-onix/plugins/secretskeymanager"
 
-	"github.com/beckn/beckn-onix/pkg/model"
-	plugin "github.com/beckn/beckn-onix/pkg/plugin/definition"
+	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/model/model"
+	plugin "google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/definition/definition"
 )
 
 // mockKeyManager is a fake KeyManager that does nothing.
