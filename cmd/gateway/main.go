@@ -35,26 +35,27 @@ import (
 	keyManager "github.com/google/dpi-accelerator-beckn-onix/plugins/inmemorysecretkeymanager"
 	"github.com/google/dpi-accelerator-beckn-onix/plugins/rediscache"
 
+	yaml "gopkg.in/yaml.v3"
+
 	beckn "github.com/beckn/beckn-onix/core/module/client"
 	"github.com/beckn/beckn-onix/pkg/plugin/implementation/signer"
 	"github.com/beckn/beckn-onix/pkg/plugin/implementation/signvalidator"
-	"gopkg.in/yaml.v2"
 )
 
 // config represents application configuration.
 type config struct {
-	Log                       *log.Config                  `yaml:"log"`
-	Timeouts                  *timeoutConfig               `yaml:"timeouts"`
-	Server                    *serverConfig                `yaml:"server"`
-	ProjectID                 string                       `yaml:"projectID"`
-	KeyManagerCacheTTL        *keyManager.CacheTTL         `yaml:"keyManagerCacheTTL"`
-	Registry                  *client.RegistryClientConfig `yaml:"registry"`
-	RedisAddr                 string                       `yaml:"redisAddr"`
-	MaxConcurrentFanoutTasks  int                          `yaml:"maxConcurrentFanoutTasks"`
-	TaskQueueWorkersCount     int                          `yaml:"taskQueueWorkersCount"`
-	TaskQueueBufferSize       int                          `yaml:"taskQueueBufferSize"`
-	SubscriberID              string                       `yaml:"subscriberID"`
-	HTTPClientRetry           *service.RetryConfig         `yaml:"httpClientRetry"`
+	Log                      *log.Config                  `yaml:"log"`
+	Timeouts                 *timeoutConfig               `yaml:"timeouts"`
+	Server                   *serverConfig                `yaml:"server"`
+	ProjectID                string                       `yaml:"projectID"`
+	KeyManagerCacheTTL       *keyManager.CacheTTL         `yaml:"keyManagerCacheTTL"`
+	Registry                 *client.RegistryClientConfig `yaml:"registry"`
+	RedisAddr                string                       `yaml:"redisAddr"`
+	MaxConcurrentFanoutTasks int                          `yaml:"maxConcurrentFanoutTasks"`
+	TaskQueueWorkersCount    int                          `yaml:"taskQueueWorkersCount"`
+	TaskQueueBufferSize      int                          `yaml:"taskQueueBufferSize"`
+	SubscriberID             string                       `yaml:"subscriberID"`
+	HTTPClientRetry          *service.RetryConfig         `yaml:"httpClientRetry"`
 }
 
 type serverConfig struct {

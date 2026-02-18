@@ -38,7 +38,7 @@ type httpClient interface {
 
 // RetryConfig holds configuration for the retryable HTTP client.
 type RetryConfig struct {
-	RetryMax            int           `yaml:"retryMax"`         // Maximum number of retries.
+	RetryMax            int           `yaml:"retryMax"`            // Maximum number of retries.
 	RetryWaitMin        time.Duration `yaml:"waitMin"`             // Minimum time to wait before retrying.
 	RetryWaitMax        time.Duration `yaml:"waitMax"`             // Maximum time to wait before retrying.
 	Timeout             time.Duration `yaml:"timeout"`             // Timeout for each HTTP request.
@@ -47,7 +47,6 @@ type RetryConfig struct {
 	MaxConnsPerHost     int           `yaml:"maxConnsPerHost"`     // Maximum connections per host.
 	IdleConnTimeout     time.Duration `yaml:"idleConnTimeout"`     // Timeout for idle connections.
 }
-
 
 // proxyTaskProcessor makes HTTP POST calls for asynchronous proxy tasks.
 type proxyTaskProcessor struct {
