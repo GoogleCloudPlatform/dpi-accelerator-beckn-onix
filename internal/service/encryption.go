@@ -25,7 +25,7 @@ import (
 	"log/slog"
 	"regexp"
 
-	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	becknmodel "github.com/beckn/beckn-onix/pkg/model"
 	"github.com/googleapis/gax-go/v2"
 	"google.golang.org/grpc/codes"
@@ -89,10 +89,10 @@ func (es *encryptionService) Init(ctx context.Context) (string, error) {
 	secretName := fmt.Sprintf("projects/%s/secrets/%s", es.projectID, secretID)
 	latestVersionName := fmt.Sprintf("%s/versions/latest", secretName)
 
-	//	Try to get the secret first 
+	//	Try to get the secret first
 	getVersionReq := &secretmanagerpb.AccessSecretVersionRequest{Name: latestVersionName}
 	existingVersion, err := es.sm.AccessSecretVersion(ctx, getVersionReq)
-	
+
 	// Case 1: Secret and version already exist.
 	if err == nil {
 		slog.InfoContext(ctx, "Secret version already exists, using it.", "secretName", secretName)

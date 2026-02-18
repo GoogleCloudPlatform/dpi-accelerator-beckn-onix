@@ -346,7 +346,7 @@ func TestChannelTaskQueue_WorkerProcessingAndShutdown(t *testing.T) {
 	// Stop workers and wait for them to finish.
 	q.StopWorkers()
 
-    // Todo: this test case gives panic: send on closed channel error, will fix this 
+	// Todo: this test case gives panic: send on closed channel error, will fix this
 	// Verify that queuing a task after stopping fails.
 	// _, err = q.QueueTxn(ctx, &model.Context{Action: "search"}, nil, nil)
 	// if err == nil {
