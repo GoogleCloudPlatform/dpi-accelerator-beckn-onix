@@ -256,7 +256,7 @@ func TestChannelLookupProcessor_Process(t *testing.T) {
 				mockQueuer.err = errors.New("queue is full")
 			},
 			wantErrMsg:     "failed to queue proxy task for subscriber",
-			wantQueueCalls: 2,                                           // It will be called for both subscribers
+			wantQueueCalls: 2, // It will be called for both subscribers
 		},
 		{
 			name: "error - task queuing fails on second subscriber",

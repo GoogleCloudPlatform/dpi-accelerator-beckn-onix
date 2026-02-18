@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/beckn/beckn-onix/pkg/model"
+	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/model/model"
 )
 
 // mockSigningKM is a mock implementation of the signingKM interface.

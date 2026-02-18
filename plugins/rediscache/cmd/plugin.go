@@ -20,7 +20,7 @@ import (
 
 	"github.com/google/dpi-accelerator-beckn-onix/plugins/rediscache"
 
-	"github.com/beckn/beckn-onix/pkg/plugin/definition"
+	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/definition/definition"
 )
 
 type cacheProvider struct{}
@@ -34,3 +34,5 @@ func (cp cacheProvider) New(ctx context.Context, config map[string]string) (defi
 }
 
 var Provider = cacheProvider{}
+
+func main() {}
