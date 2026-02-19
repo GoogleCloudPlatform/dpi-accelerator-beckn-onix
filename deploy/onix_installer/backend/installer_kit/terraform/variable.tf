@@ -24,6 +24,11 @@ variable "region" {
   description = "The region to deploy resources"
 }
 
+variable "app_name" {
+  type        = string
+  description = "The application name"
+}
+
 #--------------------------------------------- Kubernetes Service Account for GKE Nodes ---------------------------------------------#
 
 variable "kubernetes_sa_account_id" {
@@ -246,6 +251,21 @@ variable "health_check_description" {
 }
 
 #--------------------------------------------- Backend Service Configuration ---------------------------------------------#
+
+variable "enable_cloud_armor" {
+  type    = bool
+  default = false
+}
+
+variable "allowed_regions" {
+  type    = list(string)
+  default = ["IN"]
+}
+
+variable "rate_limit_count" {
+  type    = number
+  default = 100
+}
 
 variable "backend_service_name" {
   type        = string
