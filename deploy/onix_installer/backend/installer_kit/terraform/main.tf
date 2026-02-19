@@ -256,6 +256,16 @@ module "health_check" {
 
 #--------------------------------------------- Backend Service Configuration ---------------------------------------------#
 
+# The below module is used for creating a security policy for the load balancer
+# This is only required if Cloud Armor is enabled
+module "security_policy" {
+  count            = var.enable_cloud_armor ? 1 : 0
+  source           = "./LOAD_BALANCER/SECURITY_POLICY"
+  app_name         = var.app_name
+  allowed_regions  = var.allowed_regions
+  rate_limit_count = var.rate_limit_count
+}
+
 # The below module is used for creating a backend for the load balancer
 
 module "backend_service" {
@@ -267,6 +277,7 @@ module "backend_service" {
   group_3             = "projects/${data.google_project.project.project_id}/zones/${var.region}-c/networkEndpointGroups/${local.neg_name}"
   health_check        = ["projects/${data.google_project.project.project_id}/global/healthChecks/${module.health_check.health_check_name}"]
   depends_on          = [module.gke, module.health_check, module.gke_node_pool, module.nginx_ingress]
+  security_policy = var.enable_cloud_armor ? module.security_policy[0].policy_id : null
 }
 
 #--------------------------------------------- Firewall Configuration ---------------------------------------------#

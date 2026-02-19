@@ -78,6 +78,9 @@ class TestTerraformConfigGenerator(unittest.TestCase):
             "provision_adapter_infra": True, # BAP is True
             "provision_gateway_infra": False, # GATEWAY is False
             "provision_registry_infra": True, # REGISTRY is True
+            "enable_cloud_armor": False,
+            "allowed_regions": ("IN",),
+            "rate_limit_count": 100,
         }
 
         # Expected paths for mocking os.path.join (relative to patched constants)
@@ -125,6 +128,9 @@ class TestTerraformConfigGenerator(unittest.TestCase):
             "provision_adapter_infra": False, # Both BAP and BPP are False
             "provision_gateway_infra": True,
             "provision_registry_infra": False,
+            "enable_cloud_armor": False,
+            "allowed_regions": ("IN",),
+            "rate_limit_count": 100,
         }
 
         mock_render_template.assert_called_once_with(

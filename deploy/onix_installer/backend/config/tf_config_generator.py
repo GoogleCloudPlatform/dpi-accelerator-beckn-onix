@@ -48,6 +48,9 @@ def generate_config(deploy_infra_req: InfraDeploymentRequest):
         "provision_adapter_infra": deploy_infra_req.components.get('bap', False) or deploy_infra_req.components.get('bpp', False),
         "provision_gateway_infra": deploy_infra_req.components.get('gateway', False),
         "provision_registry_infra": deploy_infra_req.components.get('registry', False),
+        "enable_cloud_armor": deploy_infra_req.enable_cloud_armor,
+        "allowed_regions": deploy_infra_req.allowed_regions,
+        "rate_limit_count": deploy_infra_req.rate_limit_count,
     }
     logger.debug(f"Jinja2 context for Terraform: {jinja_context}")
 
