@@ -34,6 +34,16 @@ class DeploymentType(str, Enum):
 class InfraDeploymentRequest(BaseModel):
     """
     Pydantic model for incoming infrastructure deployment requests.
+
+    Attributes:
+        project_id: The Google Cloud Project ID.
+        region: The Google Cloud region for deployment.
+        app_name: The name of the application.
+        type: The deployment size type (e.g., "small", "medium", "large").
+        components: A dictionary indicating which components to deploy.
+        enable_cloud_armor: Whether to enable Cloud Armor. Defaults to False.
+        allowed_regions: A tuple of regions. Defaults to ("IN",).
+        rate_limit_count: Max requests per time frame. Defaults to 100.
     """
     project_id: NonEmptyStr
     region: NonEmptyStr
@@ -41,6 +51,9 @@ class InfraDeploymentRequest(BaseModel):
     type: DeploymentType
     components: Dict[str, bool]
     # Expected keys for components: "gateway", "registry", "bap", "bpp"
+    enable_cloud_armor: bool | None = False
+    allowed_regions: tuple[str, ...] | None = ("IN",)
+    rate_limit_count: int | None = 100
 
 class AdapterConfig(BaseModel):
     """
