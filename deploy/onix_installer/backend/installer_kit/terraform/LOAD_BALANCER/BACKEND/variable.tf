@@ -41,6 +41,12 @@ variable "load_balancing_scheme" {
     default = "EXTERNAL_MANAGED"
 }
 
+variable "security_policy" {
+  type        = string
+  default     = null
+  description = "The ID of the Google Cloud Armor security policy to be attached to the backend service."
+}
+
 variable "group_1" {
     type = any
     description = "Referencing the NEG for each zone"
