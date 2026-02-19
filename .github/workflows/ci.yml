@@ -88,7 +88,33 @@ jobs:
           commit_user_name: ${{ github.actor }}
           commit_user_email: ${{ github.actor }}@users.noreply.github.com
           commit_author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
- 
+  
+  tidy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to push changes back to the repo
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24' # Specify your project's Go version
+
+      - name: Run go mod tidy
+        run: go mod tidy
+
+      - name: Auto-commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "ci: Auto tidy go.mod and go.sum"
+          file_pattern: "go.mod go.sum"
+          commit_user_name: "GitHub Actions"
+          commit_user_email: "<REDACTED_PII>"
+          commit_author: "GitHub Actions <<REDACTED_PII>>"
+
   test-go:
     name: Test Go Microservices
     needs: update-lockfiles
