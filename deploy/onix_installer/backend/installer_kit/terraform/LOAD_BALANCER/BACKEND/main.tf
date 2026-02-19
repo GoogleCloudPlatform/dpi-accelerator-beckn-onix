@@ -101,5 +101,9 @@ resource "google_compute_backend_service" "backend_service" {
     }
 
     #security_policy = var.security_policy #"projects/{$var.project_id}/global/securityPolicies/$Security_Policy_Name"
-    
+
+    # The ID of the Google Cloud Armor security policy to be attached to the backend service.
+    # This is optional and enables WAF, Geo-filtering, and Rate Limiting when configured.
+    security_policy = var.security_policy
+
 }

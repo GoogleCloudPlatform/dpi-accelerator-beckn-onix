@@ -19,6 +19,7 @@
 
 project_id = "{{ project_id }}"
 region     = "{{ region }}"
+app_name = "{{ suffix }}"
 
 #--------------------------------------------- Kubernetes Service Account for GKE Nodes ---------------------------------------------#
 
@@ -261,3 +262,9 @@ subscription_gsa_roles = [
   "roles/secretmanager.secretAccessor",
   "roles/secretmanager.admin"
 ]
+
+#--------------------------------------------- Cloud Armor Configuration ---------------------------------------------#
+
+enable_cloud_armor = {{ "true" if enable_cloud_armor else "false" }}
+allowed_regions    = {{ allowed_regions | tojson }}
+rate_limit_count   = {{ rate_limit_count }}
