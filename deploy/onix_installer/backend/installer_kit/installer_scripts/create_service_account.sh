@@ -41,29 +41,19 @@ echo "Service Account created: $SA_EMAIL" >&2
 
 # Define the list of roles to assign
 ROLES=(
-  "roles/redis.admin"
-  "roles/cloudtrace.agent"
-  "roles/compute.instanceAdmin.v1"
   "roles/compute.networkAdmin"
-  "roles/container.clusterAdmin"
-  "roles/resourcemanager.projectIamAdmin"
-  "roles/pubsub.admin"
-  "roles/pubsub.publisher"
-  "roles/secretmanager.admin"
-  "roles/secretmanager.secretAccessor"
-  "roles/iam.securityAdmin"
-  "roles/iam.serviceAccountAdmin"
-  "roles/iam.serviceAccountTokenCreator"
-  "roles/storage.admin"
-  "roles/compute.securityAdmin"
   "roles/compute.loadBalancerAdmin"
   "roles/container.admin"
-  "roles/logging.admin"
-  "roles/monitoring.admin"
+  "roles/iam.serviceAccountAdmin"
+  "roles/resourcemanager.projectIamAdmin"
   "roles/iam.serviceAccountUser"
+  "roles/storage.admin"
   "roles/cloudsql.admin"
-  "roles/storage.objectAdmin"
+  "roles/redis.admin"
+  "roles/pubsub.editor"
+  "roles/secretmanager.admin"
   "roles/dns.admin"
+  "roles/compute.securityAdmin"
 )
 
 # Assign each role to the service account
