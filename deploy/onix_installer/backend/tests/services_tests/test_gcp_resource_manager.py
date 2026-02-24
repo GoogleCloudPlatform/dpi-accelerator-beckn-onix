@@ -40,7 +40,7 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
         patch.stopall()
 
 
-    @patch('services.gcp_resource_manager.resourcemanager_v3.ProjectsClient')
+    @patch('services.gcp_resource_manager.resourcemanager_v12.ProjectsClient')
     async def test_list_google_cloud_projects_success(self, MockProjectsClient):
         """
         Test successful listing of Google Cloud projects.
@@ -66,7 +66,7 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
         self.mock_logger.error.assert_not_called()
         self.mock_logger.exception.assert_not_called()
 
-    @patch('services.gcp_resource_manager.resourcemanager_v3.ProjectsClient', side_effect=GoogleAuthError("Auth failed"))
+    @patch('services.gcp_resource_manager.resourcemanager_v12.ProjectsClient', side_effect=GoogleAuthError("Auth failed"))
     async def test_list_google_cloud_projects_auth_error(self, MockProjectsClient):
         """
         Test handling of GoogleAuthError when listing projects.
@@ -80,7 +80,7 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
         self.mock_logger.exception.assert_not_called()
         self.mock_logger.info.assert_not_called()
 
-    @patch('services.gcp_resource_manager.resourcemanager_v3.ProjectsClient', side_effect=Exception("Unexpected error"))
+    @patch('services.gcp_resource_manager.resourcemanager_v12.ProjectsClient', side_effect=Exception("Unexpected error"))
     async def test_list_google_cloud_projects_general_exception(self, MockProjectsClient):
         """
         Test handling of a general unexpected Exception when listing projects.
