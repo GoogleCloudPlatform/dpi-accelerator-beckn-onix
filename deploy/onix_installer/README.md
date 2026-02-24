@@ -113,25 +113,19 @@ The provided `installer.sh` script can create the service account and assign all
 
 If you prefer, create a service account in the GCP Console and manually assign it the following roles:
 
--   Cloud Memorystore Redis Admin
--   Cloud SQL Admin
--   Cloud Trace Agent
--   Compute Instance Admin (v1)
 -   Compute Network Admin
--   Kubernetes Engine Cluster Admin
--   Project IAM Admin
--   Pub/Sub Admin & Publisher
--   Secret Manager Admin & Accessor
--   Security Admin
--   Service Account Admin & Token Creator
--   Storage Admin & Object Admin
--   Compute Security Admin
 -   Compute Load Balancer Admin
 -   Kubernetes Engine Admin
--   Logging Admin
--   Monitoring Admin
+-   Service Account Admin
+-   Project IAM Admin
 -   Service Account User
+-   Storage Admin
+-   Cloud SQL Admin
+-   Redis Admin
+-   Pub/Sub Editor
+-   Secret Manager Admin
 -   DNS Administrator
+-   Compute Security Admin
 
 
 ### 3. Configuration
