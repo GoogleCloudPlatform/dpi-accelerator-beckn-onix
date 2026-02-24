@@ -27,21 +27,10 @@ kubernetes_sa_account_id   = "beckn-onix-gke-sa-{{ suffix }}"
 kubernetes_sa_display_name = "SA for Beckn Onix GKE"
 kubernetes_sa_description  = "Service Account for Beckn GKE"
 kubernetes_sa_roles = [
-  "roles/redis.viewer",
-  "roles/cloudtrace.agent",
-  "roles/compute.instanceAdmin.v1",
-  "roles/compute.networkAdmin",
-  "roles/editor",
-  "roles/container.admin",
-  "roles/pubsub.admin",
-  "roles/pubsub.publisher",
-  "roles/pubsub.viewer",
-  "roles/secretmanager.admin",
-  "roles/secretmanager.secretAccessor",
-  "roles/iam.serviceAccountAdmin",
-  "roles/iam.serviceAccountTokenCreator",
-  "roles/iam.securityAdmin",
-  "roles/resourcemanager.projectIamAdmin"
+  "roles/logging.logWriter",
+  "roles/monitoring.metricWriter",
+  "roles/stackdriver.resourceMetadata.writer",
+  "roles/artifactregistry.reader"
 ]
 
 #--------------------------------------------- Network Configuration ---------------------------------------------#
@@ -179,11 +168,9 @@ adapter_gsa_account_id    = "adapter-gsa-{{ suffix }}"
 adapter_gsa_display_name  = "SA to access Beckn Onix Bucket"
 adapter_gsa_description   = "Service Account for Adapter Service"
 adapter_gsa_roles = [
-  "roles/storage.admin",
-  "roles/cloudtrace.agent",
-  "roles/pubsub.admin",
+  "roles/storage.objectViewer",
   "roles/pubsub.publisher",
-  "roles/secretmanager.admin",
+  "roles/pubsub.viewer",
   "roles/secretmanager.secretAccessor"
 ]
 adapter_topic_name = "adapter-topic-{{ suffix }}"
@@ -195,11 +182,8 @@ gateway_gsa_account_id   = "beckn-onix-gateway-gsa-{{ suffix }}"
 gateway_gsa_display_name = "Gateway GSA for {{ suffix }}"
 gateway_gsa_description  = "GCP Service Account for Gateway service"
 gateway_gsa_roles = [
-  "roles/storage.admin",
-  "roles/pubsub.publisher",
-  "roles/pubsub.viewer",
-  "roles/secretmanager.secretAccessor",
-  "roles/secretmanager.admin"
+  "roles/storage.objectViewer",
+  "roles/secretmanager.secretAccessor"
 ]
 
 #--------------------------------------------- Registry Service Configuration ---------------------------------------------#
@@ -208,13 +192,11 @@ registry_gsa_account_id   = "registry-user-{{ suffix }}"
 registry_gsa_display_name = "Registry User SA"
 registry_gsa_description  = "Service Account for Registry DB"
 registry_gsa_roles = [
-  "roles/storage.admin",
+  "roles/storage.objectViewer",
   "roles/cloudsql.client",
   "roles/pubsub.publisher",
   "roles/pubsub.viewer",
-  "roles/cloudsql.instanceUser",
-  "roles/secretmanager.secretAccessor",
-  "roles/secretmanager.admin"
+  "roles/cloudsql.instanceUser"
 ]
 registry_ksa_name = "registry-ksa"
 
@@ -222,12 +204,11 @@ registry_admin_gsa_account_id   = "registry-admin-gsa-{{ suffix }}"
 registry_admin_gsa_display_name = "Registry Admin GSA for {{ suffix }}"
 registry_admin_gsa_description  = "GCP Service Account for Registry Admin functions"
 registry_admin_gsa_roles = [
-  "roles/storage.admin",
+  "roles/storage.objectViewer",
   "roles/cloudsql.client",
   "roles/pubsub.publisher",
   "roles/pubsub.viewer",
   "roles/cloudsql.instanceUser",
-  "roles/secretmanager.secretAccessor",
   "roles/secretmanager.admin"
 ]
 registry_admin_ksa_name = "registry-admin-ksa"
@@ -255,11 +236,9 @@ subscription_gsa_account_id    = "subscription-gsa-{{ suffix }}"
 subscription_gsa_display_name = "Subscription GSA for {{ suffix }}"
 subscription_gsa_description  = "GCP Service Account for Subscription service"
 subscription_gsa_roles = [
-  "roles/storage.admin",
-  "roles/pubsub.subscriber",
+  "roles/storage.objectViewer",
   "roles/pubsub.publisher",
   "roles/pubsub.viewer",
-  "roles/secretmanager.secretAccessor",
   "roles/secretmanager.admin"
 ]
 
