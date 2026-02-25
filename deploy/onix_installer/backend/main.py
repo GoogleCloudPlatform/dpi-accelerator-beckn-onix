@@ -18,7 +18,7 @@ import sys
 from typing import Dict, Any
 import httpx
 
-from absl import app as absl_app
+
 from fastapi.applications import FastAPI
 from fastapi.exceptions import HTTPException
 from fastapi.websockets import WebSocket, WebSocketDisconnect
@@ -248,11 +248,7 @@ async def dynamic_proxy(request: ProxyRequest) -> Any:
                 detail="An internal server error occurred."
             )
 
-def main(argv):
-    del argv  # Unused.
+if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
-if __name__ == "__main__":
-    absl_app.run(main)
 
