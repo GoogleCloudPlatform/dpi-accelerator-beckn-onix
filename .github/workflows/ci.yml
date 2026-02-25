@@ -196,20 +196,20 @@ jobs:
 
     - name: Run Python Tests with Coverage
       run: |
-          cd deploy/onix-installer/backend
+          cd deploy/onix_installer/backend
           coverage run -m unittest discover tests
 
     - name: Generate Python coverage report
       run: |
-          cd deploy/onix-installer/backend
+          cd deploy/onix_installer/backend
           coverage html -d htmlcov
 
     - name: Upload Python coverage report
       uses: actions/upload-artifact@v4
       with:
           name: python-coverage
-          path: deploy/onix-installer/backend/htmlcov
-
+          path: deploy/onix_installer/backend/htmlcov
+          
   build-frontend-installer:
     name: Build Angular Installer Frontend
     runs-on: ubuntu-latest
