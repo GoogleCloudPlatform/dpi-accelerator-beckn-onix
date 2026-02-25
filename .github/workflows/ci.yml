@@ -77,24 +77,48 @@ jobs:
         platforms: linux/amd64
         push: false
         tags: ${{ matrix.service }}:latest
-
+  
   build-python-installer:
     name: Build Python Installer Backend
     runs-on: ubuntu-latest
+    # 1. Grant permissions to push commits back to the repository
+    permissions:
+      contents: write 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+        # 2. Check out the actual branch (head_ref) instead of the PR merge commit
+        ref: ${{ github.head_ref || github.ref_name }}
 
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: '3.12'
+        cache: 'pip'
+
+    - name: Generate requirements with hashes
+      run: |
+          python -m pip install --upgrade pip pip-tools
+          cd deploy/onix_installer/backend
+          
+          # 3. Generate the hashed requirements
+          # Note: This assumes you maintain your base dependencies in a requirements.in file.
+          # If you use a different script to generate your file, replace this line with your command!
+          pip-compile --generate-hashes requirements.in -o requirements.txt
+
+    - name: Commit generated requirements.txt
+      # 4. Use a trusted community action to commit and push only if the file changed
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "chore(python): auto-generate requirements.txt with hashes"
+        file_pattern: deploy/onix_installer/backend/requirements.txt
 
     - name: Install Dependencies
       run: |
-          python -m pip install --upgrade pip
+          cd deploy/onix_installer/backend
           pip install coverage
-          pip install -r deploy/onix_installer/backend/requirements.txt --require-hashes
+          pip install -r requirements.txt --require-hashes
 
     - name: Run Python Tests with Coverage
       run: |
