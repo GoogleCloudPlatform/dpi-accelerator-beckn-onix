@@ -78,26 +78,83 @@ jobs:
         push: false
         tags: ${{ matrix.service }}:latest
   
+  # build-python-installer:
+  #   name: Build Python Installer Backend
+  #   runs-on: ubuntu-latest
+  #   # 1. Grant permissions to push commits back to the repository
+  #   permissions:
+  #     contents: write 
+  #   steps:
+  #   - name: Checkout code
+  #     uses: actions/checkout@v4
+  #     with:
+  #       # 2. Check out the actual branch (head_ref) instead of the PR merge commit
+  #       ref: ${{ github.head_ref || github.ref_name }}
+
+  #   - name: Set up Python
+  #     uses: actions/setup-python@v5
+  #     with:
+  #       python-version: '3.12'
+  #       cache: 'pip'
+
+  #   - name: Generate requirements with hashes
+  #     run: |
+  #         python -m pip install --upgrade pip pip-tools
+  #         cd deploy/onix_installer/backend
+          
+  #         # 3. Generate the hashed requirements
+  #         # Note: This assumes you maintain your base dependencies in a requirements.in file.
+  #         # If you use a different script to generate your file, replace this line with your command!
+  #         pip-compile --generate-hashes requirements.in -o requirements.txt
+
+  #   - name: Commit generated requirements.txt
+  #     # 4. Use a trusted community action to commit and push only if the file changed
+  #     uses: stefanzweifel/git-auto-commit-action@v5
+  #     with:
+  #       commit_message: "chore(python): auto-generate requirements.txt with hashes"
+  #       file_pattern: deploy/onix_installer/backend/requirements.txt
+
+  #   - name: Install Dependencies
+  #     run: |
+  #         cd deploy/onix_installer/backend
+  #         pip install coverage
+  #         pip install -r requirements.txt --require-hashes
+
+  #   - name: Run Python Tests with Coverage
+  #     run: |
+  #         cd deploy/onix_installer/backend
+  #         coverage run -m unittest discover tests
+
+  #   - name: Generate Python coverage report
+  #     run: |
+  #         cd deploy/onix_installer/backend
+  #         coverage html -d htmlcov
+
+  #   - name: Upload Python coverage report
+  #     uses: actions/upload-artifact@v4
+  #     with:
+  #         name: python-coverage
+  #         path: deploy/onix_installer/backend/htmlcov
+
   build-python-installer:
     name: Build Python Installer Backend
     runs-on: ubuntu-latest
-    # 1. Grant permissions to push commits back to the repository
     permissions:
       contents: write 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v3
       with:
-        # 2. Check out the actual branch (head_ref) instead of the PR merge commit
-        ref: ${{ github.head_ref || github.ref_name }}
+        # Using PAT here allows the subsequent commit to trigger a new workflow run
+        token: ${{ secrets.PAT_TOKEN }}
+        fetch-depth: 0 
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v3
       with:
         python-version: '3.12'
-        cache: 'pip'
 
-    - name: Generate requirements with hashes
+    - name: Generate updated requirements.txt
       run: |
           python -m pip install --upgrade pip pip-tools
           cd deploy/onix_installer/backend
@@ -106,35 +163,52 @@ jobs:
           # Note: This assumes you maintain your base dependencies in a requirements.in file.
           # If you use a different script to generate your file, replace this line with your command!
           pip-compile --generate-hashes requirements.in -o requirements.txt
+          
+          echo "Run your command to generate requirements.txt here"
 
-    - name: Commit generated requirements.txt
-      # 4. Use a trusted community action to commit and push only if the file changed
-      uses: stefanzweifel/git-auto-commit-action@v5
-      with:
-        commit_message: "chore(python): auto-generate requirements.txt with hashes"
-        file_pattern: deploy/onix_installer/backend/requirements.txt
-
+    - name: Commit and Push requirements.txt
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        
+        # Only add the specific requirements file to avoid committing coverage or cache files
+        git add deploy/onix_installer/backend/requirements.txt
+        
+        # Check if the requirements.txt file actually changed
+        if ! git diff-index --quiet HEAD; then
+          git commit -m "chore: auto-generate updated requirements.txt"
+          git push
+        else
+          echo "No changes to requirements.txt. Skipping push."
+        fi
+    
     - name: Install Dependencies
       run: |
-          cd deploy/onix_installer/backend
+          python -m pip install --upgrade pip
           pip install coverage
-          pip install -r requirements.txt --require-hashes
+          # If you need tools like pip-tools to generate requirements, install them here:
+          # pip install pip-tools
+          
+          # We will still try to install existing requirements to run the tests
+          if [ -f "deploy/onix_installer/backend/requirements.txt" ]; then
+            pip install -r deploy/onix_installer/backend/requirements.txt --require-hashes
+          fi
 
     - name: Run Python Tests with Coverage
       run: |
-          cd deploy/onix_installer/backend
+          cd deploy/onix-installer/backend
           coverage run -m unittest discover tests
 
     - name: Generate Python coverage report
       run: |
-          cd deploy/onix_installer/backend
+          cd deploy/onix-installer/backend
           coverage html -d htmlcov
 
     - name: Upload Python coverage report
       uses: actions/upload-artifact@v4
       with:
           name: python-coverage
-          path: deploy/onix_installer/backend/htmlcov
+          path: deploy/onix-installer/backend/htmlcov
 
   build-frontend-installer:
     name: Build Angular Installer Frontend
