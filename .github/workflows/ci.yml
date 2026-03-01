@@ -57,7 +57,7 @@ jobs:
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         
         # Add all potential lock files
-        git add go.mod go.sum deploy/onix-installer/backend/requirements.txt deploy/onix-installer/frontend/package-lock.json
+        git add go.mod go.sum deploy/onix_installer/backend/requirements.txt deploy/onix_installer/frontend/package-lock.json
         
         # Check if anything actually changed before committing
         if ! git diff-index --quiet HEAD; then
