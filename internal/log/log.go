@@ -23,8 +23,9 @@ import (
 )
 
 type Config struct {
-	Level  string
-	Target string
+	Level    string
+	Target   string
+	FilePath string
 }
 
 // Setup initializes the global slog logger with the specified level.
@@ -52,7 +53,11 @@ func Setup(cfg *Config) error {
 	var handler slog.Handler
 	switch strings.ToUpper(cfg.Target) {
 	case "FILE":
-		logFile, err := os.OpenFile("app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		path := "app.log"
+		if cfg.FilePath != "" {
+			path = cfg.FilePath
+		}
+		logFile, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			return fmt.Errorf("failed to open log file: %w", err)
 		}

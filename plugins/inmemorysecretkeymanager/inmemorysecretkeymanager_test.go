@@ -26,12 +26,13 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/googleapis/gax-go/v2"
 	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/beckn/beckn-onix/pkg/model"
 	plugin "github.com/beckn/beckn-onix/pkg/plugin/definition"
-	"github.com/googleapis/gax-go/v2"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // --- Mocks ---
@@ -203,19 +204,19 @@ func setupTestKeyManager(t *testing.T, sm secretMgr, rc plugin.Cache, rl plugin.
 
 func TestNew_Success(t *testing.T) {
 	cfg := &Config{
-        ProjectID: "test-project",
-        CacheTTL:  CacheTTL{PrivateKeysSeconds: 60, PublicKeysSeconds: 120},
-    }
-    mockClient := newMockSecretMgr(0) // Create a mock client
+		ProjectID: "test-project",
+		CacheTTL:  CacheTTL{PrivateKeysSeconds: 60, PublicKeysSeconds: 120},
+	}
+	mockClient := newMockSecretMgr(0) // Create a mock client
 
-    // Call the new testable function with the mock client
-    _, closer, err := newWithClient(newMockCache(), &mockRegistry{}, cfg, mockClient)
-    if err != nil {
-        t.Fatalf("newWithClient() with valid config failed unexpectedly: %v", err)
-    }
-    if closer == nil {
-        t.Fatal("newWithClient() returned a nil closer function")
-    }
+	// Call the new testable function with the mock client
+	_, closer, err := newWithClient(newMockCache(), &mockRegistry{}, cfg, mockClient)
+	if err != nil {
+		t.Fatalf("newWithClient() with valid config failed unexpectedly: %v", err)
+	}
+	if closer == nil {
+		t.Fatal("newWithClient() returned a nil closer function")
+	}
 }
 
 func TestNew_Errors(t *testing.T) {
@@ -231,15 +232,15 @@ func TestNew_Errors(t *testing.T) {
 		{"invalid private key TTL", &Config{ProjectID: "p", CacheTTL: CacheTTL{0, 1}}, &mockRegistry{}, newMockCache(), ErrInvalidTTL},
 		{"invalid public key TTL", &Config{ProjectID: "p", CacheTTL: CacheTTL{1, 0}}, &mockRegistry{}, newMockCache(), ErrInvalidTTL},
 	}
-	 for _, tc := range testCases {
-        t.Run(tc.name, func(t *testing.T) {
-            mockClient := newMockSecretMgr(0)
-            _, _, err := newWithClient(tc.cache, tc.reg, tc.cfg, mockClient)
-            if !errors.Is(err, tc.wantErr) {
-                t.Errorf("expected error %v, got %v", tc.wantErr, err)
-            }
-        })
-    }
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockClient := newMockSecretMgr(0)
+			_, _, err := newWithClient(tc.cache, tc.reg, tc.cfg, mockClient)
+			if !errors.Is(err, tc.wantErr) {
+				t.Errorf("expected error %v, got %v", tc.wantErr, err)
+			}
+		})
+	}
 }
 
 func TestGenerateKeyset(t *testing.T) {
@@ -274,47 +275,47 @@ func TestInsertKeyset(t *testing.T) {
 		}
 	})
 
-t.Run("secret already exists - successfully replaces", func(t *testing.T) {
-    mockSM := newMockSecretMgr(0)
-    mockSM.createSecretErr = status.Error(codes.AlreadyExists, "secret exists")
-    km := setupTestKeyManager(t, mockSM, nil, nil)
-    
-    keyID := "test-key-replace"
-    newKeyset := &model.Keyset{UniqueKeyID: "new-key-789", SigningPublic: "new-public-key"}
+	t.Run("secret already exists - successfully replaces", func(t *testing.T) {
+		mockSM := newMockSecretMgr(0)
+		mockSM.createSecretErr = status.Error(codes.AlreadyExists, "secret exists")
+		km := setupTestKeyManager(t, mockSM, nil, nil)
 
-    err := km.InsertKeyset(ctx, keyID, newKeyset)
-    
-    if err != nil {
-        t.Fatalf("InsertKeyset() failed on replace: %v", err)
-    }
+		keyID := "test-key-replace"
+		newKeyset := &model.Keyset{UniqueKeyID: "new-key-789", SigningPublic: "new-public-key"}
 
-    if atomic.LoadInt32(&mockSM.deleteCallCount) != 1 {
-        t.Errorf("expected DeleteSecret to be called once, but was called %d times", mockSM.deleteCallCount)
-    }
-    if atomic.LoadInt32(&mockSM.createCallCount) != 2 {
-        t.Errorf("expected CreateSecret to be called twice on replace, but was called %d times", mockSM.createCallCount)
-    }
+		err := km.InsertKeyset(ctx, keyID, newKeyset)
 
-    secretID := generateSecretID(keyID)
-    secretName := fmt.Sprintf("projects/test-project/secrets/%s/versions/latest", secretID)
+		if err != nil {
+			t.Fatalf("InsertKeyset() failed on replace: %v", err)
+		}
 
-    mockSM.mu.Lock()
-    defer mockSM.mu.Unlock()
-    
-    storedPayload, ok := mockSM.secrets[secretName]
-    if !ok {
-        t.Fatalf("secret was not found in the mock store after replacement")
-    }
+		if atomic.LoadInt32(&mockSM.deleteCallCount) != 1 {
+			t.Errorf("expected DeleteSecret to be called once, but was called %d times", mockSM.deleteCallCount)
+		}
+		if atomic.LoadInt32(&mockSM.createCallCount) != 2 {
+			t.Errorf("expected CreateSecret to be called twice on replace, but was called %d times", mockSM.createCallCount)
+		}
 
-    var storedKeyset model.Keyset
-    if err := json.Unmarshal(storedPayload, &storedKeyset); err != nil {
-        t.Fatalf("failed to unmarshal stored secret payload: %v", err)
-    }
+		secretID := generateSecretID(keyID)
+		secretName := fmt.Sprintf("projects/test-project/secrets/%s/versions/latest", secretID)
 
-    if storedKeyset.UniqueKeyID != newKeyset.UniqueKeyID {
-        t.Errorf("secret content was not updated correctly. got UniqueKeyID %q, want %q", storedKeyset.UniqueKeyID, newKeyset.UniqueKeyID)
-    }
-})
+		mockSM.mu.Lock()
+		defer mockSM.mu.Unlock()
+
+		storedPayload, ok := mockSM.secrets[secretName]
+		if !ok {
+			t.Fatalf("secret was not found in the mock store after replacement")
+		}
+
+		var storedKeyset model.Keyset
+		if err := json.Unmarshal(storedPayload, &storedKeyset); err != nil {
+			t.Fatalf("failed to unmarshal stored secret payload: %v", err)
+		}
+
+		if storedKeyset.UniqueKeyID != newKeyset.UniqueKeyID {
+			t.Errorf("secret content was not updated correctly. got UniqueKeyID %q, want %q", storedKeyset.UniqueKeyID, newKeyset.UniqueKeyID)
+		}
+	})
 }
 
 func TestInsertKeyset_Errors(t *testing.T) {
@@ -789,8 +790,6 @@ func TestGenerateSecretID(t *testing.T) {
 	}
 }
 
-
-
 // --- Benchmarks ---
 
 // mockBenchSecretMgr is a mock implementation of the secretMgr interface for benchmarking.
@@ -828,16 +827,16 @@ func (m *mockBenchSecretMgr) AccessSecretVersion(ctx context.Context, req *secre
 }
 
 func (m *mockBenchSecretMgr) CreateSecret(context.Context, *secretmanagerpb.CreateSecretRequest, ...gax.CallOption) (*secretmanagerpb.Secret, error) {
-	return nil, nil 
+	return nil, nil
 }
 func (m *mockBenchSecretMgr) AddSecretVersion(context.Context, *secretmanagerpb.AddSecretVersionRequest, ...gax.CallOption) (*secretmanagerpb.SecretVersion, error) {
-	return nil, nil 
+	return nil, nil
 }
 func (m *mockBenchSecretMgr) DeleteSecret(context.Context, *secretmanagerpb.DeleteSecretRequest, ...gax.CallOption) error {
-	return nil 
+	return nil
 }
 func (m *mockBenchSecretMgr) Close() error {
-	return nil 
+	return nil
 }
 
 // mockRegistryLookup is a minimal mock to satisfy the New() function's requirement.
@@ -852,28 +851,28 @@ func (m *mockRegistryLookup) Lookup(ctx context.Context, sub *model.Subscription
 // setupBenchKeyManager is a helper function to correctly initialize the key manager for tests.
 func setupBenchKeyManager(b *testing.B, mock secretMgr) *keyMgr {
 	// Create a valid config for the key manager.
-	 cfg := &Config{
-        ProjectID: "bench-project",
-        CacheTTL: CacheTTL{
-            PrivateKeysSeconds: 3600,
-            PublicKeysSeconds:  3600,
-        },
-    }
+	cfg := &Config{
+		ProjectID: "bench-project",
+		CacheTTL: CacheTTL{
+			PrivateKeysSeconds: 3600,
+			PublicKeysSeconds:  3600,
+		},
+	}
 
-    // Call the testable constructor directly with the provided mock.
-    km, closer, err := newWithClient(nil, &mockRegistryLookup{}, cfg, mock)
-    if err != nil {
-        b.Fatalf("Failed to create key manager for benchmark: %v", err)
-    }
+	// Call the testable constructor directly with the provided mock.
+	km, closer, err := newWithClient(nil, &mockRegistryLookup{}, cfg, mock)
+	if err != nil {
+		b.Fatalf("Failed to create key manager for benchmark: %v", err)
+	}
 
-    // Use b.Cleanup to ensure the closer function is called when the benchmark finishes.
-    b.Cleanup(func() {
-        if err := closer(); err != nil {
-            b.Errorf("Error during cleanup: %v", err)
-        }
-    })
+	// Use b.Cleanup to ensure the closer function is called when the benchmark finishes.
+	b.Cleanup(func() {
+		if err := closer(); err != nil {
+			b.Errorf("Error during cleanup: %v", err)
+		}
+	})
 
-    return km
+	return km
 }
 
 // BenchmarkKeyset_CacheHit measures the performance of fetching a key that is already in the in-memory cache.
@@ -947,8 +946,8 @@ func BenchmarkKeyset_CacheMiss_Parallel(b *testing.B) {
 // BenchmarkKeyset_Parallel_Scenarios tests different parallel access patterns.
 func BenchmarkKeyset_Parallel_Scenarios(b *testing.B) {
 	const numKeys = 200
-	const projectID = "bench-project" 
-	mock := newMockBenchSecretMgr(40 * time.Millisecond) 
+	const projectID = "bench-project"
+	mock := newMockBenchSecretMgr(40 * time.Millisecond)
 
 	// --- Setup: Pre-generate 200 unique keys and populate the mock secret manager ---
 	keyIDs := make([]string, numKeys)
