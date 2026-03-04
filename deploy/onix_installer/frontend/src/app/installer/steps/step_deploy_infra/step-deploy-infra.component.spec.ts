@@ -63,6 +63,13 @@ const initialMockState: InstallerState = {
   },
   appDeployGatewayConfig: {gatewaySubscriptionId: ''},
   appDeployAdapterConfig: {enableSchemaValidation: false},
+  appDeploySecurityConfig: {
+    enableInBoundAuth: false,
+    enableOutBoundAuth: false,
+    issuerUrl: '',
+    jwksFile: null,
+    audOverrides: ''
+  },
   highestStepReached: 4,
   appDeploymentStatus: 'pending',
   servicesDeployed: [],
@@ -165,8 +172,8 @@ describe('StepDeployInfraComponent', () => {
       const state = installerStateService.getCurrentState();
       state.deploymentGoal =
           {all: true, gateway: true, registry: true, bap: true, bpp: true};
-      component.deployInfraForm.setValue(
-          {appName: 'onix', deploymentSize: 'small'});
+      component.deployInfraForm.patchValue(
+          {appName: 'onix', deploymentSize: 'small', cloudArmorRegions: 'IN'});
       fixture.detectChanges();
     });
 
@@ -200,11 +207,28 @@ describe('StepDeployInfraComponent', () => {
            region: 'us-central1',
            app_name: 'onix',
            type: 'small',
-           components: {gateway: true, registry: true, bap: true, bpp: true}
+           components: {gateway: true, registry: true, bap: true, bpp: true},
+           enable_cloud_armor: false,
+           allowed_regions: ['IN'],
+           rate_limit_count: 100
          };
          expect(webSocketService.sendMessage)
              .toHaveBeenCalledWith(expectedPayload);
        });
+
+    it('should use provided rate limit count in payload', () => {
+      component.deployInfraForm.patchValue({
+        appName: 'onix',
+        deploymentSize: 'small',
+        cloudArmorRegions: 'IN',
+        cloudArmorRateLimit: '500'
+      });
+      component.onDeployInfra();
+
+      const expectedPayload = jasmine.objectContaining({rate_limit_count: 500});
+      expect(webSocketService.sendMessage)
+          .toHaveBeenCalledWith(expectedPayload);
+    });
 
     it('should handle WebSocket log messages', () => {
       component.onDeployInfra();
@@ -238,6 +262,20 @@ describe('StepDeployInfraComponent', () => {
       expect(webSocketService.closeConnection).toHaveBeenCalled();
     });
 
+    it('should handle WebSocket success message without global ip', () => {
+      component.onDeployInfra();
+      const successPayload:
+          InfraDetails = {'cluster_name': {value: 'onix-cluster'}};
+      const successMessage = {type: 'success', message: successPayload};
+
+      webSocketService.receiveMessage(JSON.stringify(successMessage));
+      fixture.detectChanges();
+
+      expect(installerStateService.updateDeploymentStatus)
+          .toHaveBeenCalledWith('completed');
+      expect(installerStateService.setAppExternalIp).toHaveBeenCalledWith(null);
+    });
+
     it('should handle WebSocket error message', () => {
       component.onDeployInfra();
       const errorMessage = {type: 'error', message: 'Terraform apply failed.'};
@@ -263,6 +301,51 @@ describe('StepDeployInfraComponent', () => {
           .toHaveBeenCalledWith('failed');
       expect(installerStateService.addDeploymentLog)
           .toHaveBeenCalledWith(`WebSocket connection error: ${error.message}`);
+    });
+  });
+
+  describe('Helper methods and getters', () => {
+    it('should format output key correctly', () => {
+      expect(component.formatOutputKey('cluster_name')).toBe('Cluster Name');
+      expect(component.formatOutputKey('registryUrl')).toBe('Registry Url');
+    });
+
+    it('should get deployment type display', () => {
+      expect(component.getDeploymentTypeDisplay('small'))
+          .toBe('Small - 50 tps');
+      expect(component.getDeploymentTypeDisplay('medium'))
+          .toBe('Medium - 500 tps');
+      expect(component.getDeploymentTypeDisplay('large'))
+          .toBe('Large - 1000 tps');
+    });
+
+    it('should return correct boolean for getters', () => {
+      installerStateService.updateDeploymentStatus('in-progress');
+      expect(component.isDeploying).toBeTrue();
+      expect(component.deploymentComplete).toBeFalse();
+      expect(component.deploymentFailed).toBeFalse();
+
+      installerStateService.updateDeploymentStatus('completed');
+      expect(component.isDeploying).toBeFalse();
+      expect(component.deploymentComplete).toBeTrue();
+      expect(component.deploymentFailed).toBeFalse();
+
+      installerStateService.updateDeploymentStatus('failed');
+      expect(component.isDeploying).toBeFalse();
+      expect(component.deploymentComplete).toBeFalse();
+      expect(component.deploymentFailed).toBeTrue();
+    });
+
+    it('should check for app name max length error', () => {
+      component.deployInfraForm.get('appName')?.setValue('verylongname');
+      expect(component.hasAppNameMaxLengthError()).toBeTrue();
+
+      component.deployInfraForm.get('appName')?.setValue('short');
+      expect(component.hasAppNameMaxLengthError()).toBeFalse();
+    });
+
+    it('should track by log index', () => {
+      expect(component.trackByLog(1, 'log')).toBe(1);
     });
   });
 

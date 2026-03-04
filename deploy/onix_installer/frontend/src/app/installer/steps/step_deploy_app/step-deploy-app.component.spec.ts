@@ -17,6 +17,7 @@
 import {Clipboard} from '@angular/cdk/clipboard';
 import {ComponentFixture, fakeAsync, getTestBed, TestBed, tick} from '@angular/core/testing';
 import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
+import {MatSlideToggleModule} from '@angular/material/slide-toggle';
 import {MatTabsModule} from '@angular/material/tabs';
 import {BrowserDynamicTestingModule, platformBrowserDynamicTesting} from '@angular/platform-browser-dynamic/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -30,59 +31,79 @@ import {DeploymentGoal, DeploymentStatus, InstallerState} from '../../types/inst
 import {StepAppDeployComponent} from './step-deploy-app.component';
 
 const initialMockState: InstallerState = {
-    currentStepIndex: 6,
-    highestStepReached: 6,
-    installerGoal: 'create_new_open_network',
-    deploymentGoal: { all: true, gateway: true, registry: true, bap: true, bpp: true },
-    prerequisitesMet: true,
-    gcpConfiguration: { projectId: 'test-project', region: 'us-central1' },
-    appName: 'onix-app',
-    deploymentSize: 'small',
-    infraDetails: {
-        external_ip: { value: '1.2.3.4' },
-        registry_url: { value: 'https://infra-registry.com' }
+  currentStepIndex: 6,
+  highestStepReached: 6,
+  installerGoal: 'create_new_open_network',
+  deploymentGoal:
+      {all: true, gateway: true, registry: true, bap: true, bpp: true},
+  prerequisitesMet: true,
+  gcpConfiguration: {projectId: 'test-project', region: 'us-central1'},
+  appName: 'onix-app',
+  deploymentSize: 'small',
+  infraDetails: {
+    external_ip: {value: '1.2.3.4'},
+    registry_url: {value: 'https://infra-registry.com'}
+  },
+  appExternalIp: '1.2.3.4',
+  globalDomainConfig: {
+    domainType: 'other_domain',
+    baseDomain: 'example.com',
+    dnsZone: 'example-zone'
+  },
+  subdomainConfigs: [
+    {
+      component: 'registry',
+      subdomainName: 'registry.example.com',
+      domainType: 'google_domain'
     },
-    appExternalIp: '1.2.3.4',
-    globalDomainConfig: {
-        domainType: 'other_domain',
-        baseDomain: 'example.com',
-        dnsZone: 'example-zone'
+    {
+      component: 'gateway',
+      subdomainName: 'gateway.example.com',
+      domainType: 'google_domain'
     },
-    subdomainConfigs: [
-        { component: 'registry', subdomainName: 'registry.example.com', domainType: 'google_domain' },
-        { component: 'gateway', subdomainName: 'gateway.example.com', domainType: 'google_domain' },
-        { component: 'adapter', subdomainName: 'adapter.example.com', domainType: 'google_domain' },
-        { component: 'subscriber', subdomainName: 'sub.example.com', domainType: 'google_domain' }
-    ],
-    appDeployImageConfig: {
-        registryImageUrl: 'reg-img:v1',
-        registryAdminImageUrl: 'reg-admin-img:v1',
-        gatewayImageUrl: 'gw-img:v1',
-        adapterImageUrl: 'adapter-img:v1',
-        subscriptionImageUrl: 'sub-img:v1'
+    {
+      component: 'adapter',
+      subdomainName: 'adapter.example.com',
+      domainType: 'google_domain'
     },
-    appDeployRegistryConfig: {
-        registryUrl: 'https://my-registry.com',
-        registryKeyId: 'my-key-id',
-        registrySubscriberId: 'my-sub-id',
-        enableAutoApprover: true
-    },
-    appDeployGatewayConfig: {
-        gatewaySubscriptionId: 'gw-sub-id'
-    },
-    appDeployAdapterConfig: {
-        enableSchemaValidation: true
-    },
-    healthCheckStatuses: [],
-    deploymentStatus: 'completed',
-    appDeploymentStatus: 'pending',
-    deploymentLogs: [],
-    deployedServiceUrls: {},
-    servicesDeployed: [],
-    logsExplorerUrls: {},
-    dockerImageConfigs: [],
-    appSpecificConfigs: [],
-    componentSubdomainPrefixes: [],
+    {
+      component: 'subscriber',
+      subdomainName: 'sub.example.com',
+      domainType: 'google_domain'
+    }
+  ],
+  appDeployImageConfig: {
+    registryImageUrl: 'reg-img:v1',
+    registryAdminImageUrl: 'reg-admin-img:v1',
+    gatewayImageUrl: 'gw-img:v1',
+    adapterImageUrl: 'adapter-img:v1',
+    subscriptionImageUrl: 'sub-img:v1'
+  },
+  appDeployRegistryConfig: {
+    registryUrl: 'https://my-registry.com',
+    registryKeyId: 'my-key-id',
+    registrySubscriberId: 'my-sub-id',
+    enableAutoApprover: true
+  },
+  appDeployGatewayConfig: {gatewaySubscriptionId: 'gw-sub-id'},
+  appDeployAdapterConfig: {enableSchemaValidation: true},
+  appDeploySecurityConfig: {
+    enableInBoundAuth: true,
+    enableOutBoundAuth: true,
+    issuerUrl: 'https://issuer.com',
+    jwksFile: null,
+    audOverrides: 'aud1,aud2'
+  },
+  healthCheckStatuses: [],
+  deploymentStatus: 'completed',
+  appDeploymentStatus: 'pending',
+  deploymentLogs: [],
+  deployedServiceUrls: {},
+  servicesDeployed: [],
+  logsExplorerUrls: {},
+  dockerImageConfigs: [],
+  appSpecificConfigs: [],
+  componentSubdomainPrefixes: [],
 };
 
 class MockInstallerStateService {
@@ -138,27 +159,31 @@ describe('StepAppDeployComponent', () => {
     let router: Router;
 
     beforeEach(async () => {
-        await TestBed.configureTestingModule({
+      await TestBed
+          .configureTestingModule({
             imports: [
-                StepAppDeployComponent,
-                NoopAnimationsModule,
-                ReactiveFormsModule,
-                MatTabsModule
+              StepAppDeployComponent, NoopAnimationsModule, ReactiveFormsModule,
+              MatTabsModule, MatSlideToggleModule
             ],
             providers: [
-                { provide: InstallerStateService, useClass: MockInstallerStateService },
-                { provide: WebSocketService, useClass: MockWebSocketService },
-                { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } },
-                { provide: Clipboard, useClass: MockClipboard },
-                FormBuilder
+              {
+                provide: InstallerStateService,
+                useClass: MockInstallerStateService
+              },
+              {provide: WebSocketService, useClass: MockWebSocketService}, {
+                provide: Router,
+                useValue: {navigate: jasmine.createSpy('navigate')}
+              },
+              {provide: Clipboard, useClass: MockClipboard}, FormBuilder
             ]
-        }).compileComponents();
+          })
+          .compileComponents();
 
-        fixture = TestBed.createComponent(StepAppDeployComponent);
-        component = fixture.componentInstance;
-        installerStateService = TestBed.inject(InstallerStateService) as any;
-        webSocketService = TestBed.inject(WebSocketService) as any;
-        router = TestBed.inject(Router);
+      fixture = TestBed.createComponent(StepAppDeployComponent);
+      component = fixture.componentInstance;
+      installerStateService = TestBed.inject(InstallerStateService) as any;
+      webSocketService = TestBed.inject(WebSocketService) as any;
+      router = TestBed.inject(Router);
     });
 
     it('should create', () => {

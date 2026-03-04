@@ -198,6 +198,107 @@
                 <span>Deploy Application</span>
               </div>
             </button>
+            <button mat-stroked-button color="primary" (click)="onNextTab()" [disabled]="!isCurrentMainTabValid()"
+              *ngIf="!isLastConfigTabActive()"> <span>Next</span>
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        </ng-template>
+      </mat-tab>
+
+      <mat-tab label="Security Config">
+        <ng-template matTabContent>
+          <form [formGroup]="securityConfigForm" class="config-form single-column">
+            <div class="security-section">
+                <h3 style="font-size: 16px; font-weight: 500; margin-bottom: 20px; color: #202124;">
+                  Internal API Authentication
+                </h3>
+
+                
+                  
+                  <div class="radio-option" style="margin-bottom: 20px;">
+                    <mat-slide-toggle formControlName="enableInBoundAuth" color="primary" style="margin-bottom: 10px; padding: 5px;" hideIcon>
+                      <span style="margin-left: 5px; font-weight: 500; font-size: 15px; color: #202124;">Enable Inbound Authentication</span>
+                    </mat-slide-toggle>
+                    <p style="margin: 4px 0 0 32px; font-size: 14px; color: #5f6368; margin-bottom: 5px;">
+                      Protects access to specific interfaces, including Registry Admin APIs (for subscription handling), Subscriber Service APIs (for managing participant details), and Adapter Caller APIs. When enabled, callers will need to provide a valid authentication token.
+                    </p>
+                    <div *ngIf="securityConfigForm.get('enableInBoundAuth')?.value" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; background-color: #fff;">
+                      <div style="margin-bottom: 20px;">
+                        
+                        <mat-form-field appearance="outline" style="width: 100%; font-size: 14px;">
+                          <mat-label>Issuer URL<span style="color: red;">*</span></mat-label>
+                          <input matInput type="text" formControlName="issuerUrl" placeholder="https://example.com">
+                        </mat-form-field>
+                      </div>
+
+                      <div>
+                        
+                        <div class="form-field-wrapper" style="margin-bottom: 24px;">
+                    <label style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #202124;">
+                      JWK file (JSON) <span style="color: #9aa0a6; font-weight: 400;">(Optional)</span>
+                    </label>
+
+                    <input type="file" #jwkFileInput hidden accept=".json" (change)="onJwkFileSelected($event)">
+
+                    <div class="custom-file-upload" 
+                         style="display: flex; align-items: center; border: 1px solid #dadce0; border-radius: 4px; overflow: hidden; background: white; cursor: pointer; transition: border-color 0.2s;"
+                         (click)="jwkFileInput.click()">
+                      
+                      <div class="browse-btn" style="background-color: #f8f9fa; padding: 12px 24px; border-right: 1px solid #dadce0; font-weight: 500; color: #3c4043; font-size: 14px;">
+                        Browse
+                      </div>
+                      
+                      <div class="file-name-display" [ngStyle]="{'color': selectedJwkFileName ? '#202124' : '#9aa0a6'}" style="padding: 12px 16px; flex-grow: 1; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        {{ selectedJwkFileName || 'No file selected' }}
+                      </div>
+                    </div>
+                  </div>
+                      </div>
+                    </div>
+                    
+                  </div>
+
+                  <div class="radio-option">
+                    <mat-slide-toggle formControlName="enableOutBoundAuth" color="primary" style="margin-bottom: 10px; padding: 5px;" hideIcon>
+                      <span style="margin-left: 5px; font-weight: 500; font-size: 15px; color: #202124;">Enable Outbound Authentication</span>
+                    </mat-slide-toggle>
+                    <p style="margin: 4px 0 0 32px; font-size: 14px; color: #5f6368; margin-bottom: 5px;">
+                      Secures calls made from the Onix Adapter to your backend client application. When enabled, the Adapter will automatically add an authentication token to outgoing requests.
+                    </p>
+
+                    
+                    <div *ngIf="securityConfigForm.get('enableOutBoundAuth')?.value" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; background-color: #fff;">
+                      <div style="margin-bottom: 0px;">
+                        
+                        <mat-form-field appearance="outline" style="width: 100%; font-size: 14px;">
+                          <mat-label>Audience Overrides (optional)</mat-label>
+                          <input matInput type="text" formControlName="audOverrides" placeholder="api://onix-adapter-client-id">
+                        </mat-form-field>
+                        <p style="margin: 4px 0 0 32px; font-size: 13px; color: #5f6368;">
+                        
+                        </p>
+                      </div>
+                    </div>
+                    
+                  </div>
+            </div>
+
+          </form>
+
+          <div class="tab-navigation-buttons">
+            <button mat-stroked-button color="primary" (click)="onPreviousTab()">
+              <mat-icon>arrow_back</mat-icon>
+              <span>Back</span>
+            </button>
+            
+            <button mat-flat-button color="accent" class="deploy-button"
+              [disabled]="!isAppDeployStepValid || isAppDeploying" (click)="onDeployApp()">
+              <div class="button-content-wrapper">
+                <mat-spinner *ngIf="isAppDeploying" [diameter]="20"></mat-spinner>
+                <span>Deploy Application</span>
+              </div>
+            </button>
           </div>
         </ng-template>
       </mat-tab>
