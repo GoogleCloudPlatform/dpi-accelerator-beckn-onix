@@ -211,6 +211,7 @@ class TestAppConfigGenerator(unittest.TestCase):
             adapter_config=models.AdapterConfig(enable_schema_validation=True),
             registry_config=models.RegistryConfig(subscriber_id="test_sub", key_id="test_key", enable_auto_approver=True),
             gateway_config=models.GatewayConfig(subscriber_id="test_gateway_sub"),
+            security_config=models.SecurityConfig(enable_inbound_auth=True, issuer_url="http://issuer.url", jwks_json="jwks.json"),
             domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
         infra_outputs = {
@@ -248,6 +249,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         self.assertEqual(context["adapter"], app_req.adapter_config.model_dump())
         self.assertEqual(context["registry"], app_req.registry_config.model_dump())
         self.assertEqual(context["gateway"], app_req.gateway_config.model_dump())
+        self.assertEqual(context["security"], app_req.security_config.model_dump())
 
         self.assertTrue(context["deploy_bap"])
         self.assertFalse(context["deploy_bpp"])

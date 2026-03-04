@@ -159,3 +159,21 @@ EOF
     }
   }
 }
+
+resource "google_iam_workload_identity_pool" "main" {
+  count = var.enable_inbound_auth ? 1 : 0
+  workload_identity_pool_id = var.pool_id
+  display_name               = "Inbound Auth Pool"
+}
+
+resource "google_iam_workload_identity_pool_provider" "oidc_provider" {
+  count = var.enable_inbound_auth ? 1 : 0
+  workload_identity_pool_id = var.pool_id
+  workload_identity_pool_provider_id = var.provider_id
+  oidc {
+    issuer_uri = var.issuer_url
+    jwks_json = var.jwks_json != "" ? var.jwks_json : null
+    }
+}
+
+
