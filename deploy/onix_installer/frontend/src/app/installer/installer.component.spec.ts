@@ -56,7 +56,8 @@ const mockInitialState: InstallerState = {
   appDeployImageConfig: null,
   appDeployRegistryConfig: null,
   appDeployGatewayConfig: null,
-  appDeployAdapterConfig: null
+  appDeployAdapterConfig: null,
+  appDeploySecurityConfig: null
 };
 
 // A mock InstallerStateService to control the component's state during tests.

@@ -17,7 +17,7 @@
 import {Clipboard, ClipboardModule} from '@angular/cdk/clipboard';
 import {CommonModule} from '@angular/common';
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild} from '@angular/core';
-import {AbstractControl, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, Validators} from '@angular/forms';
+import {AbstractControl, AsyncValidatorFn, FormBuilder, FormControl, FormGroup, ReactiveFormsModule, ValidationErrors, Validators} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCardModule} from '@angular/material/card';
 import {MatCheckboxModule} from '@angular/material/checkbox';
@@ -26,10 +26,12 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatRadioModule} from '@angular/material/radio';
+import {MatSlideToggleModule} from '@angular/material/slide-toggle';
+import {MatSnackBar, MatSnackBarModule} from '@angular/material/snack-bar';
 import {MatTabGroup, MatTabsModule} from '@angular/material/tabs';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {Router} from '@angular/router';
-import {EMPTY, Subject, Subscription} from 'rxjs';
+import {EMPTY, Observable, Subject, Subscription} from 'rxjs';
 import {catchError, finalize, takeUntil} from 'rxjs/operators';
 import {windowOpen} from 'safevalues/dom';
 
@@ -38,6 +40,33 @@ import {InstallerStateService} from '../../../core/services/installer-state.serv
 import {WebSocketService} from '../../../core/services/websocket.service';
 import {removeEmptyValues} from '../../../shared/utils';
 import {AppDeployAdapterConfig, AppDeployGatewayConfig, AppDeployImageConfig, AppDeployRegistryConfig, BackendAppDeploymentRequest, DeploymentGoal, DomainConfig, InstallerState, SubdomainConfig} from '../../types/installer.types';
+
+// Custom async validator for JWKS file content
+const jwksJsonValidator: AsyncValidatorFn =
+    (control: AbstractControl): Promise<ValidationErrors|null> => {
+      const file = control.value;
+      if (!file || !(file instanceof File)) {
+        return Promise.resolve(null);  // Optional field, no file selected
+      }
+
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            JSON.parse(reader.result as string);
+            resolve(null);  // Valid JSON
+          } catch (e) {
+            console.error('JWKS file content is not valid JSON:', e);
+            resolve({invalidJson: true});
+          }
+        };
+        reader.onerror = () => {
+          console.error('Error reading JWKS file');
+          resolve({fileReadError: true});
+        };
+        reader.readAsText(file);
+      });
+    };
 
 @Component({
   selector: 'app-step-app-deploy',
@@ -54,8 +83,10 @@ import {AppDeployAdapterConfig, AppDeployGatewayConfig, AppDeployImageConfig, Ap
     MatTabsModule,
     MatProgressSpinnerModule,
     MatCardModule,
+    MatSlideToggleModule,
     MatTooltipModule,
     ClipboardModule,
+    MatSnackBarModule,
   ],
   templateUrl: './step-deploy-app.component.html',
   styleUrls: ['./step-deploy-app.component.css'],
@@ -75,6 +106,7 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
   registryConfigForm!: FormGroup;
   gatewayConfigForm!: FormGroup;
   adapterConfigForm!: FormGroup;
+  securityConfigForm!: FormGroup;
   appDeploymentLogs: string[] = [];
   appExternalIp: string | null = null;
 
@@ -87,6 +119,9 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
   showAdapterTab: boolean = false;
   showAdapterLogButton: boolean = false;
 
+  selectedJwkFileName?: string|' ';
+
+
   installerState!: InstallerState;
   private appWsSubscription!: Subscription;
   private unsubscribe$ = new Subject<void>();
@@ -97,13 +132,14 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
   totalInternalSteps: number = 0;
 
   constructor(
-    private fb: FormBuilder,
-    private installerStateService: InstallerStateService,
-    protected cdr: ChangeDetectorRef,
-    private webSocketService: WebSocketService,
-    private clipboard: Clipboard,
-    private router: Router
-  ) { }
+      private fb: FormBuilder,
+      private installerStateService: InstallerStateService,
+      protected cdr: ChangeDetectorRef,
+      private webSocketService: WebSocketService,
+      private clipboard: Clipboard,
+      private router: Router,
+      private snackBar: MatSnackBar,
+  ) {}
 
   ngOnInit(): void {
     this.initializeForms();
@@ -133,6 +169,37 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
          console.log('DEBUG: adapterConfigForm.enableSchemaValidation valueChanges:', value);
         this.cdr.detectChanges();
       });
+
+    this.securityConfigForm.get('enableInBoundAuth')
+        ?.valueChanges.pipe(takeUntil(this.unsubscribe$))
+        .subscribe(enabled => {
+          const issuerUrlCtrl = this.securityConfigForm.get('issuerUrl');
+          const jwksFileCtrl = this.securityConfigForm.get('jwksFile');
+
+          if (enabled) {
+            issuerUrlCtrl?.setValidators([Validators.required]);
+            // jwksFile is optional
+            jwksFileCtrl?.clearValidators();
+          } else {
+            issuerUrlCtrl?.clearValidators();
+            jwksFileCtrl?.clearValidators();
+          }
+          issuerUrlCtrl?.updateValueAndValidity();
+          jwksFileCtrl?.updateValueAndValidity();
+        });
+
+    this.securityConfigForm.get('enableOutBoundAuth')
+        ?.valueChanges.pipe(takeUntil(this.unsubscribe$))
+        .subscribe(enabled => {
+          const audOverridesCtrl = this.securityConfigForm.get('audOverrides');
+
+          if (enabled) {
+            audOverridesCtrl?.setValidators([Validators.required]);
+          } else {
+            audOverridesCtrl?.clearValidators();
+          }
+          audOverridesCtrl?.updateValueAndValidity();
+        });
   }
 
   ngOnDestroy(): void {
@@ -164,7 +231,35 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
     this.adapterConfigForm = this.fb.group({
       enableSchemaValidation: [false],
     });
-   }
+    this.securityConfigForm = this.fb.group({
+      enableInBoundAuth: [false],
+      enableOutBoundAuth: [false],
+      issuerUrl: [''],
+      jwksFile: ['', null, jwksJsonValidator],  // Apply the async validator
+      audOverrides: [''],
+    });
+  }
+
+  onJwkFileSelected(event: any): void {
+    const file: File = event.target.files[0];
+
+    if (file) {
+      this.selectedJwkFileName = file.name;
+
+      // Update your form control. Assuming you kept the name 'jwksUrl' or
+      // renamed it to 'jwkFile'
+      this.securityConfigForm.patchValue({jwksFile: file}, {emitEvent: true});
+
+      // Mark as touched so validators trigger and errors are shown.
+      this.securityConfigForm.get('jwksFile')?.markAsTouched();
+    } else {
+      // If file selection is cancelled or no file is selected, clear the
+      // control.
+      this.selectedJwkFileName = undefined;
+      this.securityConfigForm.patchValue({jwksFile: ''}, {emitEvent: true});
+      this.securityConfigForm.get('jwksFile')?.updateValueAndValidity();
+    }
+  }
 
   private updateTabVisibility(goal: DeploymentGoal): void {
     this.showGatewayTab = goal.all || goal.gateway;
@@ -325,6 +420,13 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
       console.log('Adapter/BAP/BPP deployment not enabled. Skipping adapterConfigForm and file checks.');
     }
 
+    if (this.securityConfigForm.invalid) {
+      console.log(
+          'isAppDeployStepValid: false (securityConfigForm is invalid)');
+      console.log('Security Form Errors:', this.securityConfigForm.errors);
+      return false;
+    }
+
     console.log('--- isAppDeployStepValid: TRUE ---');
     return true;
   }
@@ -339,6 +441,12 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
     if (control.hasError('pattern')) {
       return `Please enter a valid ${fieldName}.`;
     }
+    if (control.hasError('invalidJson')) {
+      return `${fieldName} must be a valid JSON file.`;
+    }
+    if (control.hasError('fileReadError')) {
+      return `Error reading the ${fieldName} file.`;
+    }
     return '';
   }
 
@@ -352,6 +460,8 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
     if (this.showAdapterTab) {
       count++;
     }
+    // Security Config
+    count++;
     this.totalInternalSteps = count;
     console.log('totalInternalSteps:', this.totalInternalSteps);
   }
@@ -385,6 +495,12 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
     if (this.showAdapterTab) {
       visibleTabs.push({ index: visibleTabs.length, form: this.adapterConfigForm, name: 'Adapter Config' });
     }
+
+    visibleTabs.push({
+      index: visibleTabs.length,
+      form: this.securityConfigForm,
+      name: 'Security Config'
+    });
 
     const currentVisibleTab = visibleTabs.find(tab => tab.index === currentTabIndex);
     if (currentVisibleTab) {
@@ -474,6 +590,12 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
     } else if (this.showAdapterTab && currentTabIndex === (this.showGatewayTab ? 3 : 2)) {
       formToSave = this.adapterConfigForm;
       formName = 'Adapter Config';
+    } else if (
+        currentTabIndex ===
+        (this.showAdapterTab ? (this.showGatewayTab ? 4 : 3) :
+                               (this.showGatewayTab ? 3 : 2))) {
+      formToSave = this.securityConfigForm;
+      formName = 'Security Config';
     }
 
     if (formToSave) {
@@ -487,6 +609,9 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
           this.installerStateService.updateAppDeployGatewayConfig(formToSave.getRawValue());
         } else if (formToSave === this.adapterConfigForm) {
           this.installerStateService.updateAppDeployAdapterConfig(formToSave.getRawValue());
+        } else if (formToSave === this.securityConfigForm) {
+          this.installerStateService.updateAppDeploySecurityConfig(
+              formToSave.getRawValue());
         }
         console.log(`Saved ${formName} config to state.`);
       } else {
@@ -504,6 +629,7 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
       this.adapterConfigForm.markAllAsTouched();
       const goal = this.installerState.deploymentGoal;
     }
+    this.securityConfigForm.markAllAsTouched();
 
     this.installerStateService.updateAppDeployImageConfig(this.imageConfigForm.getRawValue());
     this.installerStateService.updateAppDeployRegistryConfig(this.registryConfigForm.getRawValue());
@@ -513,7 +639,6 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
     if (this.showAdapterTab) {
       this.installerStateService.updateAppDeployAdapterConfig(this.adapterConfigForm.getRawValue());
     }
-
 
     if (!this.isAppDeployStepValid) {
       console.error('One or more application configuration forms are invalid. Please fill in all required fields to proceed.');
@@ -545,6 +670,7 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
     const registryConfigRaw = this.registryConfigForm.getRawValue();
     const gatewayConfigRaw = this.gatewayConfigForm.getRawValue();
     const adapterConfigRaw = this.adapterConfigForm.getRawValue();
+    const securityConfigRaw = this.securityConfigForm.getRawValue();
 
     const subdomainConfigs: SubdomainConfig[] = this.installerState.subdomainConfigs || [];
     const globalDomainDetails: DomainConfig | null = this.installerState.globalDomainConfig;
@@ -607,6 +733,46 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
       };
     }
 
+    let jwksContent = '';
+    const jwksFileControl = this.securityConfigForm.get('jwksFile');
+    if (securityConfigRaw.enableInBoundAuth && jwksFileControl &&
+        !jwksFileControl.errors) {
+      if (securityConfigRaw.jwksFile &&
+          securityConfigRaw.jwksFile instanceof File) {
+        try {
+          const rawContent =
+              await this.readFileContent(securityConfigRaw.jwksFile);
+          // Since isAppDeployStepValid passed, and jwksFileControl has no
+          // errors, JSON.parse is expected to succeed.
+          jwksContent = JSON.stringify(JSON.parse(rawContent));
+        } catch (e) {
+          console.error('Unexpected error parsing JWKS file during deploy:', e);
+          const errorMessage =
+              'Failed to parse JWKS file. Please ensure it is a valid JSON file.';
+          this.snackBar.open(errorMessage, 'Close', {
+            duration: 5000,
+            panelClass: ['error-snackbar'],
+          });
+          this.deploymentError.emit(errorMessage);
+          this.installerStateService.updateAppDeploymentStatus('failed');
+          this.cdr.detectChanges();
+          return;
+        }
+      }
+    }
+
+    payload.security_config = {
+      enable_in_bound_auth: securityConfigRaw.enableInBoundAuth,
+      issuer_url: securityConfigRaw.enableInBoundAuth ?
+          securityConfigRaw.issuerUrl :
+          '',
+      jwks_content: securityConfigRaw.enableInBoundAuth ? jwksContent : '',
+      enable_out_bound_auth: securityConfigRaw.enableOutBoundAuth,
+      aud_overrides: securityConfigRaw.enableOutBoundAuth ?
+          securityConfigRaw.audOverrides :
+          ''
+    };
+
 
     console.log('Final Application Deployment Payload:', payload);
     const wsUrl = `ws://localhost:8000/ws/deployApp`;
@@ -659,6 +825,17 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
         }
     });
    this.webSocketService.sendMessage(payload);
+  }
+
+  private readFileContent(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        resolve(reader.result as string);
+      };
+      reader.onerror = reject;
+      reader.readAsText(file);
+    });
   }
 
   private handleWebSocketMessage(message: any): void {

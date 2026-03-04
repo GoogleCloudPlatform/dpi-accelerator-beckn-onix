@@ -47,6 +47,52 @@
         </mat-error>
       </mat-form-field>
 
+            <div class="cloud-armor-container" style="margin-top: 20px; margin-bottom: 20px;">
+  
+        <div style="display: flex; flex-direction: column; margin-bottom: 10px;">
+          <mat-checkbox formControlName="enableCloudArmor" color="primary" style="font-weight: 500;">
+            Enable Cloud Armor
+          </mat-checkbox>
+          <p style="margin: 0 0 0 24px; font-size: 12px; color: #666;">
+            Configure Google Cloud Armor security policies to protect your application from DDoS attacks and other web-based threats
+          </p>
+        </div>
+
+        <div *ngIf="deployInfraForm.get('enableCloudArmor')?.value" 
+            style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; background-color: #fff;">
+
+          <div style="margin-bottom: 20px;">
+            <label style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px;">
+              Region Codes<span style="color: red;">*</span>
+            </label>
+            <p style="margin: 0 0 8px 0; font-size: 12px; color: #666; line-height: 1.4;">
+              If you want to allow traffic only from a specific region, you specify regions using ISO 3166-1 alpha-2 country codes (e.g., US, AU, GB).
+            </p>
+            <mat-form-field appearance="outline" style="width: 100%; font-size: 14px;">
+              <input matInput 
+                    formControlName="cloudArmorRegions" 
+                    placeholder="US, IN, AU">
+            </mat-form-field>
+          </div>
+
+          <div>
+            <label style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px;">
+              Rate Limiter
+            </label>
+            <p style="margin: 0 0 8px 0; font-size: 12px; color: #666; line-height: 1.4;">
+              Start throttling requests over a configurable Number of Requests per Minute per IP.
+            </p>
+            <mat-form-field appearance="outline" style="width: 100%; font-size: 14px;">
+              <input matInput 
+                    type="number"
+                    formControlName="cloudArmorRateLimit" 
+                    placeholder="e.g. 100">
+            </mat-form-field>
+          </div>
+
+        </div>
+      </div>
+
       <button mat-raised-button color="primary" class="deploy-button" [disabled]="deployInfraForm.invalid"
         (click)="onDeployInfra()">
         <div class="button-content-wrapper">
