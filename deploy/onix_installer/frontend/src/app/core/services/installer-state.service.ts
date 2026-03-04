@@ -18,7 +18,7 @@ import {Injectable} from '@angular/core';
 import {BehaviorSubject, Observable, of} from 'rxjs';
 import {catchError} from 'rxjs/operators';
 
-import {AppDeployAdapterConfig, AppDeployGatewayConfig, AppDeployImageConfig, AppDeployRegistryConfig, AppSpecificConfig, ComponentSubdomainPrefix, DeploymentGoal, DeploymentSize, DeploymentStatus, DockerImageConfig, DomainConfig, GcpConfiguration, HealthCheckStatus, InfraDetails, InstallerState, SubdomainConfig} from '../../installer/types/installer.types';
+import {AppDeployAdapterConfig, AppDeployGatewayConfig, AppDeployImageConfig, AppDeployRegistryConfig, AppDeploySecurityConfig, AppSpecificConfig, ComponentSubdomainPrefix, DeploymentGoal, DeploymentSize, DeploymentStatus, DockerImageConfig, DomainConfig, GcpConfiguration, HealthCheckStatus, InfraDetails, InstallerState, SubdomainConfig} from '../../installer/types/installer.types';
 
 import {ApiService} from './api.service';
 
@@ -31,7 +31,8 @@ export class InstallerStateService {
     currentStepIndex: 0,
     highestStepReached: 0,
     installerGoal: null,
-    deploymentGoal: { bap: false, bpp: false, gateway: false, registry: false, all: false },
+    deploymentGoal:
+        {bap: false, bpp: false, gateway: false, registry: false, all: false},
     prerequisitesMet: false,
     gcpConfiguration: null,
     appName: '',
@@ -65,12 +66,15 @@ export class InstallerStateService {
       registrySubscriberId: '',
       enableAutoApprover: false
     },
-    appDeployGatewayConfig: {
-      gatewaySubscriptionId: ''
-    },
-    appDeployAdapterConfig: {
-      enableSchemaValidation: false
-    },
+    appDeployGatewayConfig: {gatewaySubscriptionId: ''},
+    appDeployAdapterConfig: {enableSchemaValidation: false},
+    appDeploySecurityConfig: {
+      enableInBoundAuth: false,
+      enableOutBoundAuth: false,
+      issuerUrl: '',
+      jwksFile: null,
+      audOverrides: ''
+    }
   };
 
   private isDeployingSubject = new BehaviorSubject<boolean>(false);
@@ -291,6 +295,12 @@ export class InstallerStateService {
   updateAppDeployAdapterConfig(config: AppDeployAdapterConfig): void {
     const currentConfig = this.getCurrentState().appDeployAdapterConfig || this.initialState.appDeployAdapterConfig;
     this.updateState({ appDeployAdapterConfig: { ...currentConfig, ...config } });
+  }
+
+  updateAppDeploySecurityConfig(config: AppDeploySecurityConfig): void {
+    const currentConfig = this.getCurrentState().appDeploySecurityConfig ||
+        this.initialState.appDeploySecurityConfig;
+    this.updateState({appDeploySecurityConfig: {...currentConfig, ...config}});
   }
 
    setDeploymentState(isDeploying: boolean): void {
