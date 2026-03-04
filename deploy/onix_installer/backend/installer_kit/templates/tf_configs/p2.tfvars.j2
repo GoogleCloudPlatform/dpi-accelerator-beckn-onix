@@ -53,3 +53,14 @@ enable_auto_approver         = {{ enable_auto_approver | string | lower }}
 auto_approver_subscription_name    = "subscription-auto-approver-sub-{{ suffix }}"
 auto_approver_push_url           = "https://{{ domains.registry_admin }}/operations/action"
 {% endif %}
+
+# Security Configuration
+pool_id = onix-{{ suffix }}-pool
+provider_id = onix-{{ suffix }}-provider
+enable_inbound_auth         = {{ security.enable_inbound_auth | default(False) | string | lower }}
+{% if security.enable_in_bound_auth %}
+issuer_url                   = "{{ security.issuer_url }}"
+{% if security.jwksFile %}
+jwks_json                    = "{{ security.jwks_json }}"
+{% endif %}
+{% endif %}
