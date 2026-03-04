@@ -66,6 +66,13 @@ const initialMockState: InstallerState = {
   },
   appDeployGatewayConfig: {gatewaySubscriptionId: ''},
   appDeployAdapterConfig: {enableSchemaValidation: false},
+  appDeploySecurityConfig: {
+    enableInBoundAuth: false,
+    enableOutBoundAuth: false,
+    issuerUrl: '',
+    jwksFile: null,
+    audOverrides: ''
+  },
   globalDomainConfig: null,
   highestStepReached: 8,
   appDeploymentStatus: 'completed',
