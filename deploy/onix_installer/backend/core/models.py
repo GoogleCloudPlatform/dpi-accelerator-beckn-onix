@@ -75,10 +75,24 @@ class GatewayConfig(BaseModel):
     """
     subscriber_id: NonEmptyStr
 
+class SecurityConfig(BaseModel):
+    """
+    Configuration specific to security policies.
+    """
+    enable_inbound_auth: Optional[bool] = False
+    issuer_url: Optional[str] = None
+    jwks_json: Optional[str] = None
+    enable_outbound_auth: Optional[bool] = False
+    aud_overrides: Optional[str] = None
+
+
 class DomainConfig(BaseModel):
+    
     domainType: NonEmptyStr
     baseDomain: str
     dnsZone: str
+
+
     
 class AppDeploymentRequest(BaseModel):
     """
@@ -98,6 +112,7 @@ class AppDeploymentRequest(BaseModel):
     domain_config: DomainConfig
     adapter_config: Optional[AdapterConfig] = None
     gateway_config: Optional[GatewayConfig] = None
+    security_config: Optional[SecurityConfig] = None
 
 
 class ProxyRequest(BaseModel):
