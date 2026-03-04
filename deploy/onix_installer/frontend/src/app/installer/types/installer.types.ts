@@ -122,6 +122,14 @@ export interface AppDeployAdapterConfig {
   enableSchemaValidation: boolean;
 }
 
+export interface AppDeploySecurityConfig {
+  enableInBoundAuth: boolean;
+  enableOutBoundAuth: boolean;
+  issuerUrl: string;
+  jwksFile: File | null;
+  audOverrides: string;
+}
+
 export interface InstallerState {
   currentStepIndex: number;
   highestStepReached: number;
@@ -152,6 +160,7 @@ export interface InstallerState {
   appDeployRegistryConfig: AppDeployRegistryConfig | null;
   appDeployGatewayConfig: AppDeployGatewayConfig | null;
   appDeployAdapterConfig: AppDeployAdapterConfig | null;
+  appDeploySecurityConfig: AppDeploySecurityConfig | null;
 }
 
 
@@ -190,6 +199,9 @@ export interface InfraDeploymentRequestPayload {
     bap: boolean;
     bpp: boolean;
   };
+  enable_cloud_armor: boolean;
+  allowed_regions: string[];
+  rate_limit_count: number;
 }
 
 export interface Base64File {
@@ -219,6 +231,11 @@ export interface BackendAppDeploymentRequest {
     enable_auto_approver?: boolean;
   };
   gateway_config?: { subscriber_id: string };
+  security_config?: {
+    enable_in_bound_auth: boolean; issuer_url: string;
+    jwks_content?: string; enable_out_bound_auth: boolean;
+    aud_overrides: string;
+  };
   domain_config: DomainConfig;
 }
 

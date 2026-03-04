@@ -14,42 +14,32 @@
  * limitations under the License.
  */
 
-import { Component, OnInit, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef, OnDestroy, ViewChild, ElementRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { Router } from '@angular/router';
-import { EMPTY, Subject } from 'rxjs';
-import { catchError, takeUntil, finalize, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import {CommonModule} from '@angular/common';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, EventEmitter, OnDestroy, OnInit, Output, ViewChild} from '@angular/core';
+import {FormBuilder, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCheckbox} from '@angular/material/checkbox';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIconModule} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatSelectModule} from '@angular/material/select';
+import {Router} from '@angular/router';
+import {EMPTY, Subject} from 'rxjs';
+import {catchError, debounceTime, distinctUntilChanged, finalize, takeUntil} from 'rxjs/operators';
 
-import { InstallerStateService } from '../../../core/services/installer-state.service';
-import {
-  InstallerState,
-  InfraDetails,
-  DeployInfraFormValue,
-  InfraDeploymentRequestPayload,
-  DeploymentSize
-} from '../../types/installer.types';
-import { WebSocketService } from '../../../core/services/websocket.service';
-import { ApiService } from '../../../core/services/api.service';
+import {ApiService} from '../../../core/services/api.service';
+import {InstallerStateService} from '../../../core/services/installer-state.service';
+import {WebSocketService} from '../../../core/services/websocket.service';
+import {DeployInfraFormValue, DeploymentSize, InfraDeploymentRequestPayload, InfraDetails, InstallerState} from '../../types/installer.types';
 
 @Component({
   selector: 'app-step-deploy-infra',
   standalone: true,
   imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    MatButtonModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatSelectModule
+    CommonModule, ReactiveFormsModule, MatButtonModule, MatIconModule,
+    MatProgressSpinnerModule, MatFormFieldModule, MatInputModule,
+    MatSelectModule, MatCheckbox
   ],
   templateUrl: './step-deploy-infra.component.html',
   styleUrls: ['./step-deploy-infra.component.css'],
@@ -82,8 +72,28 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
         currentState.appName || '',
         [Validators.required, Validators.maxLength(6)]
       ],
-      deploymentSize: [currentState.deploymentSize || '', Validators.required]
+      deploymentSize: [currentState.deploymentSize || '', Validators.required],
+      enableCloudArmor: [false],
+      cloudArmorRegions: ['IN, US, AU'],
+      cloudArmorRateLimit: ['']
     });
+
+    this.deployInfraForm.get('enableCloudArmor')?.valueChanges
+      .pipe(takeUntil(this.unsubscribe$))
+      .subscribe((enabled: boolean) => {
+        const regionsCtrl = this.deployInfraForm.get('cloudArmorRegions');
+        const rateLimitCtrl = this.deployInfraForm.get('cloudArmorRateLimit');
+
+        if (enabled) {
+          regionsCtrl?.setValidators([Validators.required]);
+          rateLimitCtrl?.setValidators([Validators.required]);
+        } else {
+          regionsCtrl?.clearValidators();
+          rateLimitCtrl?.clearValidators();
+        }
+        regionsCtrl?.updateValueAndValidity();
+        rateLimitCtrl?.updateValueAndValidity();
+      });
 
     this.installerStateService.installerState$
       .pipe(takeUntil(this.unsubscribe$))
@@ -144,11 +154,27 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
       app_name: this.deployInfraForm.get('appName')?.value,
       type: this.deployInfraForm.get('deploymentSize')?.value,
       components: {
-        gateway: this.installerState.deploymentGoal.gateway || this.installerState.deploymentGoal.all || false,
-        registry: this.installerState.deploymentGoal.registry || this.installerState.deploymentGoal.all || false,
-        bap: this.installerState.deploymentGoal.bap || this.installerState.deploymentGoal.all || false,
-        bpp: this.installerState.deploymentGoal.bpp || this.installerState.deploymentGoal.all || false
-      }
+        gateway: this.installerState.deploymentGoal.gateway ||
+            this.installerState.deploymentGoal.all || false,
+        registry: this.installerState.deploymentGoal.registry ||
+            this.installerState.deploymentGoal.all || false,
+        bap: this.installerState.deploymentGoal.bap ||
+            this.installerState.deploymentGoal.all || false,
+        bpp: this.installerState.deploymentGoal.bpp ||
+            this.installerState.deploymentGoal.all || false
+      },
+      enable_cloud_armor:
+          this.deployInfraForm.get('enableCloudArmor')?.value || false,
+      allowed_regions: this.deployInfraForm.get('cloudArmorRegions')?.value ?
+          this.deployInfraForm.get('cloudArmorRegions')?.value.split(',').map((s: string) => s.trim()) :
+          [],
+      rate_limit_count:
+          (this.deployInfraForm.get('cloudArmorRateLimit')?.value !== null &&
+           this.deployInfraForm.get('cloudArmorRateLimit')?.value !==
+               undefined &&
+           this.deployInfraForm.get('cloudArmorRateLimit')?.value !== '') ?
+          parseInt(this.deployInfraForm.get('cloudArmorRateLimit')?.value, 10) :
+          100
     };
 
     console.log('Final Infrastructure Deployment Payload:', deployPayload);
