@@ -92,6 +92,7 @@ def _prepare_template_context(app_deployment_request: AppDeploymentRequest, infr
         "adapter": app_deployment_request.adapter_config.model_dump() if app_deployment_request.adapter_config else {},
         "registry": app_deployment_request.registry_config.model_dump(),
         "gateway": app_deployment_request.gateway_config.model_dump() if app_deployment_request.gateway_config else {},
+        "security": app_deployment_request.security_config.model_dump() if app_deployment_request.security_config else {},
         "domains": app_deployment_request.domain_names,
         "deploy_bap": app_deployment_request.components.get("bap", False),
         "deploy_bpp": app_deployment_request.components.get("bpp", False),
