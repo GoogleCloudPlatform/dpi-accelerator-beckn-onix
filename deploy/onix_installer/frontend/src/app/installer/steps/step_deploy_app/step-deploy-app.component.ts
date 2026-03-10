@@ -735,6 +735,7 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
 
     let jwksContent = '';
     const jwksFileControl = this.securityConfigForm.get('jwksFile');
+
     if (securityConfigRaw.enableInBoundAuth && jwksFileControl &&
         !jwksFileControl.errors) {
       if (securityConfigRaw.jwksFile &&
@@ -742,17 +743,28 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
         try {
           const rawContent =
               await this.readFileContent(securityConfigRaw.jwksFile);
-          // Since isAppDeployStepValid passed, and jwksFileControl has no
-          // errors, JSON.parse is expected to succeed.
-          jwksContent = JSON.stringify(JSON.parse(rawContent));
+
+          // 1. Parse to validate the file is actual JSON
+          const parsedJson = JSON.parse(rawContent);
+
+          // 2. Stringify to create a compact, single-line JSON string
+          const compactJsonString = JSON.stringify(parsedJson);
+
+          // 3. Escape backslashes first, then escape double quotes for
+          // Terraform
+          jwksContent =
+              compactJsonString.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+
         } catch (e) {
           console.error('Unexpected error parsing JWKS file during deploy:', e);
           const errorMessage =
               'Failed to parse JWKS file. Please ensure it is a valid JSON file.';
+
           this.snackBar.open(errorMessage, 'Close', {
             duration: 5000,
             panelClass: ['error-snackbar'],
           });
+
           this.deploymentError.emit(errorMessage);
           this.installerStateService.updateAppDeploymentStatus('failed');
           this.cdr.detectChanges();
@@ -762,12 +774,12 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
     }
 
     payload.security_config = {
-      enable_in_bound_auth: securityConfigRaw.enableInBoundAuth,
+      enable_inbound_auth: securityConfigRaw.enableInBoundAuth,
       issuer_url: securityConfigRaw.enableInBoundAuth ?
           securityConfigRaw.issuerUrl :
           '',
       jwks_content: securityConfigRaw.enableInBoundAuth ? jwksContent : '',
-      enable_out_bound_auth: securityConfigRaw.enableOutBoundAuth,
+      enable_outbound_auth: securityConfigRaw.enableOutBoundAuth,
       aud_overrides: securityConfigRaw.enableOutBoundAuth ?
           securityConfigRaw.audOverrides :
           ''
