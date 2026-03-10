@@ -55,12 +55,12 @@ auto_approver_push_url           = "https://{{ domains.registry_admin }}/operati
 {% endif %}
 
 # Security Configuration
-pool_id = onix-{{ suffix }}-pool
-provider_id = onix-{{ suffix }}-provider
+pool_id = "onix-{{ suffix }}-pool"
+provider_id = "onix-{{ suffix }}-provider"
 enable_inbound_auth         = {{ security.enable_inbound_auth | default(False) | string | lower }}
 {% if security.enable_in_bound_auth %}
 issuer_url                   = "{{ security.issuer_url }}"
-{% if security.jwksFile %}
-jwks_json                    = "{{ security.jwks_json }}"
 {% endif %}
+{% if security.jwks_content %}
+jwks_json                    = "{{ security.jwks_content }}"
 {% endif %}
