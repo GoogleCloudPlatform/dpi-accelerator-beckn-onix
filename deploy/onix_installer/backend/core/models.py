@@ -81,7 +81,7 @@ class SecurityConfig(BaseModel):
     """
     enable_inbound_auth: Optional[bool] = False
     issuer_url: Optional[str] = None
-    jwks_json: Optional[str] = None
+    jwks_content: Optional[str] = None
     enable_outbound_auth: Optional[bool] = False
     aud_overrides: Optional[str] = None
 
