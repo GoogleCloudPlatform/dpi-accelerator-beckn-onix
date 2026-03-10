@@ -134,3 +134,33 @@ variable "onix-url-map-1-http-redirect" {
   type        = string
   default     = ""
 }
+
+variable "pool_id" {
+  description = "The pool id for workforce identity federation."
+  type        = string
+  default     = ""
+}
+
+variable "provider_id" {
+  description = "The provider id for workforce identity federation."
+  type        = string
+  default     = ""
+}
+
+variable "enable_inbound_auth" {
+  description = "If true, enables inbound authentication for onix."
+  type        = bool
+  default     = false
+}
+
+variable "issuer_url" {
+  description = "The issuer url for inbound authentication."
+  type        = string
+  default     = ""
+}
+
+variable "jwks_json" {
+  description = "The jwks json for inbound authentication."
+  type        = string
+  default     = ""
+}

@@ -232,9 +232,8 @@ export interface BackendAppDeploymentRequest {
   };
   gateway_config?: { subscriber_id: string };
   security_config?: {
-    enable_in_bound_auth: boolean; issuer_url: string;
-    jwks_content?: string; enable_out_bound_auth: boolean;
-    aud_overrides: string;
+    enable_inbound_auth: boolean; issuer_url: string;
+    jwks_content?: string; enable_outbound_auth: boolean; aud_overrides: string;
   };
   domain_config: DomainConfig;
 }
