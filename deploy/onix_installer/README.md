@@ -87,15 +87,22 @@ Why? These domains are required to expose the Onix services (like the gateway, r
 
 ### 1. Set Up IAM Permissions for Your User
 
-Ensure the user account running the installer has the following IAM roles on the GCP project. **Note**: These are required even if the user has the "Owner" role.
+Ensure the user account running the installer has specific IAM roles on the GCP project. **Note**: These are required even if the user has the "Owner" role.
+
+Run the `set_user_iam.sh` script from the `deploy/onix-installer/scripts` directory to assign the required roles to your user account:
+
+```bash
+deploy/onix-installer/scripts/set_user_iam.sh
+```
+
+This script will prompt for your GCP Project ID and User Email, then assign the necessary roles:
 
 -   Service Account Token Creator
 -   Service Account User
 -   Service Account Admin
--   Project IAM Admin (or IAM Role Admin & IAM Policy Admin)
+-   Project IAM Admin
 -   Secret Manager Admin
 -   Cloud SQL Admin
--   Artifact Registry Administrator
 -   Artifact Registry Administrator
 -   Kubernetes Engine Cluster Admin
 -   Storage Object Admin
