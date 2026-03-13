@@ -14,8 +14,8 @@
 
 modules:
   - repo: https://github.com/beckn/beckn-onix
-    version: v1.0.0
-    name: github.com/beckn/beckn-onix
+    version: v1.3.1
+    name: github.com/beckn-one/beckn-onix
     plugins:
       schemavalidator: pkg/plugin/implementation/schemavalidator/cmd
       signvalidator: pkg/plugin/implementation/signvalidator/cmd
@@ -32,6 +32,8 @@ modules:
       rediscache: plugins/rediscache/cmd
       pubsubpublisher: plugins/pubsubpublisher/cmd
       inmemorysecretkeymanager: plugins/inmemorysecretkeymanager/cmd
+      oidcauth: plugins/oidcauth/cmd
+      oidcauthtransportWrapper: plugins/oidcauthtransportwrapper/cmd
 # registry: <REGISTRY_URL>
 output: ./deploy/onix_installer/adapter_artifacts/plugins
 zipFileName: plugins_bundle.zip
