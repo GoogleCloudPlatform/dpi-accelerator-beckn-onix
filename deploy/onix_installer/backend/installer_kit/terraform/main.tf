@@ -40,7 +40,7 @@ output "cluster_region" {
 
 # Below module is used for setting up the Service Account for the Kubernetes Engine
 module "kubernetes_service_account" {
-  source       = "./IAM_ADMIN/SERVICE_ACCOUNT"
+  source       = "./modules/IAM_ADMIN/SERVICE_ACCOUNT"
   account_id   = var.kubernetes_sa_account_id
   display_name = var.kubernetes_sa_display_name
   description  = var.kubernetes_sa_description
@@ -48,7 +48,7 @@ module "kubernetes_service_account" {
 
 # Below module is used to bind the kubernetes service account with required IAM roles
 module "IAM_for_kubernetes_sa" {
-  source     = "./IAM_ADMIN/IAM"
+  source     = "./modules/IAM_ADMIN/IAM"
   for_each   = toset(var.kubernetes_sa_roles)
   project_id = var.project_id
   member_role = each.value
@@ -61,7 +61,7 @@ module "IAM_for_kubernetes_sa" {
 # Below module is used to create network, subnetwork, ip range of subnetwork, secondary subnets and ranges for pods and services
 
 module "network" {
-  source = "./VPC"
+  source = "./modules/VPC"
 
   network_name        = var.network_name
   network_description = var.network_description
@@ -83,7 +83,7 @@ module "network" {
 # master_access_cidr_block is the cidr block allowed to access the master
 
 module "gke" {
-  source = "./GKE"
+  source = "./modules/GKE"
 
   cluster_name        = var.cluster_name
   cluster_region      = var.region
@@ -115,7 +115,7 @@ output "cluster_name" {
 # Since the cluster is regional, if node_count = 1, then there will be 3 nodes, 1 per zone
 
 module "gke_node_pool" {
-  source = "./GKE_NODE_POOL"
+  source = "./modules/GKE_NODE_POOL"
 
   cluster_name         = module.gke.cluster_name
   node_pool_name       = var.node_pool_name
@@ -155,7 +155,7 @@ provider "kubernetes" {
 # Below module is used to configure router for nodes to communicate with internet
 
 module "router" {
-  source            = "./CLOUD_NAT/COMPUTE_ROUTER"
+  source            = "./modules/CLOUD_NAT/COMPUTE_ROUTER"
   router_name       = var.router_name
   network_name      = module.network.network_name
   router_description = var.router_description
@@ -169,7 +169,7 @@ module "router" {
 # Below module is used to NAT nodes private IP with public. Since the cluster is private without router and NAT the cluster cannot communicate with the internet
 
 module "router_nat" {
-  source     = "./CLOUD_NAT/COMPUTE_ROUTER_NAT"
+  source     = "./modules/CLOUD_NAT/COMPUTE_ROUTER_NAT"
   nat_name   = var.nat_name
   router_name = module.router.router_name
   nat_region = var.region
@@ -190,7 +190,7 @@ provider "helm" {
 #--------------------------------------------- Helm Configuration (Module) ---------------------------------------------#
 
 module "helm_config" {
-  source         = "./HELM/HELM_CONFIG"
+  source         = "./modules/HELM/HELM_CONFIG"
   endpoint       = "https://${module.gke.cluster_endpoint}"
   ca_certificate = base64decode(module.gke.ca_certificate)
   access_token   = data.google_client_config.default.access_token
@@ -201,14 +201,14 @@ module "helm_config" {
 # Module for creating namespace
 
 module "nginx_namepsace"{
-  source = "./NAMESPACE"
+  source = "./modules/NAMESPACE"
   namespace_name = var.nginix_namespace_name
   depends_on = [ module.gke, module.gke_node_pool]
 }
 
 # Module for creating the common Kubernetes namespace for all services
 module "app_namespace" {
-  source         = "./NAMESPACE"
+  source         = "./modules/NAMESPACE"
   namespace_name = var.app_namespace_name
   depends_on     = [module.gke, module.gke_node_pool]
 }
@@ -234,7 +234,7 @@ locals {
 # The Ingress Controller allows external users to access services via an Ingress resource.
 
 module "nginx_ingress" {
-  source          = "./HELM/HELM_RELEASES"
+  source          = "./modules/HELM/HELM_RELEASES"
   helm_name       = var.nginix_ingress_release_name
   helm_repository = var.nginix_ingress_repository
   helm_namespace  = var.nginix_namespace_name
@@ -248,7 +248,7 @@ module "nginx_ingress" {
 # Below module is to create and have health checks on the backends
 
 module "health_check" {
-  source               = "./HEALTH_CHECK"
+  source               = "./modules/HEALTH_CHECK"
   health_check_name    = var.health_check_name
   health_check_description = var.health_check_description
   depends_on           = [module.network]
@@ -269,7 +269,7 @@ module "security_policy" {
 # The below module is used for creating a backend for the load balancer
 
 module "backend_service" {
-  source              = "./LOAD_BALANCER/BACKEND"
+  source              = "./modules/LOAD_BALANCER/BACKEND"
   backend_name        = var.backend_service_name
   backend_description = var.backend_service_description
   group_1             = "projects/${data.google_project.project.project_id}/zones/${var.region}-a/networkEndpointGroups/${local.neg_name}"
@@ -285,7 +285,7 @@ module "backend_service" {
 # The below module is used for configuring a firewall for health check
 
 module "http_rule" {
-  source             = "./VPC/FIREWALL_ALLOW"
+  source             = "./modules/VPC/FIREWALL_ALLOW"
   firewall_name      = var.http_firewall_name
   firewall_description = var.http_firewall_description
   vpc_network_name   = module.network.network_name
@@ -300,7 +300,7 @@ module "http_rule" {
 # Note Nginx Ingress will not be deployed since it is necessary to pull the image from internet
 
 module "http_firewall_rule" {
-  source             = "./VPC/FIREWALL_ALLOW"
+  source             = "./modules/VPC/FIREWALL_ALLOW"
   firewall_name      = var.allow_http_firewall_name
   firewall_description = var.allow_http_firewall_description
   vpc_network_name   = module.network.network_name
@@ -315,7 +315,7 @@ module "http_firewall_rule" {
 # Note Nginx Ingress will not be deployed since it is necessary to pull the image from internet
 
 module "https-firewall-rule" {
-  source             = "./VPC/FIREWALL_ALLOW"
+  source             = "./modules/VPC/FIREWALL_ALLOW"
   firewall_name      = var.allow_https_firewall_name
   firewall_description = var.allow_https_firewall_description
   vpc_network_name   = module.network.network_name
@@ -331,7 +331,7 @@ module "https-firewall-rule" {
 # Configure a global IP for your Load Balancer
 
 module "lb_global_ip" {
-  source             = "./COMPUTE_ENGINE/GLOBAL_ADDRESS"
+  source = "./modules/COMPUTE_ENGINE/GLOBAL_ADDRESS"
   global_ip_name     = var.global_ip_name
   global_ip_description = var.global_ip_description
   global_ip_labels   = var.global_ip_labels
@@ -346,7 +346,7 @@ output "global_ip_address" {
 # URL MAP for your Load Balancer
 
 module "url_map" {
-  source           = "./LOAD_BALANCER/URL_MAP"
+  source           = "./modules/LOAD_BALANCER/URL_MAP"
   url_map_name     = var.url_map_name
   backend_service_id = module.backend_service.backend_id
   url_map_description = var.url_map_description
@@ -360,7 +360,7 @@ output "url_map" {
 #--------------------------------------------- Private VPC Access Configuration ---------------------------------------------#
 
 module "global_address" {
-  source                    = "./VPC/GLOBAL_ADDRESS"
+  source                    = "./modules/VPC/GLOBAL_ADDRESS"
   vpc_peering_ip_name       = var.vpc_peering_ip_name
   vpc_peering_ip_purpose    = var.vpc_peering_ip_purpose
   vpc_peering_ip_address_type = var.vpc_peering_ip_address_type
@@ -388,7 +388,7 @@ resource "time_sleep" "wait_for_ps_networking" {
 # The redis instance will be spanned if the networking configuration is private access and a private access module is not being used
 
 module "redis" {
-  source                = "./REDIS/REDIS_INSTANCE"
+  source                = "./modules/REDIS/REDIS_INSTANCE"
   instance_name         = var.instance_name
   memory_size_gb        = var.memory_size_gb
   instance_tier         = var.instance_tier
@@ -407,7 +407,7 @@ output "redis_instance_ip" {
 #--------------------------------------------- Configuration Bucket ---------------------------------------------#
 # This bucket stores configurations for various services.
 module "config_bucket" {
-  source          = "./CLOUD_STORAGE"
+  source          = "./modules/CLOUD_STORAGE"
   bucket_name     = var.config_bucket_name
   bucket_location = var.region
 }
@@ -421,7 +421,7 @@ output "config_bucket_name" {
 
 # Pub Sub Topic Configuration for onix events
 module "pubsub_topic_onix" {
-  source     = "./PUB_SUB_TOPIC"
+  source     = "./modules/PUB_SUB_TOPIC"
   topic_name = var.pubsub_topic_onix_name
 }
 
@@ -439,7 +439,7 @@ locals {
 # Module for Adapter Service
 module "adapter_service" {
   count = var.provision_adapter_infra ? 1 : 0
-  source = "./SERVICES/ADAPTER"
+  source = "./modules/SERVICES/ADAPTER"
 
   project_id = data.google_project.project.project_id
   app_namespace_name = module.app_namespace.namespace_name
@@ -468,7 +468,7 @@ output "adapter_topic_name" {
 
 module "registry_service" {
   count = var.provision_registry_infra ? 1 : 0
-  source = "./SERVICES/REGISTRY"
+  source = "./modules/SERVICES/REGISTRY"
 
   project_id = data.google_project.project.project_id
   network_name = module.network.network_name
@@ -546,7 +546,7 @@ output "registry_admin_database_user_sa_email" {
 # Module for Gateway Service
 module "gateway_service" {
   count = var.provision_gateway_infra ? 1 : 0
-  source = "./SERVICES/GATEWAY"
+  source = "./modules/SERVICES/GATEWAY"
 
   project_id = data.google_project.project.project_id
   app_namespace_name = module.app_namespace.namespace_name # Pass common namespace
@@ -571,7 +571,7 @@ output "gateway_ksa_name" {
 # Module for Subscription Service
 module "subscription_service" {
   count = local.provision_subscription_infra ? 1 : 0
-  source = "./SERVICES/SUBSCRIPTION"
+  source = "./modules/SERVICES/SUBSCRIPTION"
 
   project_id = data.google_project.project.project_id
   app_namespace_name = module.app_namespace.namespace_name # Pass common namespace
