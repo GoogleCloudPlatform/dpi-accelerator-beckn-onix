@@ -31,12 +31,14 @@ import {InstallerState} from './types/installer.types';
 
 // A baseline mock state for the installer.
 const mockInitialState: InstallerState = {
+  isConfigLocked: false,
   currentStepIndex: 0,
   highestStepReached: 0,
   deploymentStatus: 'pending',
   appDeploymentStatus: 'pending',
   installerGoal: null,
-  deploymentGoal: { bap: false, bpp: false, gateway: false, registry: false, all: false },
+  deploymentGoal:
+      {bap: false, bpp: false, gateway: false, registry: false, all: false},
   prerequisitesMet: false,
   gcpConfiguration: null,
   appName: '',

@@ -93,7 +93,7 @@
         </div>
       </div>
 
-      <button mat-raised-button color="primary" class="deploy-button" [disabled]="deployInfraForm.invalid"
+      <button mat-raised-button color="primary" class="deploy-button" [disabled]="deployInfraForm.invalid && !deployInfraForm.get('appName')?.disabled"
         (click)="onDeployInfra()">
         <div class="button-content-wrapper">
           <mat-icon>cloud_upload</mat-icon>
