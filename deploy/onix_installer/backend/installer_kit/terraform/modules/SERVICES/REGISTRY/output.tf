@@ -22,12 +22,6 @@ output "registry_ksa_name" {
   description = "Name of the Registry Kubernetes Service Account."
 }
 
-
-output "registry_db_connection_name" {
-  value = module.registry_database_instance.db_connection_name
-  description = "The connection name of the Cloud SQL instance for Registry."
-}
-
 output "registry_admin_gsa_email" {
   value       = module.registry_admin_gsa.service_account_email
   description = "Email of the Registry GCP Service Account."

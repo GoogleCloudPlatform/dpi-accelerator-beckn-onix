@@ -81,57 +81,9 @@ variable "app_namespace_name" {
   type        = string
 }
 
-# Database Instance Variables
-variable "registry_db_instance_region" {
-  description = "The region for the Cloud SQL instance for Registry."
+variable "db_instance_name" {
+  description = "The name of the Cloud SQL instance."
   type        = string
-}
-variable "registry_db_instance_version" {
-  description = "The database engine version for Registry."
-  type        = string
-}
-variable "registry_db_instance_name" {
-  description = "The name of the Cloud SQL instance for Registry."
-  type        = string
-}
-variable "registry_db_instance_tier" {
-  description = "The machine type for the Cloud SQL instance for Registry."
-  type        = string
-}
-variable "registry_db_instance_labels" {
-  description = "Labels for the Cloud SQL instance for Registry."
-  type        = map(string)
-  default     = {}
-}
-variable "registry_db_instance_edition" {
-  description = "The Cloud SQL instance edition for Registry (e.g., ENTERPRISE)."
-  type        = string
-}
-variable "registry_db_aval_type" {
-  description = "The availability type for the Cloud SQL instance for Registry."
-  type        = string
-}
-variable "registry_db_instance_disk_size" {
-  description = "The disk size for the Cloud SQL instance for Registry in GB."
-  type        = number
-}
-variable "registry_db_instance_disk_type" {
-  description = "The disk type for the Cloud SQL instance for Registry (e.g., SSD)."
-  type        = string
-}
-variable "registry_db_ipv4" {
-  description = "Whether to enable IPv4 for the Cloud SQL instance for Registry."
-  type        = bool
-}
-
-variable "registry_db_max_connections" {
-    type = number
-    description = "Max Connections Cloud SQL can have for Registry or Admin."
-}
-
-variable "registry_db_instance_cache" {
-    type = bool
-    description = "Whether data cache is to be enabled for registry db instance."
 }
 
 # Database Variable

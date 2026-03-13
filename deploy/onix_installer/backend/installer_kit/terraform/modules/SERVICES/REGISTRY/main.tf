@@ -12,32 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# PSQL DB instance
-module "registry_database_instance" {
-  source             = "../../CLOUD_SQL/DATABASE_INSTANCE"
-  db_instance_region = var.registry_db_instance_region
-  db_instance_version = var.registry_db_instance_version
-  db_instance_name   = var.registry_db_instance_name
-  db_instance_tier   = var.registry_db_instance_tier
-  db_instance_labels = var.registry_db_instance_labels
-  db_instance_edition = var.registry_db_instance_edition
-  db_aval_type       = var.registry_db_aval_type
-  db_instance_disk_size = var.registry_db_instance_disk_size
-  db_instance_disk_type = var.registry_db_instance_disk_type
-  db_ipv4            = var.registry_db_ipv4
-  db_instance_max_connections = var.registry_db_max_connections
-  db_instance_cache = var.registry_db_instance_cache
-  instance_network   = "projects/${var.project_id}/global/networks/${var.network_name}"
-  depends_on = [
-    module.registry_gsa
-  ]
-}
-
 module "registry_database" {
   source        = "../../CLOUD_SQL/DATABASE"
   database_name = var.registry_database_name
-  instance_name = var.registry_db_instance_name
-  depends_on    = [module.registry_database_instance]
+  instance_name = var.db_instance_name
 }
 
 # Registry GCP Service Account
@@ -84,9 +62,9 @@ resource "google_service_account_iam_binding" "registry_workload_identity_db" {
 module "registry_db_user" {
   source        = "../../CLOUD_SQL/DB_USER"
   user_name     = "${var.registry_gsa_account_id}@${var.project_id}.iam"
-  instance_name = var.registry_db_instance_name
+  instance_name = var.db_instance_name
   user_type     = "CLOUD_IAM_SERVICE_ACCOUNT"
-  depends_on    = [module.registry_database_instance, module.registry_gsa, module.registry_database]
+  depends_on    = [module.registry_gsa, module.registry_database]
 }
 
 module "registry_admin_gsa" {
@@ -128,10 +106,10 @@ resource "google_service_account_iam_binding" "registry_admin_workload_identity_
 module "registry_admin_db_user" {
   source        = "../../CLOUD_SQL/DB_USER"
   user_name     = "${var.registry_admin_gsa_account_id}@${var.project_id}.iam"
-  instance_name = var.registry_db_instance_name
+  instance_name = var.db_instance_name
   user_type     = "CLOUD_IAM_SERVICE_ACCOUNT"
   depends_on    = [
-    module.registry_database_instance,
+
     module.registry_admin_gsa,
     module.registry_database
   ]
