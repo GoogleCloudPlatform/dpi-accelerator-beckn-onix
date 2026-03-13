@@ -23,14 +23,15 @@ OUTPUTS_FILE="outputs.json"
 # IAM_DB_USER="$4"
 
 PROJECT_ID=$(jq -r '.project_id.value' "$OUTPUTS_FILE")
-INSTANCE_NAME=$(jq -r '.registry_db_instance_name.value' "$OUTPUTS_FILE")
-if [[ "$INSTANCE_NAME" == "null" || -z "$INSTANCE_NAME" ]]; then
+INSTANCE_NAME=$(jq -r '.db_instance_name.value' "$OUTPUTS_FILE")
+DB_NAME=$(jq -r '.registry_database_name.value' "$OUTPUTS_FILE")
+if [[ "$DB_NAME" == "null" || -z "$DB_NAME" || "$INSTANCE_NAME" == "null" || -z "$INSTANCE_NAME" ]]; then
+  echo "DB_NAME or INSTANCE_NAME is not set. Skipping schema loading for onix registry-db."
   exit 0
 fi
-DB_NAME=$(jq -r '.registry_database_name.value' "$OUTPUTS_FILE")
 IAM_DB_USER=$(jq -r '.database_user_sa_email.value' "$OUTPUTS_FILE")
 REGISTRY_ADMIN_DATABASE_USER=$(jq -r '.registry_admin_database_user_sa_email.value' "$OUTPUTS_FILE")
-REGION=$(jq -r '.cluster_region.value' "$OUTPUTS_FILE")
+REGION=$(jq -r '.region.value' "$OUTPUTS_FILE")
 # --------------------------------------
 # CONFIGURATION FOR SCHEMA LOAD
 # --------------------------------------
