@@ -147,6 +147,14 @@ variable "provider_id" {
   default     = ""
 }
 
+variable "attribute_mapping" {
+  description = "The attribute mapping for workforce identity federation."
+  type        = map(string)
+  default     = {
+    "google.subject" = "assertion.sub"
+  }
+}
+
 variable "enable_inbound_auth" {
   description = "If true, enables inbound authentication for onix."
   type        = bool
