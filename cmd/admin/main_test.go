@@ -225,6 +225,21 @@ func TestConfig_Valid_Error(t *testing.T) {
 			},
 			expectedError: "encryptionKeyID is missing in setup config",
 		},
+		{
+			name: "missing auth audience",
+			cfg: &config{
+				Log:      validLogCfg,
+				Timeouts: validTimeoutsCfg,
+				Server:   validServerCfg,
+				DB:       validDBCfg,
+				Admin:    validAdminCfg,
+				Event:    validEventCfg,
+				Setup:    validSetupCfg,
+				NPClient: validNPClientCfg,
+				Auth:     &authConfig{Audience: ""},
+			},
+			expectedError: "missing auth audience when auth is enabled",
+		},
 	}
 
 	for _, tt := range tests {

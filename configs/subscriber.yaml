@@ -35,5 +35,7 @@ regKeyID: <REGISTRY_ENCRYPTION_KEY_ID>
 event:
   projectID: <PROJECT_ID>
   topicID: <EVENTS_TOPIC_ID>
+auth:
+  audience: <OIDC_AUDIENCE>
 
 
