@@ -27,6 +27,7 @@ import {InstallerState} from '../../types/installer.types';
 import {StepHealthCheck} from './step-health-check';
 
 const initialMockState: InstallerState = {
+  isConfigLocked: false,
   currentStepIndex: 8,
   installerGoal: 'create_new_open_network',
   prerequisitesMet: true,

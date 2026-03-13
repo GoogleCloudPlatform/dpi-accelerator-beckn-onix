@@ -99,6 +99,9 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.unsubscribe$))
       .subscribe((state: InstallerState) => {
         this.installerState = state;
+        if (state.isConfigLocked) {
+          this.deployInfraForm.get('appName')?.disable({emitEvent: false});
+        }
         this.cdr.detectChanges();
         this.scrollToBottom();
       });
@@ -120,7 +123,8 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
 
   public onDeployInfra(): void {
     this.deployInfraForm.markAllAsTouched();
-    if (this.deployInfraForm.invalid) {
+    if (this.deployInfraForm.invalid &&
+        !this.deployInfraForm.get('appName')?.disabled) {
       console.log(this.deployInfraForm);
       console.log(this.deployInfraForm.errors);
       console.error('Deploy Infra form is invalid.');
