@@ -46,7 +46,7 @@ variable "db_instance_edition" {
     description = "ENTERPRISE or ENTERPRISE PLUS"
 }
 
-variable "db_aval_type" {
+variable "db_instance_availability_type" {
     type = string
     description = "Set REGIONAL/ZONAL availability type"
 }
@@ -61,12 +61,12 @@ variable "db_instance_disk_type" {
     description = "Type of disk"
 }
 
-variable "db_ipv4" {
+variable "db_instance_public_ipv4" {
     type = bool
     description = "Whether public IPv4 should be enabled or not"
 }
 
-variable "instance_network" {
+variable "db_instance_network" {
     type = string
     description = "Private Network for the instance"
 }
