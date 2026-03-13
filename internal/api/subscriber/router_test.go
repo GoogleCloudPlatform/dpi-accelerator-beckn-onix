@@ -52,7 +52,7 @@ func (m *mockSubscriberHandler) OnSubscribe(w http.ResponseWriter, r *http.Reque
 
 func TestRouter_Routes(t *testing.T) {
 	h := &mockSubscriberHandler{}
-	router := NewRouter(h)
+	router := NewRouter(h, nil)
 
 	tests := []struct {
 		name            string
@@ -172,5 +172,35 @@ func TestRouter_Routes(t *testing.T) {
 			}
 			tc.handlerCheck(t, h)
 		})
+	}
+}
+
+func TestRouter_WithMiddleware(t *testing.T) {
+	h := &mockSubscriberHandler{}
+
+	middlewareCalled := false
+	dummyMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			middlewareCalled = true
+			next.ServeHTTP(w, r)
+		})
+	}
+
+	router := NewRouter(h, dummyMiddleware)
+
+	req := httptest.NewRequest(http.MethodPost, "/subscribe", nil)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	if !middlewareCalled {
+		t.Errorf("expected middleware to be called")
+	}
+
+	if !h.createSubscriptionCalled {
+		t.Errorf("expected handler to be called")
 	}
 }
