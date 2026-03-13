@@ -27,13 +27,13 @@
 
 # Prompt for required details
 read -p "Enter your GCP Project ID: " PROJECT_ID
-read -p "Enter desired Service Account name (e.g., beckn-adapter-sa-<user-name>): " SA_NAME
+read -p "Enter desired Service Account name (e.g., dpi-installer-sa): " SA_NAME
 
 # Create the service account
 echo "Creating service account $SA_NAME in project $PROJECT_ID..." >&2
 gcloud iam service-accounts create "$SA_NAME" \
     --project "$PROJECT_ID" \
-    --display-name "BECKN Adapter Service Account"
+    --display-name "DPI Installer Service Account"
 
 # Construct the service account email
 SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
@@ -54,6 +54,8 @@ ROLES=(
   "roles/secretmanager.admin"
   "roles/dns.admin"
   "roles/compute.securityAdmin"
+  "roles/aiplatform.admin"
+  "roles/run.admin"
 )
 
 # Assign each role to the service account
