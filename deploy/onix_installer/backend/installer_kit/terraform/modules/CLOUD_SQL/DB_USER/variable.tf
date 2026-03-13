@@ -25,4 +25,11 @@ variable "instance_name" {
 variable "user_type" {
   description = "The type of the SQL user (e.g., 'CLOUD_IAM_USER' or 'SQL_USER')."
   type        = string
+  default     = "BUILT_IN"
+}
+
+variable "password" {
+  description = "The password for the SQL user."
+  type        = string
+  default     = null
 }

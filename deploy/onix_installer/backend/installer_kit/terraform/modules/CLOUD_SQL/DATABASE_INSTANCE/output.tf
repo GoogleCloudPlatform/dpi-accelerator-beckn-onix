@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+output "db_instance_name" {
+  value       = google_sql_database_instance.instance.name
+}
+
 output "db_connection_name" {
   value       = google_sql_database_instance.instance.connection_name
 }

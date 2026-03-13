@@ -16,5 +16,15 @@ resource "google_sql_user" "user" {
     name     = var.user_name
     instance = var.instance_name
     type = var.user_type
+    password = var.password
+
+    lifecycle {
+        precondition {
+        # The condition must evaluate to true for Terraform to proceed
+        condition     = var.user_type != "BUILT_IN" || var.password != null
+        error_message = "You must provide a 'password' when 'user_type' is set to 'BUILT_IN'."
+        }
+    }
+
     deletion_policy = "ABANDON"
 }
