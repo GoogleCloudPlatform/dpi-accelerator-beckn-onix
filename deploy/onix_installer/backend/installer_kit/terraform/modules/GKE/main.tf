@@ -131,5 +131,10 @@ resource "google_container_cluster" "primary_cluster" {
         display_name = var.display_name #Field for users to identify CIDR blocks.
       }
     }
-    
+
+    lifecycle {
+        ignore_changes = [
+            node_config,
+        ]
+    }
 }

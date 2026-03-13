@@ -30,14 +30,6 @@ data "google_project" "project" {
 }
 
 
-output "project_id" {
-  value = var.project_id
-}
-
-output "region" {
-  value = var.region
-}
-
 #--------------------------------------------- Network Configuration ---------------------------------------------#
 
 # VPC
@@ -112,7 +104,7 @@ resource "time_sleep" "wait_for_ps_networking" {
 
 # Controls whether the Cloud SQL Instance should be provisioned
 locals {
-  provision_db_instance = var.provision_registry_infra
+  provision_db_instance = var.provision_registry_infra || var.enable_agent
 }
 
 module "db_instance" {
@@ -140,18 +132,6 @@ module "db_instance" {
   ]
 }
 
-output "db_instance_name" {
-  value = local.provision_db_instance ? var.db_instance_name : null
-}
-
-output "db_instance_connection_name" {
-  value = local.provision_db_instance ? module.db_instance[0].db_connection_name : null
-}
-
-output "db_instance_private_ip_address" {
-  value = local.provision_db_instance ? module.db_instance[0].private_ip_address : null
-}
-
 #--------------------------------------------- Redis Instance ---------------------------------------------#
 
 module "redis" {
@@ -166,15 +146,11 @@ module "redis" {
   depends_on            = [google_service_networking_connection.private_vpc_connection, module.global_address]
 }
 
-output "redis_instance_ip" {
-  value       = module.redis.redis_instance_ip
-  description = "The IP address of the created Redis instance"
-}
-
 #--------------------------------------------- ONIX Orchestrator ---------------------------------------------#
 
 module "onix" {
   source = "./modules/ONIX"
+  enable_onix = var.enable_onix
 
   project_id = var.project_id
   region     = var.region
@@ -184,7 +160,7 @@ module "onix" {
   subnet_name          = module.network.subnet_name
   network_range_name   = module.network.range_name
   network_range_name_1 = module.network.range_name_1
-  db_instance_name     = var.db_instance_name
+  db_instance_name = local.provision_db_instance ? module.db_instance[0].db_instance_name : null
 
   # GKE
   cluster_name               = var.cluster_name
@@ -292,68 +268,46 @@ module "onix" {
   subscription_gsa_description  = var.subscription_gsa_description
   subscription_gsa_roles        = var.subscription_gsa_roles
 
+}
+
+
+#--------------------------------------------- Agent Orchestrator ---------------------------------------------#
+
+module "agent" {
+  count = var.enable_agent ? 1 : 0
+
+  source = "./modules/AGENT"
+
+  # Core Inputs
+  project_id   = var.project_id
+  region       = var.region
+  app_name     = var.app_name
+  image_url    = var.agent_image_url
+
+  # Networking
+  network_name = module.network.network_name
+  subnet_name  = module.network.subnet_name
+
+  # Data
+  db_instance_name = local.provision_db_instance ? module.db_instance[0].db_instance_name : null
+  agent_db_name    = var.agent_db_name
+  agent_db_user    = var.agent_db_user
+
+  # IAM
+  agent_sa_account_id = var.agent_sa_account_id
+  agent_sa_display_name = var.agent_sa_display_name
+  agent_sa_description  = var.agent_sa_description
+  agent_sa_roles        = var.agent_sa_roles
+
+  cpu                   = var.agent_cpu
+  memory                = var.agent_memory
+  ingress               = var.agent_ingress
+  vpc_egress            = var.agent_vpc_egress
+  allow_unauthenticated = var.agent_allow_unauthenticated
+
   depends_on = [
     module.network,
     module.db_instance,
-    module.redis,
-    google_service_networking_connection.private_vpc_connection
+    module.redis
   ]
-}
-
-# Values for "onix" module outputs
-
-output "cluster_name" {
-  value = module.onix.cluster_name
-}
-
-output "app_namespace_name" {
-  value = module.onix.app_namespace_name
-}
-
-output "global_ip_address" {
-  value = module.onix.global_ip_address
-}
-
-output "url_map" {
-  value = module.onix.url_map
-}
-
-output "onix_topic_name" {
-  value = module.onix.onix_topic_name
-}
-
-output "adapter_ksa_name" {
-  value = module.onix.adapter_ksa_name
-}
-
-output "adapter_topic_name" {
-  value = module.onix.adapter_topic_name
-}
-
-output "registry_database_name" {
-  value = module.onix.registry_database_name
-}
-
-output "registry_ksa_name" {
-  value = module.onix.registry_ksa_name
-}
-
-output "registry_admin_ksa_name" {
-  value = module.onix.registry_admin_ksa_name
-}
-
-output "database_user_sa_email" {
-  value = module.onix.database_user_sa_email
-}
-
-output "registry_admin_database_user_sa_email" {
-  value = module.onix.registry_admin_database_user_sa_email
-}
-
-output "gateway_ksa_name" {
-  value = module.onix.gateway_ksa_name
-}
-
-output "subscription_ksa_name" {
-  value = module.onix.subscription_ksa_name
 }
