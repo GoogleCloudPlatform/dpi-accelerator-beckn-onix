@@ -20,7 +20,15 @@ output "subnet_name" {
     value = google_compute_subnetwork.subnetwork.name
 }
 
-# VPC/outputs.tf
+output "network_id" {
+    value = google_compute_network.network.id
+    description = "The ID of the VPC network"
+}
+
+output "subnetwork_id" {
+    value = google_compute_subnetwork.subnetwork.id
+    description = "The ID of the subnetwork"
+}
 
 output "ip_cidr_range" {
   description = "The IP CIDR range for the VPC network"
