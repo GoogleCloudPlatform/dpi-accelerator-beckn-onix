@@ -89,10 +89,10 @@ Why? These domains are required to expose the Onix services (like the gateway, r
 
 Ensure the user account running the installer has specific IAM roles on the GCP project. **Note**: These are required even if the user has the "Owner" role.
 
-Run the `set_user_iam.sh` script from the `deploy/onix-installer/scripts` directory to assign the required roles to your user account:
+Run the `set_user_iam.sh` script from the `deploy/onix_installer/scripts` directory to assign the required roles to your user account:
 
 ```bash
-deploy/onix-installer/scripts/set_user_iam.sh
+deploy/onix_installer/scripts/set_user_iam.sh
 ```
 
 This script will prompt for your GCP Project ID and User Email, then assign the necessary roles:
@@ -188,12 +188,12 @@ Before running the installer, you need to build and push the required Docker ima
     export REGISTRY_URL=${AR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${AR_REPO_NAME}
     ```
 
-2.  Update the `source.yaml` file with your registry URL. The file is located at `deploy/onix-installer/adapter_artifacts/source.yaml`. Uncomment the `registry` field and replace the placeholder `<REGISTRY_URL>` with the value of `$REGISTRY_URL`.
+2.  Update the `source.yaml` file with your registry URL. The file is located at `deploy/onix_installer/adapter_artifacts/source.yaml`. Uncomment the `registry` field and replace the placeholder `<REGISTRY_URL>` with the value of `$REGISTRY_URL`.
 
 3.  Build and run `onixctl` to build the adapter image and plugins:
     ```bash
     go build ./cmd/onixctl
-    ./onixctl --config deploy/onix-installer/adapter_artifacts/source.yaml
+    ./onixctl --config deploy/onix_installer/adapter_artifacts/source.yaml
     ```
 
 **C. Build and Push Core Service Images**
@@ -224,7 +224,7 @@ docker push $REGISTRY_URL/subscriber:$TAG
 Once all prerequisites and configurations are complete, change into the installer directory and execute the installer script:
 
 ```bash
- cd deploy/onix-installer
+ cd deploy/onix_installer
  make run-installer
 ```
 Note it will run both backend and fronted of installer application and you can find logs on logs folder
@@ -252,7 +252,7 @@ Before proceeding with the application deployment step in the installer, if eith
 ---
 
 ## Cleanup and Destruction
-To uninstall Onix and delete all associated infrastructure, run the following command from the deploy/onix-installer directory.
+To uninstall Onix and delete all associated infrastructure, run the following command from the deploy/onix_installer directory.
 
  ⚠️ Warning: This command is irreversible. It will delete all infrastructure created by the installer (such as GKE clusters, databases, and Redis instances) and will also delete all Onix services that you created through the installer
 

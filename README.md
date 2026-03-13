@@ -21,12 +21,12 @@ It consists following:
 
 ## Getting Started
 
-The recommended way to deploy Onix is through the UI-based Onix installer. For detailed prerequisites and instructions, please refer to the **[Onix Installer README](./deploy/onix-installer/README.md)**.
+The recommended way to deploy Onix is through the UI-based Onix installer. For detailed prerequisites and instructions, please refer to the **[Onix Installer README](./deploy/onix_installer/README.md)**.
 
 ## Repository Structure
 
 -   `cmd/`: Main applications for each microservice.
--   `deploy/onix-installer/`: The UI-based installer (Angular frontend, FastAPI backend, Terraform and Helm for deployments).
+-   `deploy/onix_installer/`: The UI-based installer (Angular frontend, FastAPI backend, Terraform and Helm for deployments).
 -   `internal/`: Shared business logic for the Onix services.
 -   `plugins/`: Source code for the extensible plugins used by the adapters.
 -   `configs/`: Detailed example configuration files for each service.
@@ -36,7 +36,7 @@ The recommended way to deploy Onix is through the UI-based Onix installer. For d
 
 Beckn-Onix is a cloud-native, microservices-based implementation of the Beckn protocol, designed to run on Google Cloud. It provides a robust and scalable foundation for building and operating a decentralized network.
 
-The system is composed of several containerized Go microservices running on Google Kubernetes Engine (GKE), which are deployed using the [**Onix installer**](./deploy/onix-installer/README.md).
+The system is composed of several containerized Go microservices running on Google Kubernetes Engine (GKE), which are deployed using the [**Onix installer**](./deploy/onix_installer/README.md).
 
 -   **Services**: The core logic is implemented in a set of Go microservices (Gateway, Registry, etc.).
 -   **Communication**: Services communicate synchronously via RESTful APIs and asynchronously through Google Cloud Pub/Sub for event-driven workflows.
@@ -169,7 +169,7 @@ The entire Onix suite is deployed using this UI-based installer that automates a
 1.  **Infrastructure Provisioning**: Uses Terraform to create the necessary GCP resources (GKE clusters, Cloud SQL, etc.).
 2.  **Application Deployment**: Uses Helm to deploy the Onix microservices onto the GKE cluster.
 
-For detailed prerequisites and step-by-step instructions, please refer to the **[Installer README](./deploy/onix-installer/README.md)**.
+For detailed prerequisites and step-by-step instructions, please refer to the **[Installer README](./deploy/onix_installer/README.md)**.
 
 
 ## Licensing
