@@ -33,9 +33,13 @@ const mockProjects = ['gcp-project-1', 'gcp-project-2', 'another-project'];
 const mockRegions = ['us-central1', 'us-east1', 'europe-west1'];
 
 class MockInstallerStateService {
-  private state =
-      new BehaviorSubject<{gcpConfiguration: GcpConfiguration | null}>(
-          {gcpConfiguration: null});
+  private state = new BehaviorSubject<any>({
+    gcpConfiguration: null,
+    isConfigLocked: false,
+    deploymentStatus: 'pending'
+  });
+
+  installerState$ = this.state.asObservable();
 
   getCurrentState() {
     return this.state.getValue();
@@ -46,8 +50,10 @@ class MockInstallerStateService {
   }
 
   setInitialState(initialState: any) {
-    this.state.next(initialState);
+    this.state.next({...this.state.getValue(), ...initialState});
   }
+
+  updateState = jasmine.createSpy('updateState');
 }
 
 class MockApiService {
@@ -57,6 +63,10 @@ class MockApiService {
 
   getGcpRegions() {
     return of(mockRegions);
+  }
+
+  getInstallerState(): any {
+    return of(null);
   }
 }
 
@@ -102,6 +112,38 @@ describe('StepGcpConnectionComponent', () => {
   });
 
   describe('Initialization and API Fetching', () => {
+    it('should lock config if installer state exists', fakeAsync(() => {
+         const getInstallerStateSpy =
+             spyOn(apiService, 'getInstallerState').and.returnValue(of({
+               project_id: 'test-project',
+               region: 'us-central1',
+               app_name: 'test-app'
+             }));
+
+         fixture.detectChanges();
+         tick();
+
+         expect(getInstallerStateSpy).toHaveBeenCalled();
+         expect(installerStateService.updateState).toHaveBeenCalledWith({
+           isConfigLocked: true,
+           gcpConfiguration: {projectId: 'test-project', region: 'us-central1'},
+           appName: 'test-app'
+         });
+       }));
+
+    it('should disable form if config is locked', fakeAsync(() => {
+         installerStateService.setInitialState({
+           isConfigLocked: true,
+           gcpConfiguration: {projectId: 'test-project', region: 'us-central1'},
+           deploymentStatus: 'pending'
+         });
+
+         fixture.detectChanges();
+         tick();
+
+         expect(component.gcpConnectionForm.disabled).toBeTrue();
+       }));
+
     it('should initialize the form and fetch projects and regions on init',
        fakeAsync(() => {
          const fetchProjectsSpy =
@@ -202,6 +244,21 @@ describe('StepGcpConnectionComponent', () => {
 
          component.gcpConnectionForm.setValue(
              {projectId: 'gcp-project-1', region: 'us-central1'});
+
+         component.onNext();
+
+         expect(emitSpy).toHaveBeenCalled();
+         expect(navigateSpy).toHaveBeenCalledWith([
+           'installer', 'deploy-infra'
+         ]);
+       });
+
+    it('should emit nextStep and navigate on "Next" if the form is disabled (locked)',
+       () => {
+         const navigateSpy = spyOn(router, 'navigate');
+         const emitSpy = spyOn(component.nextStep, 'emit');
+
+         component.gcpConnectionForm.disable();
 
          component.onNext();
 

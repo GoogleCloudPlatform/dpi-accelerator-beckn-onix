@@ -93,9 +93,33 @@ export class StepGcpConnectionComponent implements OnInit, OnDestroy {
     this.fetchGcpRegions();
     this.fetchGcpProjects();
 
-      if (currentState.deploymentStatus === 'completed' ) {
-      this.gcpConnectionForm.disable();
-    }
+    // Check backend for Dedicated Installer State Locks
+    this.apiService.getInstallerState()
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe(state => {
+          if (state && state.project_id && state.region && state.app_name) {
+            this.installerStateService.updateState({
+              isConfigLocked: true,
+              gcpConfiguration:
+                  {projectId: state.project_id, region: state.region},
+              appName: state.app_name
+            });
+          }
+        });
+
+    this.installerStateService.installerState$
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe(state => {
+          if (state.isConfigLocked || state.deploymentStatus === 'completed') {
+            this.gcpConnectionForm.patchValue(
+                {
+                  projectId: state.gcpConfiguration?.projectId || '',
+                  region: state.gcpConfiguration?.region || ''
+                },
+                {emitEvent: false});
+            this.gcpConnectionForm.disable({emitEvent: false});
+          }
+        });
     this.projectSearchCtrl.valueChanges.pipe(
       debounceTime(300),
       distinctUntilChanged(),
@@ -221,7 +245,7 @@ export class StepGcpConnectionComponent implements OnInit, OnDestroy {
   onNext(): void {
     this.gcpConnectionForm.markAllAsTouched();
     this.updateGcpConnectionState();
-    if (this.gcpConnectionForm.valid) {
+    if (this.gcpConnectionForm.valid || this.gcpConnectionForm.disabled) {
       this.nextStep.emit();
       this.router.navigate(['installer', 'deploy-infra']);
     } else {

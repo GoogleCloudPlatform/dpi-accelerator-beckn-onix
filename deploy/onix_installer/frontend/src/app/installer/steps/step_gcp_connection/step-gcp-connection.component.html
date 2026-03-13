@@ -110,7 +110,7 @@
     <button
       mat-raised-button
       color="primary"
-      [disabled]="!gcpConnectionForm.valid || isProjectsLoading || isRegionsLoading"
+      [disabled]="(!gcpConnectionForm.valid && !gcpConnectionForm.disabled) || isProjectsLoading || isRegionsLoading"
       (click)="onNext()"
     >
       Deploy Infra <mat-icon>arrow_forward</mat-icon>

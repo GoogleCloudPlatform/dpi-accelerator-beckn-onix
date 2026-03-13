@@ -38,11 +38,19 @@ export interface InfraOutputDetail {
 export interface InfraDetails {
   cluster_name?: InfraOutputDetail;
   redis_instance_ip?: InfraOutputDetail;
-  topic_name?: InfraOutputDetail;
+  onix_topic_name?: InfraOutputDetail;
+  adapter_topic_name?: InfraOutputDetail;
   external_ip?: InfraOutputDetail;
   app_external_ip?: InfraOutputDetail;
   global_ip_address?: InfraOutputDetail;
   registry_url?: InfraOutputDetail;
+  project_id?: InfraOutputDetail;
+  region?: InfraOutputDetail;
+  gcs_bucket?: InfraOutputDetail;
+  db_instance_name?: InfraOutputDetail;
+  db_instance_connection_name?: InfraOutputDetail;
+  agent_service_url?: InfraOutputDetail;
+  agent_service_name?: InfraOutputDetail;
   [key: string]: InfraOutputDetail | any;
 }
 
@@ -131,6 +139,7 @@ export interface AppDeploySecurityConfig {
 }
 
 export interface InstallerState {
+  isConfigLocked: boolean;
   currentStepIndex: number;
   highestStepReached: number;
   installerGoal: 'create_new_open_network' | 'join_existing_network' | null;

@@ -133,6 +133,26 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
         mock_create_subprocess_exec_in_this_test.assert_not_called()
         patch('asyncio.create_subprocess_exec').stop()
 
+    async def test_run_infra_deployment_config_generation_validation_failure(self):
+        self.mock_tf_config.generate_config.side_effect = ValueError("Cannot change project_id from 'old' to 'new'")
+
+        config_request = models.InfraDeploymentRequest(
+            project_id="test-proj", region="us-central1", app_name="test-app",
+            type=models.DeploymentType.SMALL, components={"bap": True}
+        )
+
+        await deployment_manager.run_infra_deployment(config_request, self.mock_websocket)
+
+        self.mock_tf_config.generate_config.assert_called_once_with(config_request)
+        self.assertEqual(self.mock_websocket.send_text.call_count, 2) # 1 info + 1 error
+        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "info", "message": "Generating Terraform configurations..."}))
+        self.mock_websocket.send_text.assert_called_with(json.dumps({"type": "error", "message": "Configuration Validation Failed: Cannot change project_id from 'old' to 'new'"}))
+        self.mock_logger.error.assert_called_once()
+        
+        mock_create_subprocess_exec_in_this_test = patch('asyncio.create_subprocess_exec').start()
+        mock_create_subprocess_exec_in_this_test.assert_not_called()
+        patch('asyncio.create_subprocess_exec').stop()
+
     @patch('asyncio.create_subprocess_exec', side_effect=FileNotFoundError("Script not found"))
     async def test_run_infra_deployment_script_not_found(self, mock_create_subprocess_exec):
         config_request = models.InfraDeploymentRequest(
