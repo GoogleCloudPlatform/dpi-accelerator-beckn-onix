@@ -29,6 +29,18 @@ variable "app_name" {
   description = "The application name"
 }
 
+#--------------------------------------------- Feature Toggles ---------------------------------------------#
+
+variable "enable_onix" {
+  description = "Whether to provision the Onix infrastructure (GKE, Beckn Gateway/Adapter, etc.)"
+  type        = bool
+}
+
+variable "enable_agent" {
+  description = "Whether to provision the AI Agent infrastructure (Cloud Run, Vertex AI, Dedicated DB)."
+  type        = bool
+}
+
 #--------------------------------------------- Kubernetes Service Account for GKE Nodes ---------------------------------------------#
 
 variable "kubernetes_sa_account_id" {
@@ -745,4 +757,77 @@ variable "forwarding_rule_port_range" {
   type        = string
   description = "Port range for the forwarding rule"
   default     = "443"
+}
+
+#--------------------------------------------- Agent Configuration ---------------------------------------------#
+
+variable "agent_image_url" {
+  description = "The URL of the pre-built Agent Docker image (e.g., us-central1-docker.pkg.dev/.../agent:latest)"
+  type        = string
+  default     = "us-docker.pkg.dev/cloudrun/container/hello"
+}
+
+variable "agent_db_name" {
+  description = "The name of the Agent's dedicated database"
+  type        = string
+  default     = "agent_sessions"
+}
+
+variable "agent_db_user" {
+  description = "The database user for the Agent"
+  type        = string
+  default     = "agent_app_db_user"
+}
+
+# Agent Cloud Run Configuration
+variable "agent_cpu" {
+  description = "CPU limit for the Agent Cloud Run container"
+  type        = string
+  default     = "4000m"
+}
+
+variable "agent_memory" {
+  description = "Memory limit for the Agent Cloud Run container"
+  type        = string
+  default     = "4Gi"
+}
+
+variable "agent_ingress" {
+  description = "Ingress traffic configuration for the Agent Cloud Run service"
+  type        = string
+  default     = "INGRESS_TRAFFIC_ALL"
+}
+
+variable "agent_vpc_egress" {
+  description = "VPC egress traffic configuration for the Agent Cloud Run service"
+  type        = string
+  default     = "ALL_TRAFFIC"
+}
+
+variable "agent_allow_unauthenticated" {
+  description = "Whether to allow unauthenticated access to the Agent service"
+  type        = bool
+  default     = true
+}
+
+#--------------------------------------------- Agent IAM Configuration ---------------------------------------------#
+
+variable "agent_sa_account_id" {
+  description = "The account ID for the Agent Service Account"
+  type        = string
+}
+
+variable "agent_sa_display_name" {
+  description = "The display name for the Agent Service Account"
+  type        = string
+}
+
+variable "agent_sa_description" {
+  description = "The description for the Agent Service Account"
+  type        = string
+}
+
+variable "agent_sa_roles" {
+  description = "List of IAM roles to assign to the Agent Service Account"
+  type        = list(string)
 }

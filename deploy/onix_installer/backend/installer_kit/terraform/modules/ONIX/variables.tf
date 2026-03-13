@@ -523,3 +523,7 @@ variable "subscription_gsa_roles" {
   description = "List of IAM roles to grant to the Subscription GCP Service Account."
   default     = []
 }
+variable "enable_onix" {
+  description = "Flag to determine if the ONIX infrastructure and application components should be deployed."
+  type        = bool
+}
