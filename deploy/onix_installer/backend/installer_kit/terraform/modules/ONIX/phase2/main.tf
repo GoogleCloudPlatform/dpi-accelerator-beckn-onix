@@ -180,5 +180,3 @@ resource "google_iam_workload_identity_pool_provider" "oidc_provider" {
     jwks_json = var.jwks_json != "" ? var.jwks_json : null
     }
 }
-
-
