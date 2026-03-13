@@ -37,9 +37,9 @@ import (
 
 	yaml "gopkg.in/yaml.v3"
 
-	beckn "google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/core/module/client/client"
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/implementation/signer/signer"
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/implementation/signvalidator/signvalidator"
+	beckn "github.com/beckn-one/beckn-onix/core/module/client"
+	"github.com/beckn-one/beckn-onix/pkg/plugin/implementation/signer"
+	"github.com/beckn-one/beckn-onix/pkg/plugin/implementation/signvalidator"
 )
 
 // config represents application configuration.

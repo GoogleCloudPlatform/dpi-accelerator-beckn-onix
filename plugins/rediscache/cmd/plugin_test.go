@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/definition/definition"
+	"github.com/beckn-one/beckn-onix/pkg/plugin/definition"
 	"github.com/redis/go-redis/v9"
 )
 

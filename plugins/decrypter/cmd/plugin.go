@@ -19,7 +19,7 @@ import (
 	"context"
 
 	"github.com/google/dpi-accelerator-beckn-onix/plugins/decrypter"
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/definition/definition"
+	"github.com/beckn-one/beckn-onix/pkg/plugin/definition"
 )
 
 // decrypterProvider implements the definition.decrypterProvider interface.
