@@ -19,7 +19,7 @@ set -e
 
 # Configuration
 TERRAFORM_FOLDERS=(
-    "./backend/installer_kit/terraform/phase2" # Destroy this first
+    "./backend/installer_kit/terraform/modules/ONIX/phase2" # Destroy this first
     "./backend/installer_kit/terraform"        # Destroy this second
 )
 
@@ -44,7 +44,7 @@ confirm_action() {
 get_tfvars_file() {
     local folder_path="$1"
     case "$folder_path" in
-        "./backend/installer_kit/terraform/phase2")
+        "./backend/installer_kit/terraform/modules/ONIX/phase2")
             echo "p2.tfvars"
             ;;
         "./backend/installer_kit/terraform")
