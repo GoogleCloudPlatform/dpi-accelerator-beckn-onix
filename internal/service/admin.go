@@ -134,7 +134,11 @@ func (s *adminService) ApproveSubscription(ctx context.Context, req *model.Opera
 	subs, err := s.regRepo.Lookup(ctx, sub)
 	if err != nil {
 		slog.ErrorContext(ctx, "AdminService: lookup failed", "error", err)
-		return nil, nil, fmt.Errorf("lookup failed: %w", err)
+		lookupErr := fmt.Errorf("lookup failed: %w", err)
+		if updateErr := s.updateLROError(ctx, lro, lookupErr, model.LROStatusFailure); updateErr != nil {
+			slog.ErrorContext(ctx, "AdminService: Failed to update LRO with failure status", "operation_id", lro.OperationID, "update_error", updateErr)
+		}
+		return nil, nil, lookupErr
 	}
 	slog.Debug("AdminService: lookup successful", "len", len(subs), "lro_type", lro.Type)
 	if len(subs) > 0 && lro.Type == model.OperationTypeCreateSubscription {
