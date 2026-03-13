@@ -26,7 +26,7 @@ import (
 	"regexp"
 
 	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
-	becknmodel "google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/model/model"
+	becknmodel "github.com/beckn-one/beckn-onix/pkg/model"
 	"github.com/googleapis/gax-go/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

@@ -35,8 +35,8 @@ import (
 	"github.com/google/dpi-accelerator-beckn-onix/internal/repository"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/service"
 
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/definition/definition"
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/implementation/signvalidator/signvalidator"
+	"github.com/beckn-one/beckn-onix/pkg/plugin/definition"
+	"github.com/beckn-one/beckn-onix/pkg/plugin/implementation/signvalidator"
 	"gopkg.in/yaml.v3"
 )
 

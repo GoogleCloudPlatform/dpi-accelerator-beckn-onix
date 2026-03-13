@@ -21,7 +21,7 @@ import (
 
 	"github.com/google/dpi-accelerator-beckn-onix/plugins/pubsubpublisher"
 
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/definition/definition"
+	"github.com/beckn-one/beckn-onix/pkg/plugin/definition"
 )
 
 type pubsubPublisherProvider struct{}

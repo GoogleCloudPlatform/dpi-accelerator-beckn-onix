@@ -23,17 +23,17 @@ import (
 
 	keymgr "github.com/google/dpi-accelerator-beckn-onix/plugins/secretskeymanager"
 
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/model/model"
-	plugin "google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/definition/definition"
+	"github.com/beckn-one/beckn-onix/pkg/model"
+	plugin "github.com/beckn-one/beckn-onix/pkg/plugin/definition"
 )
 
 // mockKeyManager is a fake KeyManager that does nothing.
 type mockKeyManager struct{}
 
-func (m *mockKeyManager) GenerateKeyset() (*model.Keyset, error)       { return nil, nil }
+func (m *mockKeyManager) GenerateKeyset() (*model.Keyset, error)                    { return nil, nil }
 func (m *mockKeyManager) InsertKeyset(context.Context, string, *model.Keyset) error { return nil }
-func (m *mockKeyManager) Keyset(context.Context, string) (*model.Keyset, error) { return nil, nil }
-func (m *mockKeyManager) DeleteKeyset(context.Context, string) error      { return nil }
+func (m *mockKeyManager) Keyset(context.Context, string) (*model.Keyset, error)     { return nil, nil }
+func (m *mockKeyManager) DeleteKeyset(context.Context, string) error                { return nil }
 func (m *mockKeyManager) LookupNPKeys(context.Context, string, string) (string, string, error) {
 	return "", "", nil
 }

@@ -20,7 +20,7 @@ import (
 
 	"github.com/google/dpi-accelerator-beckn-onix/plugins/rediscache"
 
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/definition/definition"
+	"github.com/beckn-one/beckn-onix/pkg/plugin/definition"
 )
 
 type cacheProvider struct{}

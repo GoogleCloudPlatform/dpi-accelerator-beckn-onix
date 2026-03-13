@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"strings"
 
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/log/log"
+	"github.com/beckn-one/beckn-onix/pkg/log"
 	"google.golang.org/api/idtoken"
 )
 

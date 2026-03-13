@@ -29,10 +29,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/googleapis/gax-go/v2"
 	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/model/model"
-	plugin "google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/definition/definition"
+	"github.com/beckn-one/beckn-onix/pkg/model"
+	plugin "github.com/beckn-one/beckn-onix/pkg/plugin/definition"
+	"github.com/googleapis/gax-go/v2"
 )
 
 // --- Mocks ---
