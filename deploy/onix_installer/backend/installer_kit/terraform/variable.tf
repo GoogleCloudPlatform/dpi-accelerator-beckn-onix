@@ -453,11 +453,56 @@ variable "instance_connect_mode" {
   description = "Connect mode for the Redis instance"
 }
 
-#--------------------------------------------- Configuration Bucket ---------------------------------------------#
+#--------------------------------------------- DB Instance Configuration ---------------------------------------------#
 
-variable "config_bucket_name" {
+variable "db_instance_name" {
   type        = string
-  description = "The name of the bucket to store your configs"
+  description = "Name of the DB instance"
+}
+variable "db_instance_region" {
+  type        = string
+  description = "Region for the DB instance"
+}
+variable "db_instance_version" {
+  type        = string
+  description = "Version for the DB instance"
+}
+variable "db_instance_tier" {
+  type        = string
+  description = "Tier for the DB instance"
+}
+variable "db_instance_labels" {
+  type        = map(string)
+  description = "Labels for the DB instance"
+  default     = {}
+}
+variable "db_instance_edition" {
+  type        = string
+  description = "Edition for the DB instance"
+}
+variable "db_instance_availability_type" {
+  type        = string
+  description = "Availability type for the DB instance"
+}
+variable "db_instance_disk_size" {
+  type        = string
+  description = "Disk size for the DB instance"
+}
+variable "db_instance_disk_type" {
+  type        = string
+  description = "Disk type for the DB instance"
+}
+variable "db_instance_public_ipv4" {
+  type        = bool
+  description = "Whether public IPv4 should be enabled for the DB instance"
+}
+variable "db_instance_max_connections" {
+    type = number
+    description = "Max Connections Cloud SQL can have."
+}
+variable "db_instance_cache" {
+    type = bool
+    description = "Whether data cache is to be enabled for db instance."
 }
 
 #--------------------------------------------- Pub/Sub Topic Configuration ---------------------------------------------#
@@ -591,59 +636,6 @@ variable "registry_admin_gsa_roles" {
 variable "registry_admin_ksa_name" {
   type        = string
   description = "Name for the Registry Admin Kubernetes Service Account."
-}
-
-# Registry Database Instance Variables (updated with registry_db prefix)
-variable "registry_db_instance_region" {
-  type        = string
-  description = "Region for the DB instance"
-}
-variable "registry_db_instance_version" {
-  type        = string
-  description = "Version for the DB instance"
-}
-variable "registry_db_instance_name" {
-  type        = string
-  description = "Name of the DB instance"
-}
-variable "registry_db_instance_tier" {
-  type        = string
-  description = "Tier for the DB instance"
-}
-variable "registry_db_instance_labels" {
-  type        = map(string)
-  description = "Labels for the DB instance"
-  default     = {}
-}
-variable "registry_db_instance_edition" {
-  type        = string
-  description = "Edition for the DB instance"
-}
-variable "registry_db_aval_type" {
-  type        = string
-  description = "Availability type for the DB instance"
-}
-variable "registry_db_instance_disk_size" {
-  type        = string
-  description = "Disk size for the DB instance"
-}
-variable "registry_db_instance_disk_type" {
-  type        = string
-  description = "Disk type for the DB instance"
-}
-variable "registry_db_ipv4" {
-  type        = bool
-  description = "Whether public IPv4 should be enabled for the DB instance"
-}
-
-variable "registry_db_max_connections" {
-    type = number
-    description = "Max Connections Cloud SQL can have for Registry or Admin."
-}
-
-variable "registry_db_instance_cache" {
-    type = bool
-    description = "Whether data cache is to be enabled for registry db instance."
 }
 
 variable "registry_database_name" {

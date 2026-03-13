@@ -31,14 +31,14 @@ resource "google_sql_database_instance" "instance" {
           data_cache_enabled = var.db_instance_cache
         }
         user_labels = var.db_instance_labels # Labels for your SQL Instance
-        availability_type = var.db_aval_type # The availability type of the Cloud SQL instance, high availability (REGIONAL) or single zone (ZONAL).
+        availability_type = var.db_instance_availability_type # The availability type of the Cloud SQL instance, high availability (REGIONAL) or single zone (ZONAL).
         disk_size = var.db_instance_disk_size #  The size of data disk, in GB. Size of a running instance cannot be reduced but can be increased. The minimum value is 10GB.
         disk_type = var.db_instance_disk_type #  The type of data disk: PD_SSD or PD_HDD. Defaults to PD_SSD.
 
         ip_configuration {
-          ipv4_enabled = var.db_ipv4  #  Whether this Cloud SQL instance should be assigned a public IPV4 address.
+          ipv4_enabled = var.db_instance_public_ipv4  #  Whether this Cloud SQL instance should be assigned a public IPV4 address.
           # At least ipv4_enabled must be enabled or a private_network must be configured.
-          private_network = var.instance_network #  The VPC network from which the Cloud SQL instance is accessible for private IP. 
+          private_network = var.db_instance_network #  The VPC network from which the Cloud SQL instance is accessible for private IP. 
           #  For example, projects/myProject/global/networks/default.
           
         }

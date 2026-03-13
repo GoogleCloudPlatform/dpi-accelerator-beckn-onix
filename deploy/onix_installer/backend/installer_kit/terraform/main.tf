@@ -383,6 +383,49 @@ resource "time_sleep" "wait_for_ps_networking" {
   create_duration = "150s"
 }
 
+# Controls whether the Cloud SQL Instance should be provisioned
+locals {
+  provision_db_instance = var.provision_registry_infra
+}
+
+# Cloud SQL Instance
+module "db_instance" {
+  count                         = local.provision_db_instance ? 1 : 0
+  source                        = "./modules/CLOUD_SQL/DATABASE_INSTANCE"
+
+  db_instance_name              = var.db_instance_name
+  db_instance_region            = var.db_instance_region
+  db_instance_version           = var.db_instance_version
+  db_instance_tier              = var.db_instance_tier
+  db_instance_labels            = var.db_instance_labels
+  db_instance_edition           = var.db_instance_edition
+  db_instance_availability_type = var.db_instance_availability_type
+  db_instance_disk_size         = var.db_instance_disk_size
+  db_instance_disk_type         = var.db_instance_disk_type
+  db_instance_public_ipv4       = var.db_instance_public_ipv4
+  db_instance_max_connections   = var.db_instance_max_connections
+  db_instance_cache             = var.db_instance_cache
+  db_instance_network           = "projects/${var.project_id}/global/networks/${module.network.network_name}"
+
+  depends_on = [
+    module.network,
+    google_service_networking_connection.private_vpc_connection,
+    time_sleep.wait_for_ps_networking
+  ]
+}
+
+output "db_instance_name" {
+  value = local.provision_db_instance ? var.db_instance_name : null
+}
+
+output "db_instance_connection_name" {
+  value = local.provision_db_instance ? module.db_instance[0].db_connection_name : null
+}
+
+output "db_instance_private_ip_address" {
+  value = local.provision_db_instance ? module.db_instance[0].private_ip_address : null
+}
+
 #--------------------------------------------- Redis Configuration ---------------------------------------------#
 
 # The redis instance will be spanned if the networking configuration is private access and a private access module is not being used
@@ -402,18 +445,6 @@ module "redis" {
 output "redis_instance_ip" {
   value       = module.redis.redis_instance_ip
   description = "The IP address of the created Redis instance"
-}
-
-#--------------------------------------------- Configuration Bucket ---------------------------------------------#
-# This bucket stores configurations for various services.
-module "config_bucket" {
-  source          = "./modules/CLOUD_STORAGE"
-  bucket_name     = var.config_bucket_name
-  bucket_location = var.region
-}
-
-output "config_bucket_name" {
-  value = module.config_bucket.bucket_name
 }
 
 #--------------------------------------------- Service Specific ---------------------------------------------#
@@ -454,7 +485,6 @@ module "adapter_service" {
     module.gke,
     module.gke_node_pool,
     module.app_namespace,
-    module.config_bucket
   ]
 }
 
@@ -474,19 +504,8 @@ module "registry_service" {
   network_name = module.network.network_name
   app_namespace_name = module.app_namespace.namespace_name
 
-  # DB related variables
-  registry_db_instance_region = var.registry_db_instance_region
-  registry_db_instance_version = var.registry_db_instance_version
-  registry_db_instance_name = var.registry_db_instance_name
-  registry_db_instance_tier = var.registry_db_instance_tier
-  registry_db_instance_labels = var.registry_db_instance_labels
-  registry_db_instance_edition = var.registry_db_instance_edition
-  registry_db_aval_type = var.registry_db_aval_type
-  registry_db_instance_disk_size = var.registry_db_instance_disk_size
-  registry_db_instance_disk_type = var.registry_db_instance_disk_type
-  registry_db_ipv4 = var.registry_db_ipv4
-  registry_db_max_connections = var.registry_db_max_connections
-  registry_db_instance_cache = var.registry_db_instance_cache
+  # DB variables
+  db_instance_name = var.db_instance_name
   registry_database_name = var.registry_database_name
   
   # GSA and KSA related variables
@@ -507,16 +526,10 @@ module "registry_service" {
     module.gke,
     module.gke_node_pool,
     module.network,
-    google_service_networking_connection.private_vpc_connection,
     module.global_address,
-    time_sleep.wait_for_ps_networking,
     module.app_namespace,
-    module.config_bucket
+    module.db_instance
   ]
-}
-
-output "registry_db_instance_name" {
-  value = var.provision_registry_infra ? var.registry_db_instance_name : null
 }
 
 output "registry_database_name" {
@@ -529,10 +542,6 @@ output "registry_ksa_name" {
 
 output "registry_admin_ksa_name" {
   value = var.provision_registry_infra ? module.registry_service[0].registry_admin_ksa_name : null
-}
-
-output "registry_db_connection_name" {
-  value = var.provision_registry_infra ? module.registry_service[0].registry_db_connection_name : null
 }
 
 output "database_user_sa_email" {
@@ -566,7 +575,6 @@ module "gateway_service" {
 output "gateway_ksa_name" {
   value = var.provision_gateway_infra ? module.gateway_service[0].gateway_ksa_name : null
 }
-
 
 # Module for Subscription Service
 module "subscription_service" {
