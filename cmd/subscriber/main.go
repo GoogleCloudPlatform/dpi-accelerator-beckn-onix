@@ -38,8 +38,8 @@ import (
 	keyManager "github.com/google/dpi-accelerator-beckn-onix/plugins/inmemorysecretkeymanager"
 	"github.com/google/dpi-accelerator-beckn-onix/plugins/oidcauth"
 	"github.com/google/dpi-accelerator-beckn-onix/plugins/rediscache"
-	becknclient "google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/core/module/client/client"
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/implementation/signer/signer"
+	becknclient "github.com/beckn-one/beckn-onix/core/module/client"
+	"github.com/beckn-one/beckn-onix/pkg/plugin/implementation/signer"
 	yaml "gopkg.in/yaml.v3"
 )
 

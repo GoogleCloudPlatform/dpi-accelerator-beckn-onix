@@ -21,7 +21,7 @@ import (
 	"log/slog"
 	"time"
 
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/model/model"
+	"github.com/beckn-one/beckn-onix/pkg/model"
 )
 
 // signingKM defines the interface for retrieving signing keys.

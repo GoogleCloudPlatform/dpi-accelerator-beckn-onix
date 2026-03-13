@@ -32,7 +32,7 @@ import (
 	pubsubpb "cloud.google.com/go/pubsub/apiv1/pubsubpb"
 	"cloud.google.com/go/pubsub/pstest"
 	"github.com/google/go-cmp/cmp"
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/definition/definition"
+	"github.com/beckn-one/beckn-onix/pkg/plugin/definition"
 	"google.golang.org/api/option"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc"

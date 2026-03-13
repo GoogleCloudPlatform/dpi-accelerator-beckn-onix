@@ -23,7 +23,7 @@ import (
 
 	"github.com/google/dpi-accelerator-beckn-onix/pkg/model"
 
-	becknmodel "google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/model/model"
+	becknmodel "github.com/beckn-one/beckn-onix/pkg/model"
 )
 
 // mockRegistryClient is a mock for registryClient.
