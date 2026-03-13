@@ -18,6 +18,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/google/dpi-accelerator-beckn-onix/plugins/oidcauth"
 )
@@ -25,8 +26,28 @@ import (
 type oidcProvider struct{}
 
 // New creates a new instance of the oidcauth plugin.
-func (p oidcProvider) New(ctx context.Context, config map[string]string) (func(http.Handler) http.Handler, error) {
-	return oidcauth.New(ctx, config)
+func (p oidcProvider) New(ctx context.Context, cfg map[string]string) (func(http.Handler) http.Handler, error) {
+	return oidcauth.New(ctx, config(cfg))
+}
+
+func config(cfg map[string]string) *oidcauth.Config {
+	c := &oidcauth.Config{
+		AllowedAudience: cfg["allowed_audience"],
+	}
+
+	for _, iss := range strings.Split(cfg["allowed_issuers"], ",") {
+		if iss = strings.TrimSpace(iss); iss != "" {
+			c.AllowedIssuers = append(c.AllowedIssuers, iss)
+		}
+	}
+
+	for _, sa := range strings.Split(cfg["allowed_sas"], ",") {
+		if sa = strings.TrimSpace(sa); sa != "" {
+			c.AllowedSAs = append(c.AllowedSAs, sa)
+		}
+	}
+
+	return c
 }
 
 // Provider is the exported symbol used by the plugin framework.

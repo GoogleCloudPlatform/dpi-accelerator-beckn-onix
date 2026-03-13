@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -42,11 +43,6 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
-// authConfig represents the active authentication configurations
-type authConfig struct {
-	Audience string `yaml:"audience"`
-}
-
 // config represents application configuration for the subscriber service.
 type config struct {
 	Log                *log.Config                  `yaml:"log"`
@@ -59,7 +55,7 @@ type config struct {
 	RegID              string                       `yaml:"regID"`    // Registry's ID
 	RegKeyID           string                       `yaml:"regKeyID"` // Registry's public key ID for decryption
 	Event              *event.Config                `yaml:"event"`
-	Auth               *authConfig                  `yaml:"auth"`
+	Auth               *oidcauth.Config             `yaml:"auth"`
 }
 
 type serverConfig struct {
@@ -136,8 +132,11 @@ func (c *config) valid() error {
 		c.KeyManagerCacheTTL = &keyManager.CacheTTL{PrivateKeysSeconds: 5, PublicKeysSeconds: 3600}
 	}
 	if c.Auth != nil {
-		if c.Auth.Audience == "" {
-			return fmt.Errorf("missing auth audience when auth is enabled")
+		if c.Auth.AllowedAudience == "" {
+			return fmt.Errorf("missing auth allowedAudience when auth is enabled")
+		}
+		if len(c.Auth.AllowedIssuers) == 0 {
+			return fmt.Errorf("missing auth allowedIssuers when auth is enabled")
 		}
 	}
 
@@ -228,7 +227,14 @@ func run(ctx context.Context) error {
 
 	var oidcMW func(http.Handler) http.Handler
 	if cfg.Auth != nil {
-		oidcMW, err = oidcauth.New(ctx, map[string]string{"audience": cfg.Auth.Audience})
+		for i, iss := range cfg.Auth.AllowedIssuers {
+			cfg.Auth.AllowedIssuers[i] = strings.TrimSpace(iss)
+		}
+		for i, sa := range cfg.Auth.AllowedSAs {
+			cfg.Auth.AllowedSAs[i] = strings.TrimSpace(sa)
+		}
+
+		oidcMW, err = oidcauth.New(ctx, cfg.Auth)
 		if err != nil {
 			return fmt.Errorf("failed to create oidc auth middleware: %w", err)
 		}

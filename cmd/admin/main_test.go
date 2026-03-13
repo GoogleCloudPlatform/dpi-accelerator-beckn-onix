@@ -24,6 +24,7 @@ import (
 	"github.com/google/dpi-accelerator-beckn-onix/internal/log"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/repository"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/service"
+	"github.com/google/dpi-accelerator-beckn-onix/plugins/oidcauth"
 )
 
 func TestConfig_Valid_Success(t *testing.T) {
@@ -226,7 +227,7 @@ func TestConfig_Valid_Error(t *testing.T) {
 			expectedError: "encryptionKeyID is missing in setup config",
 		},
 		{
-			name: "missing auth audience",
+			name: "missing auth allowedAudience",
 			cfg: &config{
 				Log:      validLogCfg,
 				Timeouts: validTimeoutsCfg,
@@ -236,9 +237,24 @@ func TestConfig_Valid_Error(t *testing.T) {
 				Event:    validEventCfg,
 				Setup:    validSetupCfg,
 				NPClient: validNPClientCfg,
-				Auth:     &authConfig{Audience: ""},
+				Auth:     &oidcauth.Config{AllowedAudience: "", AllowedIssuers: []string{"iss"}},
 			},
-			expectedError: "missing auth audience when auth is enabled",
+			expectedError: "missing auth allowedAudience when auth is enabled",
+		},
+		{
+			name: "missing auth allowedIssuers",
+			cfg: &config{
+				Log:      validLogCfg,
+				Timeouts: validTimeoutsCfg,
+				Server:   validServerCfg,
+				DB:       validDBCfg,
+				Admin:    validAdminCfg,
+				Event:    validEventCfg,
+				Setup:    validSetupCfg,
+				NPClient: validNPClientCfg,
+				Auth:     &oidcauth.Config{AllowedAudience: "aud", AllowedIssuers: []string{}},
+			},
+			expectedError: "missing auth allowedIssuers when auth is enabled",
 		},
 	}
 
