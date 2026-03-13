@@ -27,7 +27,9 @@ import (
 
 // Config represents the configuration for the OIDC validation middleware.
 type Config struct {
-	Audience string
+	AllowedAudience string   `yaml:"allowedAudience"`
+	AllowedIssuers  []string `yaml:"allowedIssuers"`
+	AllowedSAs      []string `yaml:"allowedSAs"`
 }
 
 type contextKey struct{}
@@ -45,11 +47,7 @@ func FromContext(ctx context.Context) (*idtoken.Payload, bool) {
 
 // New returns a middleware that processes the incoming request,
 // extracts the Bearer token, and validates it using Google's OIDC implementation.
-func New(ctx context.Context, cfg map[string]string) (func(http.Handler) http.Handler, error) {
-	config := &Config{
-		Audience: cfg["audience"],
-	}
-
+func New(ctx context.Context, config *Config) (func(http.Handler) http.Handler, error) {
 	if err := validateConfig(config); err != nil {
 		return nil, err
 	}
@@ -70,10 +68,9 @@ func New(ctx context.Context, cfg map[string]string) (func(http.Handler) http.Ha
 
 			token := parts[1]
 
-			payload, err := idtokenValidate(r.Context(), token, config.Audience)
+			payload, err := validateToken(r.Context(), token, config)
 			if err != nil {
-				log.Errorf(r.Context(), err, "invalid oidc token")
-				http.Error(w, "Invalid token", http.StatusUnauthorized)
+				http.Error(w, err.Error(), http.StatusUnauthorized)
 				return
 			}
 
@@ -91,9 +88,69 @@ func validateConfig(cfg *Config) error {
 		return errors.New("config cannot be nil")
 	}
 
-	if cfg.Audience == "" {
-		return errors.New("audience is required")
+	if cfg.AllowedAudience == "" {
+		return errors.New("allowed audience is required")
+	}
+
+	if len(cfg.AllowedIssuers) == 0 {
+		return errors.New("allowed issuers are required")
 	}
 
 	return nil
+}
+
+func validateToken(ctx context.Context, token string, config *Config) (*idtoken.Payload, error) {
+	payload, err := idtokenValidate(ctx, token, config.AllowedAudience)
+	if err != nil {
+		log.Errorf(ctx, err, "invalid oidc token")
+		return nil, errors.New("Invalid token")
+	}
+
+	if isGoogleIssuer(payload.Issuer) {
+		// For Google issuers, validate against the allowed SAs
+		if !isSAAuthorized(payload.Claims, config.AllowedSAs) {
+			log.Errorf(ctx, nil, "token failed sa validation")
+			return nil, errors.New("Unauthorized: invalid sa")
+		}
+	} else {
+		// For non-Google issuers, validate against the allowed issuer
+		if !isIssuerAuthorized(payload.Issuer, config.AllowedIssuers) {
+			log.Errorf(ctx, nil, "token failed issuer validation")
+			return nil, errors.New("Unauthorized: invalid issuer")
+		}
+	}
+
+	return payload, nil
+}
+
+func isGoogleIssuer(issuer string) bool {
+	return issuer == "https://accounts.google.com" || issuer == "accounts.google.com"
+}
+
+func isSAAuthorized(claims map[string]any, allowedSAs []string) bool {
+	if len(allowedSAs) == 0 {
+		return false
+	}
+	emailClaim, ok := claims["email"].(string)
+	if !ok || emailClaim == "" {
+		return false
+	}
+	for _, allowedSA := range allowedSAs {
+		if strings.EqualFold(emailClaim, allowedSA) {
+			return true
+		}
+	}
+	return false
+}
+
+func isIssuerAuthorized(tokenIssuer string, allowedIssuers []string) bool {
+	if len(allowedIssuers) == 0 {
+		return false
+	}
+	for _, allowedIssuer := range allowedIssuers {
+		if tokenIssuer == strings.TrimSpace(allowedIssuer) {
+			return true
+		}
+	}
+	return false
 }

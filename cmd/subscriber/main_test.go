@@ -22,6 +22,7 @@ import (
 	"github.com/google/dpi-accelerator-beckn-onix/internal/client"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/event"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/log"
+	"github.com/google/dpi-accelerator-beckn-onix/plugins/oidcauth"
 )
 
 func TestConfig_Valid_Success(t *testing.T) {
@@ -277,7 +278,7 @@ func TestConfig_Valid_Error(t *testing.T) {
 			expectedError: "missing required config section: event",
 		},
 		{
-			name: "missing auth audience",
+			name: "missing auth allowedAudience",
 			cfg: &config{
 				Log:       validLogCfg,
 				Timeouts:  validTimeoutsCfg,
@@ -288,9 +289,25 @@ func TestConfig_Valid_Error(t *testing.T) {
 				RegID:     "reg",
 				RegKeyID:  "key",
 				Event:     validEventCfg,
-				Auth:      &authConfig{Audience: ""},
+				Auth:      &oidcauth.Config{AllowedAudience: ""},
 			},
-			expectedError: "missing auth audience when auth is enabled",
+			expectedError: "missing auth allowedAudience when auth is enabled",
+		},
+		{
+			name: "missing auth allowedIssuers",
+			cfg: &config{
+				Log:       validLogCfg,
+				Timeouts:  validTimeoutsCfg,
+				Server:    validServerCfg,
+				ProjectID: "proj",
+				Registry:  validRegistryCfg,
+				RedisAddr: "redis",
+				RegID:     "reg",
+				RegKeyID:  "key",
+				Event:     validEventCfg,
+				Auth:      &oidcauth.Config{AllowedAudience: "aud", AllowedIssuers: []string{}},
+			},
+			expectedError: "missing auth allowedIssuers when auth is enabled",
 		},
 	}
 
