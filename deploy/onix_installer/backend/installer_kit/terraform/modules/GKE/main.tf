@@ -86,7 +86,6 @@ resource "google_container_cluster" "primary_cluster" {
 
     logging_service = var.logging_service
     # The logging service that the cluster should write logs to. Available options include logging.googleapis.com, logging.googleapis.com/kubernetes (beta), and none
-    # Default is logging.googleapis.com
 
     monitoring_service = var.monitoring_service
     # The monitoring service that the cluster should write metrics to. Available options include monitoring.googleapis.com, monitoring.googleapis.com/kubernetes (beta), and none
