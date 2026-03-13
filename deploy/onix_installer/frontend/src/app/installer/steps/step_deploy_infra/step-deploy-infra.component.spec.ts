@@ -29,6 +29,7 @@ import {DeploymentStatus, InfraDetails, InstallerState} from '../../types/instal
 import {StepDeployInfraComponent} from './step-deploy-infra.component';
 
 const initialMockState: InstallerState = {
+  isConfigLocked: false,
   currentStepIndex: 4,
   installerGoal: 'create_new_open_network',
   prerequisitesMet: true,
@@ -78,7 +79,7 @@ const initialMockState: InstallerState = {
 
 
 class MockInstallerStateService {
-  private state = new BehaviorSubject<InstallerState>(initialMockState);
+  public state = new BehaviorSubject<InstallerState>(initialMockState);
 
   installerState$ = this.state.asObservable();
 
@@ -150,6 +151,15 @@ describe('StepDeployInfraComponent', () => {
     fixture.detectChanges();
   });
 
+  it('should disable appName if config is locked', fakeAsync(() => {
+       const state = installerStateService.getCurrentState();
+       installerStateService.state.next({...state, isConfigLocked: true});
+       fixture.detectChanges();
+       tick();
+
+       expect(component.deployInfraForm.get('appName')?.disabled).toBeTrue();
+     }));
+
   it('should create and initialize the form', () => {
     expect(component).toBeTruthy();
     expect(component.deployInfraForm).toBeDefined();
@@ -182,6 +192,19 @@ describe('StepDeployInfraComponent', () => {
       component.onDeployInfra();
       expect(webSocketService.connect).not.toHaveBeenCalled();
     });
+
+    it('should deploy if form is invalid only because appName is invalid but disabled',
+       () => {
+         spyOn(component.deployInfraForm, 'markAllAsTouched');
+         component.deployInfraForm.get('appName')?.setValue(
+             '');                                              // invalid value
+         component.deployInfraForm.get('appName')?.disable();  // but disabled
+         component.deployInfraForm.patchValue(
+             {deploymentSize: 'small', cloudArmorRegions: 'IN'});
+
+         component.onDeployInfra();
+         expect(webSocketService.connect).toHaveBeenCalled();
+       });
 
     it('should not deploy if GCP configuration is missing', () => {
       spyOn(installerStateService, 'getCurrentState')

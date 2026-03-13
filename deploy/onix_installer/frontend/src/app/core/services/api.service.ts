@@ -46,6 +46,10 @@ export class ApiService {
     return this.http.get<any>(`${this.apiUrl}store`);
   }
 
+  getInstallerState(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}api/installer-state`);
+  }
+
 
   storeState(key: string, value: any): Observable<any> {
     return this.http.post(`${this.apiUrl}store`, { key, value });

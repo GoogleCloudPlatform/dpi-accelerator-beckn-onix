@@ -31,6 +31,7 @@ import {DeploymentGoal, DeploymentStatus, InstallerState} from '../../types/inst
 import {StepAppDeployComponent} from './step-deploy-app.component';
 
 const initialMockState: InstallerState = {
+  isConfigLocked: false,
   currentStepIndex: 6,
   highestStepReached: 6,
   installerGoal: 'create_new_open_network',

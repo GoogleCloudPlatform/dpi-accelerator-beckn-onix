@@ -28,6 +28,7 @@ import {ApiService} from './api.service';
 })
 export class InstallerStateService {
   private initialState: InstallerState = {
+    isConfigLocked: false,
     currentStepIndex: 0,
     highestStepReached: 0,
     installerGoal: null,

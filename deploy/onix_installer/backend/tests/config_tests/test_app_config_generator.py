@@ -59,15 +59,15 @@ class TestAppConfigGenerator(unittest.TestCase):
         self.default_infra_outputs = {
             "project_id": "default-project",
             "cluster_name": "default-cluster",
-            "cluster_region": "default-region",
+            "region": "default-region",
             "redis_instance_ip": "1.2.3.4",
             "onix_topic_name": "onix-topic",
             "adapter_topic_name": "adapter-topic",
             "database_user_sa_email": "db-user@example.gserviceaccount.com",
             "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
             "registry_database_name": "reg-db",
-            "registry_db_connection_name": "reg-conn",
-            "config_bucket_name": "config-bucket",
+            "db_instance_connection_name": "reg-conn",
+            "gcs_bucket": "config-bucket",
             "url_map": "mock-url-map",
             "global_ip_address": "35.35.35.35",
         }
@@ -105,15 +105,15 @@ class TestAppConfigGenerator(unittest.TestCase):
 
     @patch('config.app_config_generator.utils.read_json_file', return_value={
         "project_id": {"value": "test-project"},
-        "cluster_region": {"value": "test-region"},
+        "region": {"value": "test-region"},
         "redis_instance_ip": {"value": "1.2.3.4"},
         "onix_topic_name": {"value": "onix-topic"},
         "adapter_topic_name": {"value": "adapter-topic"},
         "database_user_sa_email": {"value": "db-user@example.gserviceaccount.com"},
         "registry_admin_database_user_sa_email": {"value": "reg-admin@example.gserviceaccount.com"},
         "registry_database_name": {"value": "reg-db"},
-        "registry_db_connection_name": {"value": "reg-conn"},
-        "config_bucket_name": {"value": "config-bucket"},
+        "db_instance_connection_name": {"value": "reg-conn"},
+        "gcs_bucket": {"value": "config-bucket"},
         "url_map": {"value": "mock-url-map"},
         "global_ip_address": {"value": "35.35.35.35"},
     })
@@ -129,15 +129,15 @@ class TestAppConfigGenerator(unittest.TestCase):
         mock_read_json_file.assert_called_once_with(expected_path)
         self.assertEqual(result, {
             "project_id": "test-project",
-            "cluster_region": "test-region",
+            "region": "test-region",
             "redis_instance_ip": "1.2.3.4",
             "onix_topic_name": "onix-topic",
             "adapter_topic_name": "adapter-topic",
             "database_user_sa_email": "db-user@example.gserviceaccount.com",
             "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
             "registry_database_name": "reg-db",
-            "registry_db_connection_name": "reg-conn",
-            "config_bucket_name": "config-bucket",
+            "db_instance_connection_name": "reg-conn",
+            "gcs_bucket": "config-bucket",
             "url_map": "mock-url-map",
             "global_ip_address": "35.35.35.35",
         })
@@ -216,15 +216,15 @@ class TestAppConfigGenerator(unittest.TestCase):
         )
         infra_outputs = {
             "project_id": "infra-proj",
-            "cluster_region": "infra-region",
+            "region": "infra-region",
             "redis_instance_ip": "10.0.0.1",
             "onix_topic_name": "onix-t",
             "adapter_topic_name": "adapter-t",
             "database_user_sa_email": "user@my-proj.iam.gserviceaccount.com",
             "registry_admin_database_user_sa_email": "admin@my-proj.iam.gserviceaccount.com",
             "registry_database_name": "reg-db",
-            "registry_db_connection_name": "reg-conn",
-            "config_bucket_name": "config-bucket-name",
+            "db_instance_connection_name": "reg-conn",
+            "gcs_bucket": "config-bucket-name",
             "url_map": "mock-url-map-id",
             "global_ip_address": "35.35.35.35",
         }
@@ -239,6 +239,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         self.assertEqual(context["database_user_sa_email"], "user@my-proj.iam")
         self.assertEqual(context["registry_admin_database_user_sa_email"], "admin@my-proj.iam")
         self.assertEqual(context["registry_url"], "http://reg.example.com/")
+        self.assertEqual(context["suffix"], "test-app")
         self.assertEqual(context["domains"], {
                 "auth_domain": "auth.example.com",
                 "adapter": "adapter.example.com",
@@ -268,10 +269,10 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('config.app_config_generator.utils.render_jinja_template', return_value="rendered_content")
     @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
-        "project_id": "test-project", "cluster_name": "test-cluster", "cluster_region": "us-central1",
+        "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
         "database_user_sa_email": "db-user@example.gserviceaccount.com", "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
-        "registry_database_name": "reg-db", "registry_db_connection_name": "reg-conn", "config_bucket_name": "config-bucket",
+        "registry_database_name": "reg-db", "db_instance_connection_name": "reg-conn", "gcs_bucket": "config-bucket",
         "url_map": "mock-url-map", "global_ip_address": "35.35.35.35",
     })
     @patch('os.path.join', side_effect=os.path.join)
@@ -329,7 +330,7 @@ class TestAppConfigGenerator(unittest.TestCase):
             call(os.path.join(self.mock_generated_configs_dir, self.mock_registry_admin_template.replace('.j2', '')), "rendered_content"),
         ]
 
-        tf_vars_output_dir = os.path.join(self.mock_tf_dir, 'phase2')
+        tf_vars_output_dir = os.path.join(self.mock_tf_dir, 'modules/ONIX/phase2')
         expected_write_calls_tfvars = [
             call(os.path.join(tf_vars_output_dir, self.mock_tfvars_template.replace('.j2', '')), "rendered_content"),
         ]
@@ -345,10 +346,10 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('config.app_config_generator.utils.render_jinja_template', return_value="rendered_content")
     @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
-        "project_id": "test-project", "cluster_name": "test-cluster", "cluster_region": "us-central1",
+        "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
         "database_user_sa_email": "db-user@example.gserviceaccount.com", "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
-        "registry_database_name": "reg-db", "registry_db_connection_name": "reg-conn", "config_bucket_name": "config-bucket",
+        "registry_database_name": "reg-db", "db_instance_connection_name": "reg-conn", "gcs_bucket": "config-bucket",
         "url_map": "mock-url-map", "global_ip_address": "35.35.35.35",
     })
     @patch('os.path.join', side_effect=os.path.join)
@@ -395,7 +396,7 @@ class TestAppConfigGenerator(unittest.TestCase):
             call(os.path.join(self.mock_generated_configs_dir, self.mock_registry_admin_template.replace('.j2', '')), "rendered_content"),
         ]
 
-        tf_vars_output_dir = os.path.join(self.mock_tf_dir, 'phase2')
+        tf_vars_output_dir = os.path.join(self.mock_tf_dir, 'modules/ONIX/phase2')
         expected_write_calls_tfvars = [
             call(os.path.join(tf_vars_output_dir, self.mock_tfvars_template.replace('.j2', '')), "rendered_content"),
         ]
@@ -411,10 +412,10 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('config.app_config_generator.utils.render_jinja_template', side_effect=FileNotFoundError("Missing J2"))
     @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
-        "project_id": "test-project", "cluster_name": "test-cluster", "cluster_region": "us-central1",
+        "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
         "database_user_sa_email": "db-user@example.gserviceaccount.com", "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
-        "registry_database_name": "reg-db", "registry_db_connection_name": "reg-conn", "config_bucket_name": "config-bucket",
+        "registry_database_name": "reg-db", "db_instance_connection_name": "reg-conn", "gcs_bucket": "config-bucket",
         "url_map": "mock-url-map", "global_ip_address": "35.35.35.35",
     })
     @patch('os.path.join', side_effect=os.path.join)
@@ -444,10 +445,10 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('config.app_config_generator.utils.render_jinja_template', return_value="content")
     @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
-        "project_id": "test-project", "cluster_name": "test-cluster", "cluster_region": "us-central1",
+        "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
         "database_user_sa_email": "db-user@example.gserviceaccount.com", "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
-        "registry_database_name": "reg-db", "registry_db_connection_name": "reg-conn", "config_bucket_name": "config-bucket",
+        "registry_database_name": "reg-db", "db_instance_connection_name": "reg-conn", "gcs_bucket": "config-bucket",
         "url_map": "mock-url-map", "global_ip_address": "35.35.35.35",
     })
     @patch('os.path.join', side_effect=os.path.join)
@@ -751,7 +752,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         mock_load_infra.return_value = {
             "project_id": "test-project-id",
             "cluster_name": "test-cluster",
-            "cluster_region": "us-central1",
+            "region": "us-central1",
         }
         services = ["adapter", "registry", "my_custom_service"]
         
@@ -797,10 +798,10 @@ class TestAppConfigGenerator(unittest.TestCase):
         mock_load_infra.return_value = {
             "project_id": "test-project-id",
             "cluster_name": "test-cluster",
-            "cluster_region": "us-central1",
+            "region": "us-central1",
         }
         services = []
-        
+
         result_urls = app_config_generator.generate_logs_explorer_urls(services)
 
         self.assertEqual(result_urls, {})

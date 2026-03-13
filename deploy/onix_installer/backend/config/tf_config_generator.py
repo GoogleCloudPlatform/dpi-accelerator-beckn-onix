@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
 import logging
 import os
+from typing import Any
 
+from core.constants import INSTALLER_KIT_PATH, TEMPLATE_DIRECTORY, TERRAFORM_DIRECTORY
 from core.models import InfraDeploymentRequest
 from core.utils import render_jinja_template, write_file_content
-from core.constants import TERRAFORM_DIRECTORY, TEMPLATE_DIRECTORY
 
 logger = logging.getLogger(__name__)
 
@@ -25,55 +27,137 @@ logger = logging.getLogger(__name__)
 MAIN_CONFIG_TEMPLATE_NAME = "main_tfvars.tfvars.j2"
 OUTPUT_TFVARS_FILENAME = "generated-terraform.tfvars"
 
-def generate_config(deploy_infra_req: InfraDeploymentRequest):
-    """
-    Orchestrates the configuration generation process for Terraform.
-    Processes a main template which contains all size-specific logic,
-    and writes the rendered content to the final terraform.tfvars file.
-    """
-    logger.info("Starting Terraform Configuration File Generation.")
 
-    template_source_dir = os.path.join(TEMPLATE_DIRECTORY, "tf_configs")
+def validate_immutable_triplet(
+    state_data: dict[str, Any], deploy_req: InfraDeploymentRequest
+) -> None:
+  """Validates immutable state identifiers in deployment requests.
 
-    # Define the output directory and file for the generated tfvars.
-    output_tfvars_path = os.path.join(TERRAFORM_DIRECTORY, OUTPUT_TFVARS_FILENAME)
+  Throws a ValueError if a user tries to deploy to a different project, region,
+  or app_name
+  than the one already recorded in installer_state.json.
 
-    # Prepare Jinja2 context from user overrides.
-    # The deployment_type is included so conditional logic can be used within the template.
-    jinja_context = {
-        "project_id": deploy_infra_req.project_id,
-        "region": deploy_infra_req.region,
-        "suffix": deploy_infra_req.app_name,
-        "deployment_size": deploy_infra_req.type.value.lower(),
-        "provision_adapter_infra": deploy_infra_req.components.get('bap', False) or deploy_infra_req.components.get('bpp', False),
-        "provision_gateway_infra": deploy_infra_req.components.get('gateway', False),
-        "provision_registry_infra": deploy_infra_req.components.get('registry', False),
-        "enable_cloud_armor": deploy_infra_req.enable_cloud_armor,
-        "allowed_regions": deploy_infra_req.allowed_regions,
-        "rate_limit_count": deploy_infra_req.rate_limit_count,
-    }
-    logger.debug(f"Jinja2 context for Terraform: {jinja_context}")
+  Args:
+      state_data: A dictionary containing the current installer state, typically
+        loaded from installer_state.json.
+      deploy_req: An InfraDeploymentRequest object representing the new
+        deployment request.
+  """
+  checks = [
+      ("project_id", deploy_req.project_id),
+      ("region", deploy_req.region),
+      ("app_name", deploy_req.app_name),
+  ]
 
-    # Process the main terraform configuration template.
-    logger.info(f"Processing main configuration template: '{MAIN_CONFIG_TEMPLATE_NAME}'...")
+  for key, new_val in checks:
+    existing_val = state_data.get(key)
+    if existing_val and new_val != existing_val:
+      raise ValueError(
+          f"Cannot change {key} from '{existing_val}' to '{new_val}' "
+          "on an existing deployment."
+      )
+
+
+def generate_config(deploy_infra_req: InfraDeploymentRequest) -> None:
+  """Orchestrates the configuration generation process for Terraform.
+
+  Processes a main template which contains all size-specific logic, and writes
+  the rendered content to the final terraform.tfvars file.
+
+  Args:
+      deploy_infra_req: An InfraDeploymentRequest object containing the
+        deployment parameters.
+  """
+  logger.info("Starting Terraform Configuration File Generation.")
+
+  template_source_dir = os.path.join(TEMPLATE_DIRECTORY, "tf_configs")
+
+  # Define the output directory and file for the generated tfvars.
+  output_tfvars_path = os.path.join(TERRAFORM_DIRECTORY, OUTPUT_TFVARS_FILENAME)
+
+  # 1. Read existing state if present
+  state_file_path = os.path.join(INSTALLER_KIT_PATH, "installer_state.json")
+  state_data = {}
+  if os.path.exists(state_file_path):
     try:
-        rendered_content = render_jinja_template(
-            template_dir=template_source_dir,
-            template_name=MAIN_CONFIG_TEMPLATE_NAME,
-            context=jinja_context
-        )
-        logger.info("Main configuration template processed successfully.")
+      with open(state_file_path, "r") as f:
+        state_data = json.load(f)
+        logger.info("Loaded core intent from existing installer_state.json")
+
+        validate_immutable_triplet(state_data, deploy_infra_req)
+
     except Exception as e:
-        logger.error(f"Failed to process main Terraform configuration template: {e}")
-        raise
+      logger.error("Error reading %s: %s", state_file_path, e)
+      raise
 
-    # Write the rendered content to the single output file.
-    logger.info(f"Writing generated terraform.tfvars to: '{output_tfvars_path}'")
-    try:
-        write_file_content(output_tfvars_path, rendered_content)
-        logger.info(f"Successfully generated single '{OUTPUT_TFVARS_FILENAME}' file.")
-    except IOError as e:
-        logger.error(f"Error writing tfvars file '{output_tfvars_path}': {e}. Aborting configuration generation.")
-        raise
+  # 3. Prepare updated Jinja2 context from user overrides.
+  jinja_context = {
+      "project_id": deploy_infra_req.project_id,
+      "region": deploy_infra_req.region,
+      "app_name": deploy_infra_req.app_name,
+      "deployment_size": deploy_infra_req.type.value.lower(),
+      "provision_adapter_infra": (
+          deploy_infra_req.components.get("bap", False)
+          or deploy_infra_req.components.get("bpp", False)
+      ),
+      "provision_gateway_infra": deploy_infra_req.components.get(
+          "gateway", False
+      ),
+      "provision_registry_infra": deploy_infra_req.components.get(
+          "registry", False
+      ),
+      "enable_cloud_armor": deploy_infra_req.enable_cloud_armor,
+      "allowed_regions": deploy_infra_req.allowed_regions,
+      "rate_limit_count": deploy_infra_req.rate_limit_count,
+      "enable_onix": any(
+          deploy_infra_req.components.get(k, False)
+          for k in ["registry", "gateway", "bap", "bpp"]
+      ),
+      "enable_agent": state_data.get("enable_agent", False),
+  }
+  logger.debug("Jinja2 context for Terraform: %s", jinja_context)
 
-    logger.info("Terraform Configuration Generation Complete.")
+  # 4. Write intent back to purely local installer_state.json
+  try:
+    with open(state_file_path, "w") as f:
+      json.dump(jinja_context, f, indent=4)
+      logger.info("Persisted deployment intent to %s", state_file_path)
+  except Exception as e:
+    logger.error("Error writing to %s: %s", state_file_path, e)
+    raise
+
+  # Process the main terraform configuration template.
+  logger.info(
+      "Processing main configuration template: '%s'...",
+      MAIN_CONFIG_TEMPLATE_NAME,
+  )
+  try:
+    rendered_content = render_jinja_template(
+        template_dir=template_source_dir,
+        template_name=MAIN_CONFIG_TEMPLATE_NAME,
+        context=jinja_context,
+    )
+    logger.info("Main configuration template processed successfully.")
+  except Exception as e:
+    logger.error(
+        "Failed to process main Terraform configuration template: %s", e
+    )
+    raise
+
+  # Write the rendered content to the single output file.
+  logger.info("Writing generated terraform.tfvars to: '%s'", output_tfvars_path)
+  try:
+    write_file_content(output_tfvars_path, rendered_content)
+    logger.info(
+        "Successfully generated single '%s' file.", OUTPUT_TFVARS_FILENAME
+    )
+  except IOError as e:
+    logger.error(
+        "Error writing tfvars file '%s': %s. Aborting"
+        " configuration generation.",
+        output_tfvars_path,
+        e,
+    )
+    raise
+
+  logger.info("Terraform Configuration Generation Complete.")
