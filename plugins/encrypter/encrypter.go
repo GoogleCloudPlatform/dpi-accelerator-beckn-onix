@@ -27,7 +27,7 @@ import (
 	"fmt"
 	"io"
 
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/model/model"
+	"github.com/beckn-one/beckn-onix/pkg/model"
 	"golang.org/x/crypto/hkdf"
 
 	
