@@ -27,6 +27,7 @@ import {ComponentSubdomainPrefix, DomainConfig, InstallerState} from '../../type
 import {StepDomainConfigComponent} from './step-domain-configuration.component';
 
 const initialMockState: InstallerState = {
+  isConfigLocked: false,
   currentStepIndex: 5,
   installerGoal: 'create_new_open_network',
   prerequisitesMet: true,
