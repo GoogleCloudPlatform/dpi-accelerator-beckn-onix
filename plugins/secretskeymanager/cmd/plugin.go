@@ -21,7 +21,8 @@ import (
 
 	keymgr "github.com/google/dpi-accelerator-beckn-onix/plugins/secretskeymanager"
 
-	plugin "google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/definition/definition" // Plugin definitions will be imported from here.
+	plugin "github.com/beckn-one/beckn-onix/pkg/plugin/definition"
+	// Plugin definitions will be imported from here.
 )
 
 var newKeyManager = func(ctx context.Context, cache plugin.Cache, registryLookup plugin.RegistryLookup, cfg *keymgr.Config) (plugin.KeyManager, func() error, error) {

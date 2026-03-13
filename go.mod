@@ -9,7 +9,7 @@ require (
 	cloud.google.com/go/storage v1.50.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/alicebob/miniredis/v2 v2.36.1
-	github.com/beckn/beckn-onix v1.0.0
+	github.com/beckn-one/beckn-onix v1.3.1
 	github.com/doug-martin/goqu/v9 v9.19.0
 	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-git/go-git/v5 v5.16.4

@@ -27,8 +27,8 @@ import (
 
 	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 
-	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/model/model"
-	plugin "google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/definition/definition" // Plugin definitions will be imported from here.
+	"github.com/beckn-one/beckn-onix/pkg/model"
+	plugin "github.com/beckn-one/beckn-onix/pkg/plugin/definition" // Plugin definitions will be imported from here.
 
 	"github.com/googleapis/gax-go/v2"
 	"google.golang.org/grpc/codes"
