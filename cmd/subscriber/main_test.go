@@ -276,6 +276,22 @@ func TestConfig_Valid_Error(t *testing.T) {
 			},
 			expectedError: "missing required config section: event",
 		},
+		{
+			name: "missing auth audience",
+			cfg: &config{
+				Log:       validLogCfg,
+				Timeouts:  validTimeoutsCfg,
+				Server:    validServerCfg,
+				ProjectID: "proj",
+				Registry:  validRegistryCfg,
+				RedisAddr: "redis",
+				RegID:     "reg",
+				RegKeyID:  "key",
+				Event:     validEventCfg,
+				Auth:      &authConfig{Audience: ""},
+			},
+			expectedError: "missing auth audience when auth is enabled",
+		},
 	}
 
 	for _, tt := range tests {

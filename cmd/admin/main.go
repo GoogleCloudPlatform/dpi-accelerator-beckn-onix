@@ -39,9 +39,15 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/google/dpi-accelerator-beckn-onix/plugins/encrypter"
+	"github.com/google/dpi-accelerator-beckn-onix/plugins/oidcauth"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
 	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/definition/definition"
 )
+
+// authConfig represents the active authentication configurations
+type authConfig struct {
+	Audience string `yaml:"audience"`
+}
 
 // config represents application configuration.
 type config struct {
@@ -53,6 +59,7 @@ type config struct {
 	Admin    *service.AdminConfig                    `yaml:"admin"`
 	Event    *event.Config                           `yaml:"event"`
 	Setup    *service.RegistrySelfRegistrationConfig `yaml:"setup"`
+	Auth     *authConfig                             `yaml:"auth"`
 }
 
 type serverConfig struct {
@@ -123,6 +130,11 @@ func (c *config) valid() error {
 	}
 	if c.Setup.KeyID == "" {
 		return fmt.Errorf("encryptionKeyID is missing in setup config")
+	}
+	if c.Auth != nil {
+		if c.Auth.Audience == "" {
+			return fmt.Errorf("missing auth audience when auth is enabled")
+		}
 	}
 	return nil
 }
@@ -236,9 +248,18 @@ func newServer(ctx context.Context, cfg *config, db *sql.DB, encyr definition.En
 		slog.Error("Failed to create admin handler", "error", err)
 		return nil, fmt.Errorf("failed to create admin handler: %w", err)
 	}
+
+	var oidcMW func(http.Handler) http.Handler
+	if cfg.Auth != nil {
+		oidcMW, err = oidcauth.New(ctx, map[string]string{"audience": cfg.Auth.Audience})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create oidc auth middleware: %w", err)
+		}
+	}
+
 	return &http.Server{
 		Addr:         net.JoinHostPort(cfg.Server.Host, strconv.Itoa(cfg.Server.Port)),
-		Handler:      admin.NewRouter(h),
+		Handler:      admin.NewRouter(h, oidcMW),
 		ReadTimeout:  cfg.Timeouts.Read,
 		WriteTimeout: cfg.Timeouts.Write,
 		IdleTimeout:  cfg.Timeouts.Idle,

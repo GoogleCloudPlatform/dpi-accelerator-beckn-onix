@@ -35,11 +35,17 @@ import (
 	"github.com/google/dpi-accelerator-beckn-onix/internal/service"
 	decryption "github.com/google/dpi-accelerator-beckn-onix/plugins/decrypter"
 	keyManager "github.com/google/dpi-accelerator-beckn-onix/plugins/inmemorysecretkeymanager"
+	"github.com/google/dpi-accelerator-beckn-onix/plugins/oidcauth"
 	"github.com/google/dpi-accelerator-beckn-onix/plugins/rediscache"
 	becknclient "google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/core/module/client/client"
 	"google3/third_party/golang/github_com/beckn/beckn_onix/v/v1/pkg/plugin/implementation/signer/signer"
 	yaml "gopkg.in/yaml.v3"
 )
+
+// authConfig represents the active authentication configurations
+type authConfig struct {
+	Audience string `yaml:"audience"`
+}
 
 // config represents application configuration for the subscriber service.
 type config struct {
@@ -53,6 +59,7 @@ type config struct {
 	RegID              string                       `yaml:"regID"`    // Registry's ID
 	RegKeyID           string                       `yaml:"regKeyID"` // Registry's public key ID for decryption
 	Event              *event.Config                `yaml:"event"`
+	Auth               *authConfig                  `yaml:"auth"`
 }
 
 type serverConfig struct {
@@ -127,6 +134,11 @@ func (c *config) valid() error {
 		slog.Warn("Config validation: cacheTTL section missing, using default retry values.")
 		// Provide default values or handle as an error if strict config is required
 		c.KeyManagerCacheTTL = &keyManager.CacheTTL{PrivateKeysSeconds: 5, PublicKeysSeconds: 3600}
+	}
+	if c.Auth != nil {
+		if c.Auth.Audience == "" {
+			return fmt.Errorf("missing auth audience when auth is enabled")
+		}
 	}
 
 	return nil
@@ -214,10 +226,18 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("failed to create subscriber handler: %w", err)
 	}
 
+	var oidcMW func(http.Handler) http.Handler
+	if cfg.Auth != nil {
+		oidcMW, err = oidcauth.New(ctx, map[string]string{"audience": cfg.Auth.Audience})
+		if err != nil {
+			return fmt.Errorf("failed to create oidc auth middleware: %w", err)
+		}
+	}
+
 	// Initialize HTTP Server
 	server := &http.Server{
 		Addr:         net.JoinHostPort(cfg.Server.Host, strconv.Itoa(cfg.Server.Port)),
-		Handler:      subscriber.NewRouter(subHandler),
+		Handler:      subscriber.NewRouter(subHandler, oidcMW),
 		ReadTimeout:  cfg.Timeouts.Read,
 		WriteTimeout: cfg.Timeouts.Write,
 		IdleTimeout:  cfg.Timeouts.Idle,

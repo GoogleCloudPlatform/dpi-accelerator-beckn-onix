@@ -34,7 +34,7 @@ func (m *mockAdminHandler) HandleSubscriptionAction(w http.ResponseWriter, r *ht
 func TestRouter_Routes(t *testing.T) {
 	h := &mockAdminHandler{}
 
-	router := NewRouter(h)
+	router := NewRouter(h, nil)
 
 	tests := []struct {
 		name            string
@@ -93,5 +93,35 @@ func TestRouter_Routes(t *testing.T) {
 			}
 			tc.handlerCheck(t)
 		})
+	}
+}
+
+func TestRouter_WithMiddleware(t *testing.T) {
+	h := &mockAdminHandler{}
+
+	middlewareCalled := false
+	dummyMiddleware := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			middlewareCalled = true
+			next.ServeHTTP(w, r)
+		})
+	}
+
+	router := NewRouter(h, dummyMiddleware)
+
+	req := httptest.NewRequest(http.MethodPost, "/operations/action", nil)
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+
+	if !middlewareCalled {
+		t.Errorf("expected middleware to be called")
+	}
+
+	if !h.handleSubscriptionActionCalled {
+		t.Errorf("expected handler to be called")
 	}
 }
