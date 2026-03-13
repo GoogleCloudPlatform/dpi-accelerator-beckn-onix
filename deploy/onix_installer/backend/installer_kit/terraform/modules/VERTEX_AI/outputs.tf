@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,24 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-variable "endpoint" {
-    type = string
-    description = "The endpoint of the cluster"
+output "reasoning_engine_name" {
+  description = "The ID of the Reasoning Engine"
+  value       = google_vertex_ai_reasoning_engine.agent_engine.name
 }
 
-variable "access_token" {
-    type = string
-    description = "The access token for the cluster"
+output "reasoning_engine_resource_id" {
+  description = "The Resource ID of the Reasoning Engine"
+  value       = google_vertex_ai_reasoning_engine.agent_engine.id
 }
-
-variable "ca_certificate" {
-    type = string
-    description = "The CA certificate for the cluster"
-}
-
-/**
-variable "config_path" {
-    type = any
-    description = "The path to the kubeconfig file"
-}
-**/

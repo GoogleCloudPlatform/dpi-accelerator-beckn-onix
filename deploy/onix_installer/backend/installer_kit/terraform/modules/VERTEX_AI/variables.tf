@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,15 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "db_instance_name" {
-  value       = google_sql_database_instance.instance.name
+variable "region" {
+  description = "The region"
+  type        = string
 }
 
-output "db_connection_name" {
-  value       = google_sql_database_instance.instance.connection_name
-}
-
-output "private_ip_address" {
-  value       = google_sql_database_instance.instance.private_ip_address
-  description = "The private IP address of the Cloud SQL instance"
+variable "app_name" {
+  description = "The application name, used for bucket naming"
+  type        = string
 }
