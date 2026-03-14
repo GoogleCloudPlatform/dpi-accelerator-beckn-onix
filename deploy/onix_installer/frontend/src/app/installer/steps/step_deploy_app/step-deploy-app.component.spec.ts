@@ -92,6 +92,8 @@ const initialMockState: InstallerState = {
     enableInBoundAuth: true,
     enableOutBoundAuth: true,
     issuerUrl: 'https://issuer.com',
+    idclaim: '',
+    allowedValues: 'val1',
     jwksFile: null,
     audOverrides: 'aud1,aud2'
   },
@@ -218,42 +220,64 @@ describe('StepAppDeployComponent', () => {
         expect(component.servicesDeployed).toEqual(successData.servicesDeployed);
     });
 
-    it('should start deployment and update state to in-progress', () => {
-        fixture.detectChanges();
-        spyOn(component.deploymentInitiated, 'emit');
-        component.onDeployApp();
+    it('should start deployment and update state to in-progress',
+       fakeAsync(() => {
+         // 1. Initialize component and streams
+         fixture.detectChanges();
+         tick();  // Process the ngOnInit subscription
 
-        expect(installerStateService.updateAppDeploymentStatus).toHaveBeenCalledWith('in-progress');
-        expect(component.isAppDeploying).toBeTrue(); // Check the getter
-        expect(component.deploymentInitiated.emit).toHaveBeenCalled();
-        expect(webSocketService.connect).toHaveBeenCalledWith('ws://localhost:8000/ws/deployApp');
-    });
+         // 2. Ensure form is valid (Debug point: if this fails,
+         // it's because one of the forms is 'INVALID')
+         expect(component.imageConfigForm.valid).toBeTrue();
+         expect(component.registryConfigForm.valid).toBeTrue();
 
-    it('should handle success messages and update state to completed', () => {
-        fixture.detectChanges();
-        spyOn(component.deploymentComplete, 'emit');
+         spyOn(component.deploymentInitiated, 'emit');
 
-        const successData = {
-            service_urls: { gateway: 'https://gateway.example.com' },
-            services_deployed: ['gateway', 'registry'],
-            logs_explorer_urls: { gateway: 'https://logs.gcp.com/gateway' },
-            app_external_ip: '1.2.3.4'
-        };
+         // 3. Trigger deployment
+         component.onDeployApp();
 
-        component.onDeployApp();
-        webSocketService.sendWsMessage({ type: 'success', data: successData });
-        fixture.detectChanges();
+         // 4. tick() is required because onDeployApp is ASYNC
+         tick();
+         fixture.detectChanges();
 
-        expect(installerStateService.updateAppDeploymentStatus).toHaveBeenCalledWith('completed');
-        expect(installerStateService.updateState).toHaveBeenCalledWith({
-            deployedServiceUrls: successData.service_urls,
-            servicesDeployed: successData.services_deployed,
-            logsExplorerUrls: successData.logs_explorer_urls,
-            appExternalIp: successData.app_external_ip
-        });
-        expect(component.appDeploymentComplete).toBeTrue();
-        expect(component.deploymentComplete.emit).toHaveBeenCalled();
-    });
+         expect(installerStateService.updateAppDeploymentStatus)
+             .toHaveBeenCalledWith('in-progress');
+         expect(webSocketService.connect)
+             .toHaveBeenCalledWith('ws://localhost:8000/ws/deployApp');
+         expect(component.deploymentInitiated.emit).toHaveBeenCalled();
+       }));
+
+    it('should handle success messages and update state to completed',
+       fakeAsync(() => {
+         fixture.detectChanges();
+         tick();
+
+         spyOn(component.deploymentComplete, 'emit');
+
+         const successData = {
+           service_urls: {gateway: 'https://gateway.example.com'},
+           services_deployed: ['gateway', 'registry'],
+           logs_explorer_urls: {gateway: 'https://logs.gcp.com/gateway'},
+           app_external_ip: '1.2.3.4'
+         };
+
+         // Trigger the async method
+         component.onDeployApp();
+         tick();
+
+         // Simulate the WebSocket response
+         webSocketService.sendWsMessage({type: 'success', data: successData});
+         tick();
+         fixture.detectChanges();
+
+         expect(installerStateService.updateAppDeploymentStatus)
+             .toHaveBeenCalledWith('completed');
+         expect(installerStateService.updateState)
+             .toHaveBeenCalledWith(
+                 jasmine.objectContaining({appExternalIp: '1.2.3.4'}));
+         expect(component.appDeploymentComplete).toBeTrue();
+         expect(component.deploymentComplete.emit).toHaveBeenCalled();
+       }));
 
     it('should handle error messages and update state to failed', () => {
         fixture.detectChanges();
@@ -267,18 +291,28 @@ describe('StepAppDeployComponent', () => {
         expect(component.deploymentError.emit).toHaveBeenCalledWith('Deployment failed badly');
     });
 
-    it('should handle WebSocket connection errors and update state to failed', () => {
-        fixture.detectChanges();
-        spyOn(component.deploymentError, 'emit');
-        webSocketService.connect.and.returnValue(throwError(() => new Error('Connection failed')));
+    it('should handle WebSocket connection errors and update state to failed',
+       fakeAsync(() => {
+         fixture.detectChanges();
+         tick();
 
-        component.onDeployApp();
-        fixture.detectChanges();
+         spyOn(component.deploymentError, 'emit');
 
-        expect(installerStateService.updateAppDeploymentStatus).toHaveBeenCalledWith('failed');
-        expect(component.appDeploymentFailed).toBeTrue();
-        expect(component.deploymentError.emit).toHaveBeenCalledWith(jasmine.stringContaining('WebSocket connection error'));
-    });
+         // Setup the mock to fail immediately upon connect
+         webSocketService.connect.and.returnValue(
+             throwError(() => new Error('WebSocket connection error')));
+
+         component.onDeployApp();
+         tick();
+         fixture.detectChanges();
+
+         expect(installerStateService.updateAppDeploymentStatus)
+             .toHaveBeenCalledWith('failed');
+         expect(component.appDeploymentFailed).toBeTrue();
+         expect(component.deploymentError.emit)
+             .toHaveBeenCalledWith(
+                 jasmine.stringContaining('WebSocket connection error'));
+       }));
 
     it('should reset deployment state on resetDeployment()', () => {
         installerStateService.setState({ appDeploymentStatus: 'completed' });

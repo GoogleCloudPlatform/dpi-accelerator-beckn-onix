@@ -161,6 +161,25 @@ variable "enable_inbound_auth" {
   default     = false
 }
 
+variable "idclaim" {
+  type        = string
+  description = "The field in the token that uniquely identifies the user (e.g., 'sub' for Azure, 'arn' for AWS)"
+  default     = "" 
+}
+
+variable "allowed_values" {
+  type        = list(string)
+  description = "The specific IDs allowed to call our API"
+  default     = []
+  # Example default: ["arn:aws:iam::123:role/Svc-A", "another-allowed-id"]
+}
+
+variable "allowed_audiences" {
+  type        = list(string)
+  description = "List of allowed audiences for OIDC tokens (used in the workload identity pool provider)."
+  default     = []
+}
+
 variable "issuer_url" {
   description = "The issuer url for inbound authentication."
   type        = string
@@ -170,5 +189,17 @@ variable "issuer_url" {
 variable "jwks_json" {
   description = "The jwks json for inbound authentication."
   type        = string
+  default     = ""
+}
+
+variable "on_subscribe_sa_name" {
+  type        = string
+  description = "Service account ID for the on-subscribe push endpoint"
+  default     = ""
+}
+
+variable "auto_approver_sa_name" {
+  type        = string
+  description = "Service account ID for the auto-approver push endpoint"
   default     = ""
 }

@@ -211,7 +211,7 @@ class TestAppConfigGenerator(unittest.TestCase):
             adapter_config=models.AdapterConfig(enable_schema_validation=True),
             registry_config=models.RegistryConfig(subscriber_id="test_sub", key_id="test_key", enable_auto_approver=True),
             gateway_config=models.GatewayConfig(subscriber_id="test_gateway_sub"),
-            security_config=models.SecurityConfig(enable_inbound_auth=True, issuer_url="http://issuer.url", jwks_json="jwks.json"),
+            security_config=models.SecurityConfig(enable_inbound_auth=True, issuer_url="http://issuer.url", idclaim="sub", allowed_values=["value1", "value2"], jwks_json="jwks.json"),
             domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
         infra_outputs = {
