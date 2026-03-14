@@ -68,6 +68,8 @@ const initialMockState: InstallerState = {
     enableInBoundAuth: false,
     enableOutBoundAuth: false,
     issuerUrl: '',
+    idclaim: '',
+    allowedValues: '',
     jwksFile: null,
     audOverrides: ''
   },
