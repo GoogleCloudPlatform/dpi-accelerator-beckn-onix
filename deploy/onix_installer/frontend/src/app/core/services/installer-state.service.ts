@@ -73,6 +73,8 @@ export class InstallerStateService {
       enableInBoundAuth: false,
       enableOutBoundAuth: false,
       issuerUrl: '',
+      idclaim: '',
+      allowedValues: '',
       jwksFile: null,
       audOverrides: ''
     }
