@@ -175,17 +175,26 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
         .subscribe(enabled => {
           const issuerUrlCtrl = this.securityConfigForm.get('issuerUrl');
           const jwksFileCtrl = this.securityConfigForm.get('jwksFile');
+          const idClaimCtrl = this.securityConfigForm.get('idclaim');
+          const allowedValuesCtrl =
+              this.securityConfigForm.get('allowedValues');
 
           if (enabled) {
             issuerUrlCtrl?.setValidators([Validators.required]);
+            idClaimCtrl?.setValidators([Validators.required]);
+            allowedValuesCtrl?.setValidators([Validators.required]);
             // jwksFile is optional
             jwksFileCtrl?.clearValidators();
           } else {
             issuerUrlCtrl?.clearValidators();
             jwksFileCtrl?.clearValidators();
+            idClaimCtrl?.clearValidators();
+            allowedValuesCtrl?.clearValidators();
           }
           issuerUrlCtrl?.updateValueAndValidity();
           jwksFileCtrl?.updateValueAndValidity();
+          idClaimCtrl?.updateValueAndValidity();
+          allowedValuesCtrl?.updateValueAndValidity();
         });
 
     this.securityConfigForm.get('enableOutBoundAuth')
@@ -235,6 +244,8 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
       enableInBoundAuth: [false],
       enableOutBoundAuth: [false],
       issuerUrl: [''],
+      idclaim: [''],
+      allowedValues: [''],
       jwksFile: ['', null, jwksJsonValidator],  // Apply the async validator
       audOverrides: [''],
     });
@@ -363,6 +374,11 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
           enableSchemaValidation: enableSchemaValidation,
         }, { emitEvent: false });
       }
+    }
+
+    if (state.appDeploySecurityConfig) {
+      this.securityConfigForm.patchValue(
+          state.appDeploySecurityConfig, {emitEvent: false});
     }
   }
 
@@ -778,6 +794,14 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
       issuer_url: securityConfigRaw.enableInBoundAuth ?
           securityConfigRaw.issuerUrl :
           '',
+      idclaim: securityConfigRaw.enableInBoundAuth ? securityConfigRaw.idclaim :
+                                                     '',
+      allowed_values: securityConfigRaw.enableInBoundAuth &&
+              securityConfigRaw.allowedValues ?
+          securityConfigRaw.allowedValues.split(',')
+              .map((val: string) => val.trim())
+              .filter((val: string) => val.length > 0) :
+          [],
       jwks_content: securityConfigRaw.enableInBoundAuth ? jwksContent : '',
       enable_outbound_auth: securityConfigRaw.enableOutBoundAuth,
       aud_overrides: securityConfigRaw.enableOutBoundAuth ?

@@ -13,10 +13,12 @@
 # limitations under the License.
 
 from enum import Enum
-from typing import Annotated, Dict, Optional, Any
+from typing import Annotated, Any, Dict, Optional
+
+from pydantic.fields import Field
+from pydantic.functional_validators import model_validator
 from pydantic.main import BaseModel
 from pydantic.networks import HttpUrl
-from pydantic.fields import Field
 
 
 # Define a type alias for non-empty strings
@@ -81,9 +83,31 @@ class SecurityConfig(BaseModel):
     """
     enable_inbound_auth: Optional[bool] = False
     issuer_url: Optional[str] = None
+    idclaim: Optional[str] = None
+    allowed_values: Optional[list[str]] = None
     jwks_content: Optional[str] = None
     enable_outbound_auth: Optional[bool] = False
     aud_overrides: Optional[str] = None
+
+    @model_validator(mode='after')
+    def validate_inbound_auth_requirements(self) -> 'SecurityConfig':
+        # Only run this check if inbound auth is explicitly set to True
+        if self.enable_inbound_auth:
+            missing_fields = []
+            # Check if fields are either None or empty strings
+            if not self.issuer_url:
+                missing_fields.append("issuer_url")
+            if not self.idclaim:
+                missing_fields.append("idclaim")
+            # This checks for both None and an empty list []
+            if not self.allowed_values:
+                missing_fields.append("allowed_values")
+
+            if missing_fields:
+              raise ValueError(
+                  f"When enable_inbound_auth is True, the following fields cannot be empty: {', '.join(missing_fields)}"
+                )
+        return self
 
 
 class DomainConfig(BaseModel):
