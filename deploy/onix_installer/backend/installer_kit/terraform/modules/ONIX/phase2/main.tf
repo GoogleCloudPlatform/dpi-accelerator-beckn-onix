@@ -28,6 +28,10 @@ resource "google_dns_record_set" "subdomain_records" {
   rrdatas = [var.global_ip_address]
 }
 
+data "google_project" "project" {
+  project_id = var.project_id
+}
+
 #--------------------------------------------- HTTPS Configuration ---------------------------------------------#
 
 resource "google_compute_managed_ssl_certificate" "ssl_certificate" {
@@ -93,6 +97,40 @@ resource "google_compute_global_forwarding_rule" "http_forwarding_rule" {
   depends_on            = [google_compute_target_http_proxy.http_proxy]
 }
 
+# ---------------------------------------------------------
+# IDENTITY 1: For the On-Subscribe Webhook
+# ---------------------------------------------------------
+resource "google_service_account" "sa_on_subscribe" {
+  count        = var.enable_inbound_auth && var.enable_subscriber ? 1 : 0
+  account_id   = var.on_subscribe_sa_name
+  display_name = "Pub/Sub Push - On Subscribe"
+  project      = var.project_id
+}
+
+resource "google_service_account_iam_member" "pubsub_token_creator_on_subscribe" {
+  count              = var.enable_inbound_auth && var.enable_subscriber ? 1 : 0
+  service_account_id = google_service_account.sa_on_subscribe[0].name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
+# ---------------------------------------------------------
+# IDENTITY 2: For the Auto-Approver Webhook
+# ---------------------------------------------------------
+resource "google_service_account" "sa_auto_approver" {
+  count        = var.enable_inbound_auth && var.enable_auto_approver ? 1 : 0
+  account_id   = var.auto_approver_sa_name
+  display_name = "Pub/Sub Push - Auto Approver"
+  project      = var.project_id
+}
+
+resource "google_service_account_iam_member" "pubsub_token_creator_auto_approver" {
+  count              = var.enable_inbound_auth && var.enable_auto_approver ? 1 : 0
+  service_account_id = google_service_account.sa_auto_approver[0].name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
 resource "google_pubsub_subscription" "on_subscribe_subscription" {
   count   = var.enable_subscriber ? 1 : 0
   name    = var.on_subscribe_handler_subscription_name
@@ -103,6 +141,14 @@ resource "google_pubsub_subscription" "on_subscribe_subscription" {
     push_endpoint = var.on_subscribe_handler_push_url
     no_wrapper {
       write_metadata = true
+    }
+
+    # Conditionally add OIDC Token
+    dynamic "oidc_token" {
+      for_each = var.enable_inbound_auth ? [1] : []
+      content {
+        service_account_email = google_service_account.sa_on_subscribe[0].email
+      }
     }
   }
 
@@ -119,6 +165,10 @@ resource "google_pubsub_subscription" "on_subscribe_subscription" {
     maximum_backoff = "600s"
   }
 
+  # Ensure IAM propagation finishes before attaching the SA to the subscription
+  depends_on = [
+    google_service_account_iam_member.pubsub_token_creator_on_subscribe
+  ]
 }
 
 resource "google_pubsub_subscription" "auto_approver_subscription" {
@@ -132,6 +182,14 @@ resource "google_pubsub_subscription" "auto_approver_subscription" {
     no_wrapper {
       write_metadata = true
     }
+
+    # Conditionally add OIDC Token
+    dynamic "oidc_token" {
+      for_each = var.enable_inbound_auth ? [1] : []
+      content {
+        service_account_email = google_service_account.sa_auto_approver[0].email
+      }
+    }
   }
 
   filter = "attributes.event_type = \"NEW_SUBSCRIPTION_REQUEST\" OR attributes.event_type = \"UPDATE_SUBSCRIPTION_REQUEST\""
@@ -140,6 +198,11 @@ resource "google_pubsub_subscription" "auto_approver_subscription" {
     minimum_backoff = "10s"
     maximum_backoff = "600s"
   }
+
+  # Ensure IAM propagation finishes before attaching the SA to the subscription
+  depends_on = [
+    google_service_account_iam_member.pubsub_token_creator_auto_approver
+  ]
 
   message_transforms {
     disabled = false
@@ -171,12 +234,14 @@ resource "google_iam_workload_identity_pool_provider" "oidc_provider" {
   workload_identity_pool_id = var.pool_id
   workload_identity_pool_provider_id = var.provider_id
 
+  attribute_condition = "google.subject in [${join(", ", [for v in var.allowed_values : "'${v}'"])}]"
   attribute_mapping = {
-    "google.subject" = "assertion.sub"
+    "google.subject" = "assertion.${var.idclaim}"
   }
-  
+
   oidc {
     issuer_uri = var.issuer_url
+    allowed_audiences = var.allowed_audiences
     jwks_json = var.jwks_json != "" ? var.jwks_json : null
     }
 }

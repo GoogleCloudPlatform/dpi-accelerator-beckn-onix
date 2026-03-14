@@ -225,7 +225,14 @@
                     </p>
                     <div *ngIf="securityConfigForm.get('enableInBoundAuth')?.value" style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; background-color: #fff;">
                       <div style="margin-bottom: 20px;">
-                        
+                        <mat-form-field appearance="outline" style="width: 100%; font-size: 14px;">
+                          <mat-label>Identity Claim</mat-label>
+                          <input matInput type="text" formControlName="idclaim" placeholder="e.g., sub or arn">
+                        </mat-form-field>
+                        <mat-form-field appearance="outline" style="width: 100%; font-size: 14px;">
+                          <mat-label>Allowed Values</mat-label>
+                          <input matInput type="text" formControlName="allowedValues" placeholder="arn:aws:iam::123:role/Svc-A">
+                        </mat-form-field>
                         <mat-form-field appearance="outline" style="width: 100%; font-size: 14px;">
                           <mat-label>Issuer URL<span style="color: red;">*</span></mat-label>
                           <input matInput type="text" formControlName="issuerUrl" placeholder="https://example.com">

@@ -134,6 +134,8 @@ export interface AppDeploySecurityConfig {
   enableInBoundAuth: boolean;
   enableOutBoundAuth: boolean;
   issuerUrl: string;
+  idclaim: string;
+  allowedValues: string;
   jwksFile: File | null;
   audOverrides: string;
 }
@@ -242,6 +244,8 @@ export interface BackendAppDeploymentRequest {
   gateway_config?: { subscriber_id: string };
   security_config?: {
     enable_inbound_auth: boolean; issuer_url: string;
+    idclaim: string;
+    allowed_values: string[];
     jwks_content?: string; enable_outbound_auth: boolean; aud_overrides: string;
   };
   domain_config: DomainConfig;
