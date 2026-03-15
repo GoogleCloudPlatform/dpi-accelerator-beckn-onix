@@ -16,6 +16,10 @@ output "project_id" {
   value = var.project_id
 }
 
+output "project_number" {
+  value = data.google_project.project.number
+}
+
 output "region" {
   value = var.region
 }

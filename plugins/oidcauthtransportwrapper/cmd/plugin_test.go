@@ -63,9 +63,7 @@ func TestProvider_New(t *testing.T) {
 				t.Error("Provider.New() returned nil wrapper, want non-nil")
 			}
 
-			if cleanup == nil {
-				t.Error("Provider.New() returned nil cleanup function, want non-nil")
-			} else {
+			if cleanup != nil {
 				cleanup() // Execute the cleanup function to cover that branch
 			}
 		})

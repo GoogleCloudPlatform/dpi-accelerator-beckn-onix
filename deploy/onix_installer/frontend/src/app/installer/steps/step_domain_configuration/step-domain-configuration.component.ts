@@ -170,7 +170,11 @@ export class StepDomainConfigComponent implements OnInit, OnDestroy {
       const existingPrefixConfig = state.componentSubdomainPrefixes.find((c: ComponentSubdomainPrefix) => c.component === compKey);
       this.componentPrefixes.push(this.fb.group({
         component: [compKey, Validators.required],
-        subdomainPrefix: [existingPrefixConfig?.subdomainPrefix || compKey, Validators.required]
+        subdomainPrefix: [
+          existingPrefixConfig?.subdomainPrefix ||
+              (compKey === 'registry_admin' ? 'registry-admin' : compKey),
+          Validators.required
+        ]
       }));
     });
 

@@ -38,8 +38,24 @@ modules:
     handler:
       type: std
       role: bap
-      registryUrl: {{ registry_url }}
+      httpClientConfig:
+        maxIdleConns: 1000
+        maxIdleConnsPerHost: 200
+        idleConnTimeout: 300s
+        responseHeaderTimeout: 5s
       plugins:
+        registry:
+          id: registry
+          config:
+            url: {{ registry_url }}
+        {% if security.enable_outbound_auth %}
+        transportWrapper:
+          id: oidcauthtransportwrapper
+          {% if security.aud_overrides %}
+          config:
+            audience_override: "{{ security.aud_overrides }}"
+          {% endif %}
+        {% endif %}
         {% if adapter.enable_schema_validation %}
         schemaValidator:
           id: schemavalidator
@@ -82,9 +98,17 @@ modules:
     path: /bap/caller/
     handler:
       type: std
-      registryUrl: {{ registry_url }}
       role: bap
+      httpClientConfig:
+        maxIdleConns: 1000
+        maxIdleConnsPerHost: 200
+        idleConnTimeout: 300s
+        responseHeaderTimeout: 5s
       plugins:
+        registry:
+          id: registry
+          config:
+            url: {{ registry_url }}
         {% if adapter.enable_schema_validation %}
         schemaValidator:
           id: schemavalidator
@@ -113,6 +137,12 @@ modules:
           config:
             routingConfig: /mnt/gcs/configs/bapTxnCaller-routing.yaml
         middleware:
+          {% if security.enable_inbound_auth %}
+          - id: oidcauth
+            config:
+              allowed_audience: {{ domains.adapter }}/caller/api
+              allowed_issuers: "https://iam.googleapis.com/projects/{{ project_number }}/locations/global/workloadIdentityPools/onix-{{ suffix }}-pool"
+          {% endif %}
           - id: reqpreprocessor
             config:
               contextKeys: transaction_id,message_id
@@ -130,8 +160,24 @@ modules:
     handler:
       type: std
       role: bpp
-      registryUrl: {{ registry_url }}
+      httpClientConfig:
+        maxIdleConns: 1000
+        maxIdleConnsPerHost: 200
+        idleConnTimeout: 300s
+        responseHeaderTimeout: 5s
       plugins:
+        registry:
+          id: registry
+          config:
+            url: {{ registry_url }}
+        {% if security.enable_outbound_auth %}
+        transportWrapper:
+          id: oidcauthtransportwrapper
+          {% if security.aud_overrides %}
+          config:
+            audience_override: "{{ security.aud_overrides }}"
+          {% endif %}
+        {% endif %}
         {% if adapter.enable_schema_validation %}
         schemaValidator:
           id: schemavalidator
@@ -175,8 +221,16 @@ modules:
     handler:
       type: std
       role: bpp
-      registryUrl: {{ registry_url }}
+      httpClientConfig:
+        maxIdleConns: 1000
+        maxIdleConnsPerHost: 200
+        idleConnTimeout: 300s
+        responseHeaderTimeout: 5s
       plugins:
+        registry:
+          id: registry
+          config:
+            url: {{ registry_url }}
         {% if adapter.enable_schema_validation %}
         schemaValidator:
           id: schemavalidator
@@ -205,6 +259,12 @@ modules:
           config:
             routingConfig: /mnt/gcs/configs/bppTxnCaller-routing.yaml
         middleware:
+          {% if security.enable_inbound_auth %}
+          - id: oidcauth
+            config:
+              allowed_audience: {{ domains.adapter }}/caller/api
+              allowed_issuers: "https://iam.googleapis.com/projects/{{ project_number }}/locations/global/workloadIdentityPools/onix-{{ suffix }}-pool"
+          {% endif %}
           - id: reqpreprocessor
             config:
               contextKeys: transaction_id,message_id
