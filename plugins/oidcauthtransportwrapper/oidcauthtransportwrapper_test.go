@@ -86,18 +86,15 @@ func TestNew(t *testing.T) {
 				t.Fatalf("New(%v) failed unexpectedly: %v", tc.config, err)
 			}
 
-			// Call cleanup to cover the returned func() {} line.
-			cleanup()
-
-			concrete, ok := wrapper.(*OIDCWrapper)
-			if !ok {
-				t.Fatalf("New(%v) returned type %T, want *OIDCWrapper", tc.config, wrapper)
+			// Call cleanup if provided to cover the returned func() {} line.
+			if cleanup != nil {
+				cleanup()
 			}
 
 			if tc.config != nil && tc.config["audience_override"] != nil {
 				want := tc.config["audience_override"].(string)
-				if got := concrete.audienceOverride; got != want {
-					t.Errorf("concrete.audienceOverride got %q, want %q", got, want)
+				if got := wrapper.audienceOverride; got != want {
+					t.Errorf("wrapper.audienceOverride got %q, want %q", got, want)
 				}
 			}
 		})

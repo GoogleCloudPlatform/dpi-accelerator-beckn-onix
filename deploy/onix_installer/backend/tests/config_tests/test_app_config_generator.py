@@ -58,6 +58,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         # Define default infra outputs to be used by mocks when needed
         self.default_infra_outputs = {
             "project_id": "default-project",
+            "project_number": "123456789",
             "cluster_name": "default-cluster",
             "region": "default-region",
             "redis_instance_ip": "1.2.3.4",
@@ -105,6 +106,7 @@ class TestAppConfigGenerator(unittest.TestCase):
 
     @patch('config.app_config_generator.utils.read_json_file', return_value={
         "project_id": {"value": "test-project"},
+        "project_number": {"value": "123456789"},
         "region": {"value": "test-region"},
         "redis_instance_ip": {"value": "1.2.3.4"},
         "onix_topic_name": {"value": "onix-topic"},
@@ -129,6 +131,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         mock_read_json_file.assert_called_once_with(expected_path)
         self.assertEqual(result, {
             "project_id": "test-project",
+            "project_number": "123456789",
             "region": "test-region",
             "redis_instance_ip": "1.2.3.4",
             "onix_topic_name": "onix-topic",
@@ -216,6 +219,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         )
         infra_outputs = {
             "project_id": "infra-proj",
+            "project_number": "987654321",
             "region": "infra-region",
             "redis_instance_ip": "10.0.0.1",
             "onix_topic_name": "onix-t",
@@ -232,6 +236,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         context = app_config_generator._prepare_template_context(app_req, infra_outputs)
 
         self.assertEqual(context["project_id"], "infra-proj")
+        self.assertEqual(context["project_number"], "987654321")
         self.assertEqual(context["cluster_region"], "infra-region")
         self.assertEqual(context["redis_instance_ip"], "10.0.0.1")
         self.assertEqual(context["onix_topic_name"], "onix-t")

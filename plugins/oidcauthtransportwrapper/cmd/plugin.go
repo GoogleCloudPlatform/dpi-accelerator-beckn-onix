@@ -30,6 +30,6 @@ func (p *oidcProvider) New(ctx context.Context, config map[string]any) (definiti
 }
 
 // Provider is the exported symbol for the oidcauthtransportwrapper plugin.
-var Provider = &oidcProvider{}
+var Provider = oidcProvider{}
 
 func main() {}

@@ -203,3 +203,15 @@ variable "auto_approver_sa_name" {
   description = "Service account ID for the auto-approver push endpoint"
   default     = ""
 }
+
+variable "on_subscribe_audience" {
+  type        = string
+  description = "Audience for the on-subscribe push endpoint OIDC token"
+  default     = ""
+}
+
+variable "auto_approver_audience" {
+  type        = string
+  description = "Audience for the auto-approver push endpoint OIDC token"
+  default     = ""
+}

@@ -41,3 +41,13 @@ setup:
   subscriberID: {{ registry.subscriber_id }}
   url: {{ registry_url }}
   domain: "*"
+{% if security.enable_inbound_auth %}
+auth:
+  allowedAudience: {{ domains.registry_admin }}/api
+  allowedIssuers:
+    - https://accounts.google.com
+    - accounts.google.com
+    - https://iam.googleapis.com/projects/{{ project_number }}/locations/global/workloadIdentityPools/onix-{{ suffix }}-pool
+  allowedSAs:
+    - approver-sa-{{ suffix }}@{{ project_id }}.iam.gserviceaccount.com
+{% endif %}
