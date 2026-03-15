@@ -19,6 +19,10 @@ import sys
 from typing import Any
 import httpx
 
+import google.auth
+from google.auth import impersonated_credentials
+from google.auth.transport import requests as google_auth_requests
+
 
 from fastapi.applications import FastAPI
 from fastapi.exceptions import HTTPException
@@ -253,14 +257,40 @@ async def dynamic_proxy(request: ProxyRequest) -> Any:
     Returns:
         Any: The Text response from the target URL.
     """
-    target_url = request.targetUrl
+    target_url = request.target_url
     payload = request.payload
+
+    headers = {}
+    if request.impersonate_service_account and request.audience:
+        try:
+            logger.info(f"Attempting to impersonate service account: {request.impersonate_service_account} for audience: {request.audience}")
+            source_credentials, _ = google.auth.default()
+            target_credentials = impersonated_credentials.Credentials(
+                source_credentials,
+                target_principal=request.impersonate_service_account,
+                target_scopes=["https://www.googleapis.com/auth/cloud-platform"],
+            )
+            impersonated_creds = impersonated_credentials.IDTokenCredentials(
+                target_credentials,
+                target_audience=request.audience,
+                include_email=True,
+            )
+            request_adapter = google_auth_requests.Request()
+            impersonated_creds.refresh(request_adapter)
+            headers["Authorization"] = f"Bearer {impersonated_creds.token}"
+            logger.info("Successfully generated impersonated OIDC token.")
+        except Exception as e:
+            logger.error(f"Failed to impersonate service account: {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to authenticate proxy request: {e}"
+            )
 
     logger.info(f"Forwarding request to: {target_url}")
 
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.post(target_url, json=payload, timeout=10.0)
+            response = await client.post(target_url, json=payload, headers=headers, timeout=10.0)
             response.raise_for_status()
             # todo : send response.status_code as well
             return response.content

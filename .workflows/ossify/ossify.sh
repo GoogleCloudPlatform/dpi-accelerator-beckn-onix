@@ -117,7 +117,7 @@ if [ "$RUN_PYTHON" = true ]; then
   echo "Installing requirements..."
   pip install -r requirements.txt --require-hashes --index-url=https://pypi.org/simple
   echo "Installing pytest..."
-  pip install pytest httpx pytest-cov --index-url=https://pypi.org/simple
+  pip install pytest pytest-asyncio httpx pytest-cov --index-url=https://pypi.org/simple
   echo "Running pytest..."
   if [ "$RUN_COVERAGE" = true ]; then
     PYTHONPATH=. pytest --cov=core --cov=services --cov=installer_kit --cov-report=term-missing
