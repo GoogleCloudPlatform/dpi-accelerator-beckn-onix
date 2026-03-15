@@ -98,37 +98,47 @@ resource "google_compute_global_forwarding_rule" "http_forwarding_rule" {
 }
 
 # ---------------------------------------------------------
-# IDENTITY 1: For the On-Subscribe Webhook
+# IDENTITY 1: For invoking Subscriber service
 # ---------------------------------------------------------
-resource "google_service_account" "sa_on_subscribe" {
+resource "google_service_account" "sa_subscriber_invoker" {
   count        = var.enable_inbound_auth && var.enable_subscriber ? 1 : 0
-  account_id   = var.on_subscribe_sa_name
-  display_name = "Pub/Sub Push - On Subscribe"
+  account_id   = var.subscriber_invoker_sa
+  display_name = "Subscriber Invoker Service Account"
   project      = var.project_id
 }
 
 resource "google_service_account_iam_member" "pubsub_token_creator_on_subscribe" {
   count              = var.enable_inbound_auth && var.enable_subscriber ? 1 : 0
-  service_account_id = google_service_account.sa_on_subscribe[0].name
+  service_account_id = google_service_account.sa_subscriber_invoker[0].name
   role               = "roles/iam.serviceAccountTokenCreator"
   member             = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
 
 # ---------------------------------------------------------
-# IDENTITY 2: For the Auto-Approver Webhook
+# IDENTITY 2: For invoking Admin service
 # ---------------------------------------------------------
-resource "google_service_account" "sa_auto_approver" {
+resource "google_service_account" "sa_admin_invoker" {
   count        = var.enable_inbound_auth && var.enable_auto_approver ? 1 : 0
-  account_id   = var.auto_approver_sa_name
-  display_name = "Pub/Sub Push - Auto Approver"
+  account_id   = var.admin_invoker_sa
+  display_name = "Admin Invoker Service Account"
   project      = var.project_id
 }
 
 resource "google_service_account_iam_member" "pubsub_token_creator_auto_approver" {
   count              = var.enable_inbound_auth && var.enable_auto_approver ? 1 : 0
-  service_account_id = google_service_account.sa_auto_approver[0].name
+  service_account_id = google_service_account.sa_admin_invoker[0].name
   role               = "roles/iam.serviceAccountTokenCreator"
   member             = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
+# ---------------------------------------------------------
+# IDENTITY 3: For invoking Adapter service
+# ---------------------------------------------------------
+resource "google_service_account" "sa_adapter_invoker" {
+  count        = var.enable_inbound_auth ? 1 : 0
+  account_id   = var.adapter_invoker_sa
+  display_name = "Adapter Invoker Service Account"
+  project      = var.project_id
 }
 
 resource "google_pubsub_subscription" "on_subscribe_subscription" {
@@ -147,8 +157,8 @@ resource "google_pubsub_subscription" "on_subscribe_subscription" {
     dynamic "oidc_token" {
       for_each = var.enable_inbound_auth ? [1] : []
       content {
-        service_account_email = google_service_account.sa_on_subscribe[0].email
-        audience              = var.on_subscribe_audience
+        service_account_email = google_service_account.sa_subscriber_invoker[0].email
+        audience              = var.subscriber_audience
       }
     }
   }
@@ -188,8 +198,8 @@ resource "google_pubsub_subscription" "auto_approver_subscription" {
     dynamic "oidc_token" {
       for_each = var.enable_inbound_auth ? [1] : []
       content {
-        service_account_email = google_service_account.sa_auto_approver[0].email
-        audience              = var.auto_approver_audience
+        service_account_email = google_service_account.sa_admin_invoker[0].email
+        audience              = var.admin_audience
       }
     }
   }

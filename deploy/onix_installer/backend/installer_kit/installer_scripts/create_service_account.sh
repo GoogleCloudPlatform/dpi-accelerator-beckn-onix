@@ -45,6 +45,7 @@ ROLES=(
   "roles/compute.loadBalancerAdmin"
   "roles/container.admin"
   "roles/iam.serviceAccountAdmin"
+  "roles/iam.serviceAccountTokenCreator"
   "roles/resourcemanager.projectIamAdmin"
   "roles/iam.serviceAccountUser"
   "roles/storage.admin"
