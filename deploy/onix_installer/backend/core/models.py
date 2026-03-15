@@ -140,5 +140,7 @@ class AppDeploymentRequest(BaseModel):
 
 
 class ProxyRequest(BaseModel):
-    targetUrl: str
+    target_url: str
     payload: Dict[Any, Any]
+    impersonate_service_account: Optional[str] = None
+    audience: Optional[str] = None
