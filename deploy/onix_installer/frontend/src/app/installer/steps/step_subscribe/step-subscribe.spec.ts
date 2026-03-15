@@ -219,7 +219,7 @@ describe('StepSubscribe', () => {
              location: {country: {code: 'IND'}}
            },
            impersonate_service_account:
-               'on-sub-sa-testapp@test-project.iam.gserviceaccount.com',
+               'subscriber-invokertestapp@test-project.iam.gserviceaccount.com',
            audience: 'https://subscriber.beckn.org/api'
          };
 
