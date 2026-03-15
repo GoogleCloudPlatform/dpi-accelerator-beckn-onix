@@ -39,15 +39,17 @@ const mockRouter = {
 };
 
 const mockInstallerStateService = {
-  getCurrentState: () => ({
+  getCurrentState: jasmine.createSpy('getCurrentState').and.returnValue({
     deploymentGoal: {all: false, bap: true, bpp: true, gateway: true},
-
     deployedServiceUrls: {
       'subscriber': 'https://subscriber.beckn.org',
       'adapter_bapTxnReceiver': 'https://adapter-bap.beckn.org',
       'adapter_bppTxnReceiver': 'https://adapter-bpp.beckn.org',
       'gateway': 'https://gateway.beckn.org'
-    }
+    },
+    appName: 'testapp',
+    gcpConfiguration: {projectId: 'test-project'},
+    appDeploySecurityConfig: {enableInBoundAuth: false}
   })
 };
 
@@ -173,7 +175,7 @@ describe('StepSubscribe', () => {
          component.onSubscriptionSubmit();
 
          const expectedPayload = {
-           targetUrl: 'https://subscriber.beckn.org/subscribe',
+           target_url: 'https://subscriber.beckn.org/subscribe',
            payload: {
              subscriber_id: 'test-bap-subscriber',
              type: 'BAP',
@@ -185,6 +187,44 @@ describe('StepSubscribe', () => {
 
          expect(apiService.subscribeToNetwork)
              .toHaveBeenCalledWith(expectedPayload);
+       });
+
+    it('should include impersonate parameters in payload when inbound auth is enabled',
+       () => {
+         mockInstallerStateService.getCurrentState.and.returnValue({
+           deploymentGoal: {all: false, bap: true, bpp: true, gateway: true},
+           deployedServiceUrls: {
+             'subscriber': 'https://subscriber.beckn.org',
+             'adapter_bapTxnReceiver': 'https://adapter-bap.beckn.org',
+             'adapter_bppTxnReceiver': 'https://adapter-bpp.beckn.org',
+             'gateway': 'https://gateway.beckn.org'
+           },
+           appName: 'testapp',
+           gcpConfiguration: {projectId: 'test-project'},
+           appDeploySecurityConfig: {enableInBoundAuth: true}
+         } as any);
+
+         component.subscriptionUrl = 'https://subscriber.beckn.org';
+
+         mockApiService.subscribeToNetwork.and.returnValue(of('12345'));
+         component.onSubscriptionSubmit();
+
+         const expectedPayload = {
+           target_url: 'https://subscriber.beckn.org/subscribe',
+           payload: {
+             subscriber_id: 'test-bap-subscriber',
+             type: 'BAP',
+             domain: 'retail',
+             url: 'https://adapter-bap.beckn.org',
+             location: {country: {code: 'IND'}}
+           },
+           impersonate_service_account:
+               'on-sub-sa-testapp@test-project.iam.gserviceaccount.com',
+           audience: 'https://subscriber.beckn.org/api'
+         };
+
+         expect(apiService.subscribeToNetwork)
+             .toHaveBeenCalledWith(jasmine.objectContaining(expectedPayload));
        });
 
     it('should show a success popup and reset the form on successful subscription',
