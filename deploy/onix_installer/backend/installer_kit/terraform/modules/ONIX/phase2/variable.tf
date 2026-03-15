@@ -192,26 +192,32 @@ variable "jwks_json" {
   default     = ""
 }
 
-variable "on_subscribe_sa_name" {
+variable "adapter_invoker_sa" {
   type        = string
-  description = "Service account ID for the on-subscribe push endpoint"
+  description = "Service account ID for invoking adapter service"
   default     = ""
 }
 
-variable "auto_approver_sa_name" {
+variable "subscriber_invoker_sa" {
   type        = string
-  description = "Service account ID for the auto-approver push endpoint"
+  description = "Service account ID for invoking subscriber service"
   default     = ""
 }
 
-variable "on_subscribe_audience" {
+variable "admin_invoker_sa" {
   type        = string
-  description = "Audience for the on-subscribe push endpoint OIDC token"
+  description = "Service account ID for invoking admin service"
   default     = ""
 }
 
-variable "auto_approver_audience" {
+variable "subscriber_audience" {
   type        = string
-  description = "Audience for the auto-approver push endpoint OIDC token"
+  description = "Audience for subscriber service"
+  default     = ""
+}
+
+variable "admin_audience" {
+  type        = string
+  description = "Audience for admin service"
   default     = ""
 }
