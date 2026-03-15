@@ -75,6 +75,7 @@ def _prepare_template_context(app_deployment_request: AppDeploymentRequest, infr
     logger.debug("Preparing Jinja2 template context for application configurations...")
     context = {
         "project_id": infra_output_values.get("project_id"),
+        "project_number": infra_output_values.get("project_number"),
         "region": infra_output_values.get("region"),
         "cluster_region": infra_output_values.get("region"),
         "redis_instance_ip": infra_output_values.get("redis_instance_ip"),
