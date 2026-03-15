@@ -201,12 +201,7 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
         ?.valueChanges.pipe(takeUntil(this.unsubscribe$))
         .subscribe(enabled => {
           const audOverridesCtrl = this.securityConfigForm.get('audOverrides');
-
-          if (enabled) {
-            audOverridesCtrl?.setValidators([Validators.required]);
-          } else {
-            audOverridesCtrl?.clearValidators();
-          }
+          audOverridesCtrl?.clearValidators();
           audOverridesCtrl?.updateValueAndValidity();
         });
   }

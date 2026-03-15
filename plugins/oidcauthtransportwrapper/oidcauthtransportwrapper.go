@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/beckn-one/beckn-onix/pkg/plugin/definition"
 	"google.golang.org/api/idtoken"
 	"golang.org/x/oauth2"
 )
@@ -113,7 +112,7 @@ func (w *OIDCWrapper) Wrap(base http.RoundTripper) http.RoundTripper {
 }
 
 // New creates a new OIDCWrapper.
-func New(ctx context.Context, config map[string]any) (definition.TransportWrapper, func(), error) {
+func New(ctx context.Context, config map[string]any) (*OIDCWrapper, func(), error) {
 	var override string
 	if val, ok := config["audience_override"]; ok {
 		override, ok = val.(string)
@@ -125,5 +124,5 @@ func New(ctx context.Context, config map[string]any) (definition.TransportWrappe
 	return &OIDCWrapper{
 		audienceOverride: override,
 		ctx:              ctx,
-	}, func() {}, nil
+	}, nil, nil
 }

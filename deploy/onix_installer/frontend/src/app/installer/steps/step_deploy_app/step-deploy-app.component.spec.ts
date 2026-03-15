@@ -92,7 +92,7 @@ const initialMockState: InstallerState = {
     enableInBoundAuth: true,
     enableOutBoundAuth: true,
     issuerUrl: 'https://issuer.com',
-    idclaim: '',
+    idclaim: 'sub',
     allowedValues: 'val1',
     jwksFile: null,
     audOverrides: 'aud1,aud2'
@@ -132,6 +132,8 @@ class MockInstallerStateService {
       jasmine.createSpy('updateAppDeployGatewayConfig');
   updateAppDeployAdapterConfig =
       jasmine.createSpy('updateAppDeployAdapterConfig');
+  updateAppDeploySecurityConfig =
+      jasmine.createSpy('updateAppDeploySecurityConfig');
 
   setState(newState: Partial<InstallerState>) {
     const currentState = this.state.getValue();

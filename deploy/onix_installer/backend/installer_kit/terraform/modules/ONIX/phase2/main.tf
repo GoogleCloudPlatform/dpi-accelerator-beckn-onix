@@ -148,6 +148,7 @@ resource "google_pubsub_subscription" "on_subscribe_subscription" {
       for_each = var.enable_inbound_auth ? [1] : []
       content {
         service_account_email = google_service_account.sa_on_subscribe[0].email
+        audience              = var.on_subscribe_audience
       }
     }
   }
@@ -188,6 +189,7 @@ resource "google_pubsub_subscription" "auto_approver_subscription" {
       for_each = var.enable_inbound_auth ? [1] : []
       content {
         service_account_email = google_service_account.sa_auto_approver[0].email
+        audience              = var.auto_approver_audience
       }
     }
   }
