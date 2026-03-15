@@ -49,5 +49,5 @@ auth:
     - accounts.google.com
     - https://iam.googleapis.com/projects/{{ project_number }}/locations/global/workloadIdentityPools/onix-{{ suffix }}-pool
   allowedSAs:
-    - approver-sa-{{ suffix }}@{{ project_id }}.iam.gserviceaccount.com
+    - admin-invoker-sa-{{ suffix }}@{{ project_id }}.iam.gserviceaccount.com
 {% endif %}
