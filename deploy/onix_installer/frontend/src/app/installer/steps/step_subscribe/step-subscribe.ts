@@ -143,9 +143,24 @@ export class StepSubscribe implements OnInit {
       location: formValue.location ? JSON.parse(formValue.location) : null
     };
 
-    const payload = {
-      'targetUrl': `${this.subscriptionUrl}/subscribe`,
+    const payload: any = {
+      'target_url': `${this.subscriptionUrl}/subscribe`,
       'payload': subscrptionPayload
+    }
+
+    const state = this.installerStateService.getCurrentState();
+    if (state.appDeploySecurityConfig?.enableInBoundAuth) {
+      const appName = state.appName;
+      const projectId = state.gcpConfiguration?.projectId;
+
+      if (appName && projectId) {
+        const saEmail =
+            `on-sub-sa-${appName}@${projectId}.iam.gserviceaccount.com`;
+        payload.impersonate_service_account = saEmail;
+      }
+      if (this.subscriptionUrl) {
+        payload.audience = `${this.subscriptionUrl}/api`;
+      }
     }
 
     this.showStatusPopup = true;
