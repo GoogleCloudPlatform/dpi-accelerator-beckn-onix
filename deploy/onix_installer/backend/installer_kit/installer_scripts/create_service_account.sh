@@ -57,6 +57,7 @@ ROLES=(
   "roles/compute.securityAdmin"
   "roles/aiplatform.admin"
   "roles/run.admin"
+  "roles/iam.workloadIdentityPoolAdmin"
 )
 
 # Assign each role to the service account

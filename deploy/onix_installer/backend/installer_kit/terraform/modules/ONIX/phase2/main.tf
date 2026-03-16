@@ -241,10 +241,18 @@ resource "google_iam_workload_identity_pool" "main" {
   display_name               = "Inbound Auth Pool"
 }
 
+resource "time_sleep" "wait_for_wi_pool" {
+  count = var.enable_inbound_auth ? 1 : 0
+  depends_on = [google_iam_workload_identity_pool.main]
+  create_duration = "30s"
+}
+
 resource "google_iam_workload_identity_pool_provider" "oidc_provider" {
   count = var.enable_inbound_auth ? 1 : 0
-  workload_identity_pool_id = var.pool_id
+  workload_identity_pool_id = google_iam_workload_identity_pool.main[0].workload_identity_pool_id
   workload_identity_pool_provider_id = var.provider_id
+
+  depends_on = [time_sleep.wait_for_wi_pool]
 
   attribute_condition = "google.subject in [${join(", ", [for v in var.allowed_values : "'${v}'"])}]"
   attribute_mapping = {

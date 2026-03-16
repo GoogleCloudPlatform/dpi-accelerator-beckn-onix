@@ -53,7 +53,7 @@ modules:
           id: oidcauthtransportwrapper
           {% if security.aud_overrides %}
           config:
-            audience_override: "{{ security.aud_overrides }}"
+            audience_override: {{ security.aud_overrides }}
           {% endif %}
         {% endif %}
         {% if adapter.enable_schema_validation %}
@@ -141,7 +141,8 @@ modules:
           - id: oidcauth
             config:
               allowed_audience: {{ domains.adapter }}/caller/api
-              allowed_issuers: "https://iam.googleapis.com/projects/{{ project_number }}/locations/global/workloadIdentityPools/onix-{{ suffix }}-pool"
+              allowed_issuers: https://accounts.google.com,accounts.google.com,https://iam.googleapis.com/projects/{{ project_number }}/locations/global/workloadIdentityPools/onix-{{ suffix }}-pool
+              allowedSAs: adapter-invoker-sa-{{ suffix }}@{{ project_id }}.iam.gserviceaccount.com
           {% endif %}
           - id: reqpreprocessor
             config:
@@ -175,7 +176,7 @@ modules:
           id: oidcauthtransportwrapper
           {% if security.aud_overrides %}
           config:
-            audience_override: "{{ security.aud_overrides }}"
+            audience_override: {{ security.aud_overrides }}
           {% endif %}
         {% endif %}
         {% if adapter.enable_schema_validation %}
@@ -263,7 +264,8 @@ modules:
           - id: oidcauth
             config:
               allowed_audience: {{ domains.adapter }}/caller/api
-              allowed_issuers: "https://iam.googleapis.com/projects/{{ project_number }}/locations/global/workloadIdentityPools/onix-{{ suffix }}-pool"
+              allowed_issuers: https://accounts.google.com,accounts.google.com,https://iam.googleapis.com/projects/{{ project_number }}/locations/global/workloadIdentityPools/onix-{{ suffix }}-pool
+              allowedSAs: adapter-invoker-sa-{{ suffix }}@{{ project_id }}.iam.gserviceaccount.com
           {% endif %}
           - id: reqpreprocessor
             config:
