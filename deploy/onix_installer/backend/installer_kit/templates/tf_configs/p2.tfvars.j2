@@ -46,10 +46,34 @@ enable_subscriber            = {{ enable_subscriber | string | lower }}
 {% if enable_subscriber %}
 on_subscribe_handler_subscription_name = "on-subscribe-handler-sub-{{ suffix }}"
 on_subscribe_handler_push_url      = "https://{{ domains.subscriber }}/updateStatus"
+
+on_subscribe_sa_name               = "on-sub-sa-{{ suffix }}"
 {% endif %}
 
 enable_auto_approver         = {{ enable_auto_approver | string | lower }}
 {% if enable_auto_approver %}
 auto_approver_subscription_name    = "subscription-auto-approver-sub-{{ suffix }}"
 auto_approver_push_url           = "https://{{ domains.registry_admin }}/operations/action"
+
+auto_approver_sa_name              = "approver-sa-{{ suffix }}"
+{% endif %}
+
+# Security Configuration
+pool_id = "onix-{{ suffix }}-pool"
+provider_id = "onix-{{ suffix }}-provider"
+enable_inbound_auth         = {{ security.enable_inbound_auth | default(False) | string | lower }}
+{% if security.enable_in_bound_auth %}
+idclaim                      = "{{ security.idclaim }}"
+allowed_values               = {{ security.allowed_values | tojson }}
+allowed_audiences = [
+  {% if domains.subscriber %}"{{ domains.subscriber }}/api",{% endif %}
+  {% if domains.registry_admin %}"{{ domains.registry_admin }}/api",{% endif %}
+  {% if domains.adapter %}"{{ domains.adapter }}/caller/api",{% endif %}
+]
+
+issuer_url                   = "{{ security.issuer_url }}"
+
+{% endif %}
+{% if security.jwks_content %}
+jwks_json                    = "{{ security.jwks_content }}"
 {% endif %}

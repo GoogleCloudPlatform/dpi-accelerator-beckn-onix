@@ -18,9 +18,9 @@ import logging
 import subprocess
 from typing import List
 
-from fastapi import HTTPException
+from fastapi.exceptions import HTTPException
 from google.auth.exceptions import GoogleAuthError
-from google.cloud import resourcemanager_v3
+from google.cloud import resourcemanager
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +31,9 @@ async def list_google_cloud_projects() -> List[str]:
     """
     project_ids = []
     try:
-        client = resourcemanager_v3.ProjectsClient()
+        client = resourcemanager.ProjectsClient()
 
-        request = resourcemanager_v3.SearchProjectsRequest()
+        request = resourcemanager.SearchProjectsRequest()
         project_pager = client.search_projects(request=request)
 
         for project in project_pager:

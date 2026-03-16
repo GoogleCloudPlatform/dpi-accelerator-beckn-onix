@@ -19,35 +19,30 @@
 
 project_id = "{{ project_id }}"
 region     = "{{ region }}"
+app_name = "{{ app_name }}"
+
+#--------------------------------------------- Feature Toggles ---------------------------------------------#
+
+enable_onix  = {{ "true" if enable_onix else "false" }}
+enable_agent = {{ "true" if enable_agent else "false" }}
 
 #--------------------------------------------- Kubernetes Service Account for GKE Nodes ---------------------------------------------#
 
-kubernetes_sa_account_id   = "beckn-onix-gke-sa-{{ suffix }}"
+kubernetes_sa_account_id   = "dpi-{{ app_name }}-onix-gke-sa"
 kubernetes_sa_display_name = "SA for Beckn Onix GKE"
 kubernetes_sa_description  = "Service Account for Beckn GKE"
 kubernetes_sa_roles = [
-  "roles/redis.viewer",
-  "roles/cloudtrace.agent",
-  "roles/compute.instanceAdmin.v1",
-  "roles/compute.networkAdmin",
-  "roles/editor",
-  "roles/container.admin",
-  "roles/pubsub.admin",
-  "roles/pubsub.publisher",
-  "roles/pubsub.viewer",
-  "roles/secretmanager.admin",
-  "roles/secretmanager.secretAccessor",
-  "roles/iam.serviceAccountAdmin",
-  "roles/iam.serviceAccountTokenCreator",
-  "roles/iam.securityAdmin",
-  "roles/resourcemanager.projectIamAdmin"
+  "roles/logging.logWriter",
+  "roles/monitoring.metricWriter",
+  "roles/stackdriver.resourceMetadata.writer",
+  "roles/artifactregistry.reader"
 ]
 
 #--------------------------------------------- Network Configuration ---------------------------------------------#
 
-network_name        = "beckn-onix-network-{{ suffix }}"
+network_name        = "dpi-{{ app_name }}-network"
 network_description = "network for beckn onix"
-subnet_name         = "beckn-onix-gke-subnet-{{ suffix }}"
+subnet_name         = "dpi-{{ app_name }}-subnet"
 subnet_description  = "subnet for beckn gke"
 ip_cidr_range       = "10.0.0.0/17"
 range_name          = "onix-gke-pods"
@@ -57,7 +52,7 @@ ip_range_1          = "10.0.136.0/21"
 
 #--------------------------------------------- GKE Cluster Configuration ---------------------------------------------#
 
-cluster_name       = "beckn-onix-cluster-{{ suffix }}"
+cluster_name       = "dpi-{{ app_name }}-onix-cluster"
 cluster_description = "cluster for beckn onix"
 initial_node_count = 1
 master_ipv4_cidr_block  = "172.0.0.0/28"
@@ -66,7 +61,7 @@ display_name       = "cluster access IPs"
 
 #--------------------------------------------- GKE Node Pool Configuration ---------------------------------------------#
 
-node_pool_name    = "beckn-onix-node-pool"
+node_pool_name    = "dpi-{{ app_name }}-onix-node-pool"
 reg_node_location = [ "{{ region }}-a", "{{ region }}-b", "{{ region }}-c" ]
 max_pods_per_node = 50
 disk_size         = 50
@@ -82,9 +77,9 @@ max_node_count = 8
 
 #--------------------------------------------- Router & NAT Configuration ---------------------------------------------#
 
-router_name        = "beckn-onix-router-{{ suffix }}"
+router_name        = "dpi-{{ app_name }}-router"
 router_description = "router for beckn onix"
-nat_name           = "beckn-onix-nat-{{ suffix }}"
+nat_name           = "dpi-{{ app_name }}-nat"
 
 #--------------------------------------------- Application Namespace Configuration ---------------------------------------------#
 
@@ -99,31 +94,31 @@ nginix_ingress_chart        = "ingress-nginx"
 
 #--------------------------------------------- Health Check Configuration ---------------------------------------------#
 
-health_check_name        = "beckn-onix-health-check-{{ suffix }}"
+health_check_name        = "dpi-{{ app_name }}-onix-hc"
 health_check_description = "health check for beckn onix"
 
 #--------------------------------------------- Backend Service Configuration ---------------------------------------------#
 
-backend_service_name        = "beckn-onix-backend-{{ suffix }}"
+backend_service_name        = "dpi-{{ app_name }}-onix-bs"
 backend_service_description = "beckn onix backend service"
 
 #--------------------------------------------- Firewall Rules Configuration ---------------------------------------------#
 
-http_firewall_name        = "allow-health-check-{{ suffix }}"
+http_firewall_name        = "dpi-{{ app_name }}-onix-allow-hc"
 http_firewall_description = "allow http traffic for health check"
 http_firewall_direction   = "INGRESS"
 http_allow_protocols      = "tcp"
 http_allow_ports          = ["80"]
 source_ranges             = ["35.191.0.0/16"]
 
-allow_http_firewall_name        = "allow-http-{{ suffix }}"
+allow_http_firewall_name        = "dpi-{{ app_name }}-onix-allow-http"
 allow_http_firewall_description = "allow http from internet"
 allow_http_firewall_direction   = "INGRESS"
 allow_http_allow_protocols      = "tcp"
 allow_http_allow_ports          = ["80"]
 http_source_ranges              = ["0.0.0.0/0"]
 
-allow_https_firewall_name        = "allow-https-{{ suffix }}"
+allow_https_firewall_name        = "dpi-{{ app_name }}-onix-allow-https"
 allow_https_firewall_description = "allow https from internet"
 allow_https_firewall_direction   = "INGRESS"
 allow_https_allow_protocols      = "tcp"
@@ -132,38 +127,34 @@ https_source_ranges              = ["0.0.0.0/0"]
 
 #--------------------------------------------- Global IP & URL Map Configuration ---------------------------------------------#
 
-global_ip_name        = "beckn-onix-global-ip-{{ suffix }}"
+global_ip_name        = "dpi-{{ app_name }}-global-ip"
 global_ip_description = "ip for beckn onix lb"
 global_ip_labels = {
   "name" = "onix-lb-ip"
 }
 
-url_map_name        = "beckn-onix-lb-{{ suffix }}"
+url_map_name        = "dpi-{{ app_name }}-onix-lb"
 url_map_description = "url map for beckn onix lb"
 
 #--------------------------------------------- Private VPC Access Configuration ---------------------------------------------#
 
-vpc_peering_ip_name         = "beckn-onix-vpc-peer-{{ suffix }}"
+vpc_peering_ip_name         = "dpi-{{ app_name }}-vpc-peer"
 vpc_peering_ip_purpose      = "VPC_PEERING"
 vpc_peering_ip_address_type = "INTERNAL"
 vpc_peering_prefix_length   = 16
 
 #--------------------------------------------- Redis Instance Configuration ---------------------------------------------#
 
-instance_name        = "beckn-onix-redis-{{ suffix }}"
+instance_name        = "dpi-{{ app_name }}-onix-redis"
 memory_size_gb       = 1
 instance_tier        = "BASIC"
 instance_region       = "{{ region }}"
 instance_location_id = "{{ region }}-a"
 instance_connect_mode = "PRIVATE_SERVICE_ACCESS"
 
-#--------------------------------------------- Configuration Bucket ---------------------------------------------#
-
-config_bucket_name = "beckn-onix-config-bucket-{{ suffix }}"
-
 #--------------------------------------------- Pub/Sub Topic Configuration ---------------------------------------------#
 
-pubsub_topic_onix_name = "beckn-onix-platform-events-{{ suffix }}"
+pubsub_topic_onix_name = "dpi-{{ app_name }}-onix-events"
 
 #--------------------------------------------- Service-Specific Infrastructure Provisioning Flags ---------------------------------------------#
 
@@ -174,90 +165,112 @@ provision_registry_infra = {{ "true" if provision_registry_infra else "false" }}
 #--------------------------------------------- Adapter Service Configuration ---------------------------------------------#
 
 adapter_ksa_name          = "adapter-ksa"
-adapter_gsa_account_id    = "adapter-gsa-{{ suffix }}"
-adapter_gsa_display_name  = "SA to access Beckn Onix Bucket"
+adapter_gsa_account_id    = "dpi-{{ app_name }}-onix-adp-sa"
+adapter_gsa_display_name  = "Adapter {{ app_name }} SA"
 adapter_gsa_description   = "Service Account for Adapter Service"
 adapter_gsa_roles = [
-  "roles/storage.admin",
-  "roles/cloudtrace.agent",
-  "roles/pubsub.admin",
+  "roles/storage.objectViewer",
   "roles/pubsub.publisher",
-  "roles/secretmanager.admin",
+  "roles/pubsub.viewer",
   "roles/secretmanager.secretAccessor"
 ]
-adapter_topic_name = "adapter-topic-{{ suffix }}"
+adapter_topic_name = "dpi-{{ app_name }}-onix-adp-topic"
 
 #--------------------------------------------- Gateway Service Configuration ---------------------------------------------#
 
 gateway_ksa_name         = "gateway-ksa"
-gateway_gsa_account_id   = "beckn-onix-gateway-gsa-{{ suffix }}"
-gateway_gsa_display_name = "Gateway GSA for {{ suffix }}"
+gateway_gsa_account_id   = "dpi-{{ app_name }}-onix-gw-sa"
+gateway_gsa_display_name = "Gateway {{ app_name }} SA"
 gateway_gsa_description  = "GCP Service Account for Gateway service"
 gateway_gsa_roles = [
-  "roles/storage.admin",
-  "roles/pubsub.publisher",
-  "roles/pubsub.viewer",
-  "roles/secretmanager.secretAccessor",
-  "roles/secretmanager.admin"
+  "roles/storage.objectViewer",
+  "roles/secretmanager.secretAccessor"
 ]
 
 #--------------------------------------------- Registry Service Configuration ---------------------------------------------#
 
-registry_gsa_account_id   = "registry-user-{{ suffix }}"
+registry_gsa_account_id   = "dpi-{{ app_name }}-onix-reg-sa"
 registry_gsa_display_name = "Registry User SA"
 registry_gsa_description  = "Service Account for Registry DB"
 registry_gsa_roles = [
-  "roles/storage.admin",
+  "roles/storage.objectViewer",
   "roles/cloudsql.client",
   "roles/pubsub.publisher",
   "roles/pubsub.viewer",
-  "roles/cloudsql.instanceUser",
-  "roles/secretmanager.secretAccessor",
-  "roles/secretmanager.admin"
+  "roles/cloudsql.instanceUser"
 ]
 registry_ksa_name = "registry-ksa"
 
-registry_admin_gsa_account_id   = "registry-admin-gsa-{{ suffix }}"
-registry_admin_gsa_display_name = "Registry Admin GSA for {{ suffix }}"
+registry_admin_gsa_account_id   = "dpi-{{ app_name }}-onix-reg-adm-sa"
+registry_admin_gsa_display_name = "Registry Admin {{ app_name }} SA"
 registry_admin_gsa_description  = "GCP Service Account for Registry Admin functions"
 registry_admin_gsa_roles = [
-  "roles/storage.admin",
+  "roles/storage.objectViewer",
   "roles/cloudsql.client",
   "roles/pubsub.publisher",
   "roles/pubsub.viewer",
   "roles/cloudsql.instanceUser",
-  "roles/secretmanager.secretAccessor",
   "roles/secretmanager.admin"
 ]
 registry_admin_ksa_name = "registry-admin-ksa"
 
-registry_db_instance_region    = "{{ region }}"
-registry_db_instance_version   = "POSTGRES_17"
-registry_db_instance_name      = "beckn-onix-db-instance-{{ suffix }}"
-registry_db_instance_tier      = "{{ "db-perf-optimized-N-2" if deployment_size == "small" else "db-perf-optimized-N-4" }}"
-registry_db_instance_labels = {
+db_instance_region    = "{{ region }}"
+db_instance_version   = "POSTGRES_17"
+db_instance_name      = "dpi-{{ app_name }}-onix-db"
+db_instance_tier      = "{{ "db-perf-optimized-N-2" if deployment_size == "small" else "db-perf-optimized-N-4" }}"
+db_instance_labels = {
   "beckn" = "onix"
 }
-registry_db_instance_edition   = "ENTERPRISE_PLUS"
-registry_db_aval_type          = "REGIONAL"
-registry_db_instance_disk_size = 10
-registry_db_instance_disk_type = "PD_SSD"
-registry_db_ipv4               = true
-registry_db_max_connections    = {{ 1000 if deployment_size == "small" else 2000 }}
-registry_db_instance_cache     = true
+db_instance_edition   = "ENTERPRISE_PLUS"
+db_instance_availability_type          = "REGIONAL"
+db_instance_disk_size = 10
+db_instance_disk_type = "PD_SSD"
+db_instance_public_ipv4               = true
+db_instance_max_connections    = {{ 1000 if deployment_size == "small" else 2000 }}
+db_instance_cache     = true
 registry_database_name         = "registry-db"
 
 #--------------------------------------------- Subscription Service Configuration ---------------------------------------------#
 
 subscription_ksa_name          = "subscription-ksa"
-subscription_gsa_account_id    = "subscription-gsa-{{ suffix }}"
-subscription_gsa_display_name = "Subscription GSA for {{ suffix }}"
+subscription_gsa_account_id    = "dpi-{{ app_name }}-onix-sub-sa"
+subscription_gsa_display_name = "Subscription {{ app_name }} SA"
 subscription_gsa_description  = "GCP Service Account for Subscription service"
 subscription_gsa_roles = [
-  "roles/storage.admin",
-  "roles/pubsub.subscriber",
+  "roles/storage.objectViewer",
   "roles/pubsub.publisher",
   "roles/pubsub.viewer",
-  "roles/secretmanager.secretAccessor",
   "roles/secretmanager.admin"
 ]
+
+#--------------------------------------------- Cloud Armor Configuration ---------------------------------------------#
+
+enable_cloud_armor = {{ "true" if enable_cloud_armor else "false" }}
+allowed_regions    = {{ allowed_regions | tojson }}
+rate_limit_count   = {{ rate_limit_count }}
+
+#--------------------------------------------- Agent Configuration ---------------------------------------------#
+
+agent_db_name = "agent_sessions"
+agent_db_user = "agent_app_db_user"
+
+# Agent Service Account
+agent_sa_account_id   = "dpi-{{ app_name }}-agent-sa"
+agent_sa_display_name = "Beckn Agent Service Account"
+agent_sa_description  = "Service Account for Beckn Agent Application"
+agent_sa_roles = [
+  "roles/run.invoker",
+  "roles/aiplatform.user",
+  "roles/cloudsql.client",
+  "roles/cloudsql.instanceUser",
+  "roles/logging.logWriter",
+  "roles/monitoring.metricWriter",
+  "roles/cloudtrace.agent",
+]
+
+# Agent Cloud Run Configuration
+agent_cpu = "4000m"
+agent_memory = "4Gi"
+agent_ingress = "INGRESS_TRAFFIC_ALL"
+agent_vpc_egress = "ALL_TRAFFIC"
+agent_allow_unauthenticated = true

@@ -14,11 +14,15 @@
 
 import json
 import logging
+import os
 import sys
-from typing import Dict, Any
+from typing import Any
 import httpx
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+
+from fastapi.applications import FastAPI
+from fastapi.exceptions import HTTPException
+from fastapi.websockets import WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.models import InfraDeploymentRequest, AppDeploymentRequest, ProxyRequest
@@ -150,7 +154,7 @@ async def websocket_health_check(websocket: WebSocket):
     await websocket.accept()
     logger.info("WebSocket connection established for /ws/healthCheck.")
     try:
-        service_urls_to_check: Dict[str, str] = await websocket.receive_json()
+        service_urls_to_check: dict[str, str] = await websocket.receive_json()
         logger.info(f"Received health check request for services: {list(service_urls_to_check.keys())}.")
         await run_websocket_health_check(websocket, service_urls_to_check)
     except WebSocketDisconnect:
@@ -174,13 +178,13 @@ async def websocket_health_check(websocket: WebSocket):
 
 
 @app.post("/store/bulk", status_code=201)
-def store_or_update_values(items: Dict[str, Any]) -> Dict[str, Any]:
+def store_or_update_values(items: dict[str, Any]) -> dict[str, Any]:
     """
     Accepts a dictionary of key-value pairs for bulk storage/update in ui_state.json.
     Args:
-        items (Dict[str, Any]): A dictionary where keys are strings and values can be of any type.
+        items (dict[str, Any]): A dictionary where keys are strings and values can be of any type.
     Returns:
-        Dict[str, Any]: A confirmation message along with the data that was processed.
+        dict[str, Any]: A confirmation message along with the data that was processed.
     """
     logger.info(f"Received request for bulk store/update of data. Keys: {list(items.keys())}")
     try:
@@ -196,11 +200,11 @@ def store_or_update_values(items: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @app.get("/store")
-def get_all_stored_data() -> Dict[str, Any]:
+def get_all_stored_data() -> dict[str, Any]:
     """
     Retrieves all key-value pairs from ui_state.json.
     Returns:
-        Dict[str, Any]: A dictionary containing all the stored data.
+        dict[str, Any]: A dictionary containing all the stored data.
     """
     logger.info("Received request to retrieve all stored data.")
     try:
@@ -210,6 +214,34 @@ def get_all_stored_data() -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to retrieve all stored data: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to retrieve data: {e}")
+
+
+@app.get("/api/installer-state")
+def get_installer_state() -> dict[str, Any]:
+  """Retrieves the authoritative deployment intent state.
+
+  Returns:
+    A dictionary containing the deployment intent state if
+    `installer_state.json` exists and is valid.
+    Returns an empty dictionary if the file does not exist,
+    indicating no deployment has been attempted yet.
+  """
+  logger.info("Received request to retrieve installer state.")
+  state_file_path = os.path.join(
+      os.path.dirname(__file__),
+      "installer_kit",
+      "installer_state.json",
+  )
+  try:
+    if not os.path.exists(state_file_path):
+      return {}
+    with open(state_file_path, "r") as f:
+      return json.load(f)
+  except Exception as e:
+    logger.error("Failed to retrieve installer state: %s", e)
+    raise HTTPException(
+        status_code=500, detail=f"Failed to parse installer_state.json: {e}"
+    ) from e
 
 
 @app.post("/api/dynamic-proxy")
@@ -244,4 +276,8 @@ async def dynamic_proxy(request: ProxyRequest) -> Any:
                 status_code=500,
                 detail="An internal server error occurred."
             )
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 

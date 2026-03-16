@@ -21,11 +21,11 @@ import logging
 import subprocess
 from unittest.mock import MagicMock, AsyncMock, patch, call
 
-from fastapi import HTTPException
+import fastapi
 from google.auth.exceptions import GoogleAuthError
 
 # Import the module under test
-import services.gcp_resource_manager as gcp_resource_manager
+from services import gcp_resource_manager
 
 class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
 
@@ -40,7 +40,7 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
         patch.stopall()
 
 
-    @patch('services.gcp_resource_manager.resourcemanager_v3.ProjectsClient')
+    @patch('services.gcp_resource_manager.resourcemanager.ProjectsClient')
     async def test_list_google_cloud_projects_success(self, MockProjectsClient):
         """
         Test successful listing of Google Cloud projects.
@@ -66,12 +66,12 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
         self.mock_logger.error.assert_not_called()
         self.mock_logger.exception.assert_not_called()
 
-    @patch('services.gcp_resource_manager.resourcemanager_v3.ProjectsClient', side_effect=GoogleAuthError("Auth failed"))
+    @patch('services.gcp_resource_manager.resourcemanager.ProjectsClient', side_effect=GoogleAuthError("Auth failed"))
     async def test_list_google_cloud_projects_auth_error(self, MockProjectsClient):
         """
         Test handling of GoogleAuthError when listing projects.
         """
-        with self.assertRaises(HTTPException) as cm:
+        with self.assertRaises(fastapi.HTTPException) as cm:
             await gcp_resource_manager.list_google_cloud_projects()
 
         self.assertEqual(cm.exception.status_code, 500)
@@ -80,12 +80,12 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
         self.mock_logger.exception.assert_not_called()
         self.mock_logger.info.assert_not_called()
 
-    @patch('services.gcp_resource_manager.resourcemanager_v3.ProjectsClient', side_effect=Exception("Unexpected error"))
+    @patch('services.gcp_resource_manager.resourcemanager.ProjectsClient', side_effect=Exception("Unexpected error"))
     async def test_list_google_cloud_projects_general_exception(self, MockProjectsClient):
         """
         Test handling of a general unexpected Exception when listing projects.
         """
-        with self.assertRaises(HTTPException) as cm:
+        with self.assertRaises(fastapi.HTTPException) as cm:
             await gcp_resource_manager.list_google_cloud_projects()
 
         self.assertEqual(cm.exception.status_code, 500)
@@ -133,7 +133,7 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
         """
         Test handling of FileNotFoundError when gcloud command is not found.
         """
-        with self.assertRaises(HTTPException) as cm:
+        with self.assertRaises(fastapi.HTTPException) as cm:
             await gcp_resource_manager.list_google_cloud_regions()
 
         self.assertEqual(cm.exception.status_code, 500)
@@ -157,7 +157,7 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
             stderr=mock_error_string 
         )
 
-        with self.assertRaises(HTTPException) as cm:
+        with self.assertRaises(fastapi.HTTPException) as cm:
             await gcp_resource_manager.list_google_cloud_regions()
 
         self.assertEqual(cm.exception.status_code, 500)
@@ -176,7 +176,7 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
         
         mock_to_thread.return_value = mock_result
 
-        with self.assertRaises(HTTPException) as cm:
+        with self.assertRaises(fastapi.HTTPException) as cm:
             await gcp_resource_manager.list_google_cloud_regions()
 
         self.assertEqual(cm.exception.status_code, 500)
@@ -189,7 +189,7 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
         """
         Test handling of a general unexpected Exception when listing regions.
         """
-        with self.assertRaises(HTTPException) as cm:
+        with self.assertRaises(fastapi.HTTPException) as cm:
             await gcp_resource_manager.list_google_cloud_regions()
 
         self.assertEqual(cm.exception.status_code, 500)

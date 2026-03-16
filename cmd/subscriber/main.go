@@ -24,35 +24,38 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
-	"github.com/google/dpi-accelerator-beckn-onix/internal/api/subscriber"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/api/subscriber/handler"
+	"github.com/google/dpi-accelerator-beckn-onix/internal/api/subscriber"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/client"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/event"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/log"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/service"
-	"github.com/google/dpi-accelerator-beckn-onix/plugins/rediscache"
+	decryption "github.com/google/dpi-accelerator-beckn-onix/plugins/decrypter"
 	keyManager "github.com/google/dpi-accelerator-beckn-onix/plugins/inmemorysecretkeymanager"
-	becknclient "github.com/beckn/beckn-onix/core/module/client"
-	decryption "github.com/beckn/beckn-onix/pkg/plugin/implementation/decrypter"
-	"github.com/beckn/beckn-onix/pkg/plugin/implementation/signer"
-	"gopkg.in/yaml.v2"
+	"github.com/google/dpi-accelerator-beckn-onix/plugins/oidcauth"
+	"github.com/google/dpi-accelerator-beckn-onix/plugins/rediscache"
+	becknclient "github.com/beckn-one/beckn-onix/core/module/client"
+	"github.com/beckn-one/beckn-onix/pkg/plugin/implementation/signer"
+	yaml "gopkg.in/yaml.v3"
 )
 
 // config represents application configuration for the subscriber service.
 type config struct {
-	Log       *log.Config                  `yaml:"log"`
-	Timeouts  *timeoutConfig               `yaml:"timeouts"`
-	Server    *serverConfig                `yaml:"server"`
-	ProjectID string                       `yaml:"projectID"`
-	KeyManagerCacheTTL  *keyManager.CacheTTL   `yaml:"keyManagerCacheTTL"`
-	Registry  *client.RegistryClientConfig `yaml:"registry"`
-	RedisAddr string                       `yaml:"redisAddr"`
-	RegID     string                       `yaml:"regID"`    // Registry's ID
-	RegKeyID  string                       `yaml:"regKeyID"` // Registry's public key ID for decryption
-	Event     *event.Config                `yaml:"event"`
+	Log                *log.Config                  `yaml:"log"`
+	Timeouts           *timeoutConfig               `yaml:"timeouts"`
+	Server             *serverConfig                `yaml:"server"`
+	ProjectID          string                       `yaml:"projectID"`
+	KeyManagerCacheTTL *keyManager.CacheTTL         `yaml:"keyManagerCacheTTL"`
+	Registry           *client.RegistryClientConfig `yaml:"registry"`
+	RedisAddr          string                       `yaml:"redisAddr"`
+	RegID              string                       `yaml:"regID"`    // Registry's ID
+	RegKeyID           string                       `yaml:"regKeyID"` // Registry's public key ID for decryption
+	Event              *event.Config                `yaml:"event"`
+	Auth               *oidcauth.Config             `yaml:"auth"`
 }
 
 type serverConfig struct {
@@ -128,6 +131,14 @@ func (c *config) valid() error {
 		// Provide default values or handle as an error if strict config is required
 		c.KeyManagerCacheTTL = &keyManager.CacheTTL{PrivateKeysSeconds: 5, PublicKeysSeconds: 3600}
 	}
+	if c.Auth != nil {
+		if c.Auth.AllowedAudience == "" {
+			return fmt.Errorf("missing auth allowedAudience when auth is enabled")
+		}
+		if len(c.Auth.AllowedIssuers) == 0 {
+			return fmt.Errorf("missing auth allowedIssuers when auth is enabled")
+		}
+	}
 
 	return nil
 }
@@ -153,15 +164,15 @@ func run(ctx context.Context) error {
 	}()
 
 	becknRegClient := becknclient.NewRegisteryClient(&becknclient.Config{RegisteryURL: cfg.Registry.BaseURL})
-    keyManagerConfig := &keyManager.Config{
-    ProjectID: cfg.ProjectID,
-    CacheTTL: keyManager.CacheTTL{
-        PrivateKeysSeconds: cfg.KeyManagerCacheTTL.PrivateKeysSeconds,
-        PublicKeysSeconds:  cfg.KeyManagerCacheTTL.PublicKeysSeconds,
-    },
-    }
+	keyManagerConfig := &keyManager.Config{
+		ProjectID: cfg.ProjectID,
+		CacheTTL: keyManager.CacheTTL{
+			PrivateKeysSeconds: cfg.KeyManagerCacheTTL.PrivateKeysSeconds,
+			PublicKeysSeconds:  cfg.KeyManagerCacheTTL.PublicKeysSeconds,
+		},
+	}
 
-   km, closeKM, err := keyManager.New(ctx, redis, becknRegClient, keyManagerConfig)
+	km, closeKM, err := keyManager.New(ctx, redis, becknRegClient, keyManagerConfig)
 	if err != nil {
 		return fmt.Errorf("failed to create secrets key manager: %w", err)
 	}
@@ -214,10 +225,25 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("failed to create subscriber handler: %w", err)
 	}
 
+	var oidcMW func(http.Handler) http.Handler
+	if cfg.Auth != nil {
+		for i, iss := range cfg.Auth.AllowedIssuers {
+			cfg.Auth.AllowedIssuers[i] = strings.TrimSpace(iss)
+		}
+		for i, sa := range cfg.Auth.AllowedSAs {
+			cfg.Auth.AllowedSAs[i] = strings.TrimSpace(sa)
+		}
+
+		oidcMW, err = oidcauth.New(ctx, cfg.Auth)
+		if err != nil {
+			return fmt.Errorf("failed to create oidc auth middleware: %w", err)
+		}
+	}
+
 	// Initialize HTTP Server
 	server := &http.Server{
 		Addr:         net.JoinHostPort(cfg.Server.Host, strconv.Itoa(cfg.Server.Port)),
-		Handler:      subscriber.NewRouter(subHandler),
+		Handler:      subscriber.NewRouter(subHandler, oidcMW),
 		ReadTimeout:  cfg.Timeouts.Read,
 		WriteTimeout: cfg.Timeouts.Write,
 		IdleTimeout:  cfg.Timeouts.Idle,

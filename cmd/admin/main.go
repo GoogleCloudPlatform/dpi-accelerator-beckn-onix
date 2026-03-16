@@ -25,6 +25,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -36,10 +37,12 @@ import (
 	"github.com/google/dpi-accelerator-beckn-onix/internal/repository"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/service"
 
+	"gopkg.in/yaml.v3"
+
+	"github.com/google/dpi-accelerator-beckn-onix/plugins/encrypter"
+	"github.com/google/dpi-accelerator-beckn-onix/plugins/oidcauth"
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	"github.com/beckn/beckn-onix/pkg/plugin/definition"
-	"github.com/beckn/beckn-onix/pkg/plugin/implementation/encrypter"
-	"gopkg.in/yaml.v2"
+	"github.com/beckn-one/beckn-onix/pkg/plugin/definition"
 )
 
 // config represents application configuration.
@@ -52,6 +55,7 @@ type config struct {
 	Admin    *service.AdminConfig                    `yaml:"admin"`
 	Event    *event.Config                           `yaml:"event"`
 	Setup    *service.RegistrySelfRegistrationConfig `yaml:"setup"`
+	Auth     *oidcauth.Config                        `yaml:"auth"`
 }
 
 type serverConfig struct {
@@ -122,6 +126,14 @@ func (c *config) valid() error {
 	}
 	if c.Setup.KeyID == "" {
 		return fmt.Errorf("encryptionKeyID is missing in setup config")
+	}
+	if c.Auth != nil {
+		if c.Auth.AllowedAudience == "" {
+			return fmt.Errorf("missing auth allowedAudience when auth is enabled")
+		}
+		if len(c.Auth.AllowedIssuers) == 0 {
+			return fmt.Errorf("missing auth allowedIssuers when auth is enabled")
+		}
 	}
 	return nil
 }
@@ -235,9 +247,26 @@ func newServer(ctx context.Context, cfg *config, db *sql.DB, encyr definition.En
 		slog.Error("Failed to create admin handler", "error", err)
 		return nil, fmt.Errorf("failed to create admin handler: %w", err)
 	}
+
+	var oidcMW func(http.Handler) http.Handler
+	if cfg.Auth != nil {
+		// Remove leading and trailing whitespace from allowed issuers and service accounts.
+		for i, iss := range cfg.Auth.AllowedIssuers {
+			cfg.Auth.AllowedIssuers[i] = strings.TrimSpace(iss)
+		}
+		for i, sa := range cfg.Auth.AllowedSAs {
+			cfg.Auth.AllowedSAs[i] = strings.TrimSpace(sa)
+		}
+
+		oidcMW, err = oidcauth.New(ctx, cfg.Auth)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create oidc auth middleware: %w", err)
+		}
+	}
+
 	return &http.Server{
 		Addr:         net.JoinHostPort(cfg.Server.Host, strconv.Itoa(cfg.Server.Port)),
-		Handler:      admin.NewRouter(h),
+		Handler:      admin.NewRouter(h, oidcMW),
 		ReadTimeout:  cfg.Timeouts.Read,
 		WriteTimeout: cfg.Timeouts.Write,
 		IdleTimeout:  cfg.Timeouts.Idle,

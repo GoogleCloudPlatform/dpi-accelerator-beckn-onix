@@ -21,7 +21,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/beckn/beckn-onix/pkg/model"
+	"github.com/beckn-one/beckn-onix/pkg/model"
 )
 
 // signingKM defines the interface for retrieving signing keys.

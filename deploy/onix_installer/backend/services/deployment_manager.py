@@ -17,11 +17,11 @@ import json
 import logging
 import os
 from typing import List
-import core.utils as utils
+from core import utils
 from core.models import InfraDeploymentRequest, AppDeploymentRequest
 from core.constants import INFRA_SCRIPT_PATH, APP_SCRIPT_PATH, TERRAFORM_DIRECTORY, ANSI_ESCAPE_PATTERN
-import config.tf_config_generator as tf_config
-import config.app_config_generator as app_config
+from config import tf_config_generator as tf_config
+from config import app_config_generator as app_config
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,13 @@ async def run_infra_deployment(config: InfraDeploymentRequest, websocket):
         tf_config.generate_config(config)
         await websocket.send_text(json.dumps({"type": "info", "message": "Terraform configurations generated successfully."}))
         logger.info("Terraform configurations generated successfully.")
+    except ValueError as e:
+        error_message = f"Configuration Validation Failed: {e}"
+        logger.error("error: %s", error_message)
+        await websocket.send_text(json.dumps(
+            {"type": "error", "message": error_message}
+        ))
+        return # Exit because the immutable triplet was violated.
     except Exception as e:
         error_message = f"Failed to generate Terraform configurations: {e}"
         logger.error(error_message, exc_info=True)

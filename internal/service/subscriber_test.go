@@ -23,7 +23,7 @@ import (
 
 	"github.com/google/dpi-accelerator-beckn-onix/pkg/model"
 
-	becknmodel "github.com/beckn/beckn-onix/pkg/model"
+	becknmodel "github.com/beckn-one/beckn-onix/pkg/model"
 )
 
 // mockRegistryClient is a mock for registryClient.

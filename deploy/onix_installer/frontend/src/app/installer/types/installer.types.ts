@@ -38,11 +38,19 @@ export interface InfraOutputDetail {
 export interface InfraDetails {
   cluster_name?: InfraOutputDetail;
   redis_instance_ip?: InfraOutputDetail;
-  topic_name?: InfraOutputDetail;
+  onix_topic_name?: InfraOutputDetail;
+  adapter_topic_name?: InfraOutputDetail;
   external_ip?: InfraOutputDetail;
   app_external_ip?: InfraOutputDetail;
   global_ip_address?: InfraOutputDetail;
   registry_url?: InfraOutputDetail;
+  project_id?: InfraOutputDetail;
+  region?: InfraOutputDetail;
+  gcs_bucket?: InfraOutputDetail;
+  db_instance_name?: InfraOutputDetail;
+  db_instance_connection_name?: InfraOutputDetail;
+  agent_service_url?: InfraOutputDetail;
+  agent_service_name?: InfraOutputDetail;
   [key: string]: InfraOutputDetail | any;
 }
 
@@ -122,7 +130,18 @@ export interface AppDeployAdapterConfig {
   enableSchemaValidation: boolean;
 }
 
+export interface AppDeploySecurityConfig {
+  enableInBoundAuth: boolean;
+  enableOutBoundAuth: boolean;
+  issuerUrl: string;
+  idclaim: string;
+  allowedValues: string;
+  jwksFile: File | null;
+  audOverrides: string;
+}
+
 export interface InstallerState {
+  isConfigLocked: boolean;
   currentStepIndex: number;
   highestStepReached: number;
   installerGoal: 'create_new_open_network' | 'join_existing_network' | null;
@@ -152,6 +171,7 @@ export interface InstallerState {
   appDeployRegistryConfig: AppDeployRegistryConfig | null;
   appDeployGatewayConfig: AppDeployGatewayConfig | null;
   appDeployAdapterConfig: AppDeployAdapterConfig | null;
+  appDeploySecurityConfig: AppDeploySecurityConfig | null;
 }
 
 
@@ -190,6 +210,9 @@ export interface InfraDeploymentRequestPayload {
     bap: boolean;
     bpp: boolean;
   };
+  enable_cloud_armor: boolean;
+  allowed_regions: string[];
+  rate_limit_count: number;
 }
 
 export interface Base64File {
@@ -219,6 +242,12 @@ export interface BackendAppDeploymentRequest {
     enable_auto_approver?: boolean;
   };
   gateway_config?: { subscriber_id: string };
+  security_config?: {
+    enable_inbound_auth: boolean; issuer_url: string;
+    idclaim: string;
+    allowed_values: string[];
+    jwks_content?: string; enable_outbound_auth: boolean; aud_overrides: string;
+  };
   domain_config: DomainConfig;
 }
 
