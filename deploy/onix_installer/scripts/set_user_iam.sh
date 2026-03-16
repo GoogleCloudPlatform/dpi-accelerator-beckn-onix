@@ -28,6 +28,7 @@ ROLES=(
   "roles/artifactregistry.admin"            # Artifact Registry Administrator
   "roles/container.clusterAdmin"            # Kubernetes Engine Cluster Admin
   "roles/storage.objectAdmin"               # Storage Object Admin
+  "roles/iam.workloadIdentityPoolAdmin"      # Workload Identity Pool Admin
 )
 
 # Assign each role to the user account
