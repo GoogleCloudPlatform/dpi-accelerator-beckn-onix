@@ -25,7 +25,7 @@ import (
 	"github.com/google/dpi-accelerator-beckn-onix/pkg/model"
 	"github.com/google/uuid"
 
-	becknmodel "github.com/beckn/beckn-onix/pkg/model"
+	becknmodel "github.com/beckn-one/beckn-onix/pkg/model"
 )
 
 // Error definitions for the subscriber service

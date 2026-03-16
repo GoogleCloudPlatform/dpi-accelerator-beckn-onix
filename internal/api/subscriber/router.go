@@ -32,7 +32,7 @@ type subscriberHandler interface {
 }
 
 // NewRouter configures and returns the Chi router for subscriber service functionalities.
-func NewRouter(sh subscriberHandler) *chi.Mux {
+func NewRouter(sh subscriberHandler, oidcMiddleware func(http.Handler) http.Handler) *chi.Mux {
 	router := chi.NewRouter()
 
 	router.Use(middleware.Logger)    // Log API requests
@@ -45,9 +45,14 @@ func NewRouter(sh subscriberHandler) *chi.Mux {
 		fmt.Fprint(w, `{"status":"ok","service":"subscriber"}`)
 	})
 
-	router.Post("/subscribe", sh.CreateSubscription)
-	router.Patch("/subscribe", sh.UpdateSubscription) 
-	router.Post("/updateStatus", sh.StatusUpdate)
+	router.Group(func(r chi.Router) {
+		if oidcMiddleware != nil {
+			r.Use(oidcMiddleware)
+		}
+		r.Post("/subscribe", sh.CreateSubscription)
+		r.Patch("/subscribe", sh.UpdateSubscription)
+		r.Post("/updateStatus", sh.StatusUpdate)
+	})
 
 	// Catch-all for POST requests to paths ending in /on_subscribe
 	router.Post("/*", func(w http.ResponseWriter, r *http.Request) {

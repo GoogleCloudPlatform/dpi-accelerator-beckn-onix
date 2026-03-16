@@ -27,13 +27,13 @@
 
 # Prompt for required details
 read -p "Enter your GCP Project ID: " PROJECT_ID
-read -p "Enter desired Service Account name (e.g., beckn-adapter-sa-<user-name>): " SA_NAME
+read -p "Enter desired Service Account name (e.g., dpi-installer-sa): " SA_NAME
 
 # Create the service account
 echo "Creating service account $SA_NAME in project $PROJECT_ID..." >&2
 gcloud iam service-accounts create "$SA_NAME" \
     --project "$PROJECT_ID" \
-    --display-name "BECKN Adapter Service Account"
+    --display-name "DPI Installer Service Account"
 
 # Construct the service account email
 SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
@@ -41,29 +41,23 @@ echo "Service Account created: $SA_EMAIL" >&2
 
 # Define the list of roles to assign
 ROLES=(
-  "roles/redis.admin"
-  "roles/cloudtrace.agent"
-  "roles/compute.instanceAdmin.v1"
   "roles/compute.networkAdmin"
-  "roles/container.clusterAdmin"
-  "roles/resourcemanager.projectIamAdmin"
-  "roles/pubsub.admin"
-  "roles/pubsub.publisher"
-  "roles/secretmanager.admin"
-  "roles/secretmanager.secretAccessor"
-  "roles/iam.securityAdmin"
-  "roles/iam.serviceAccountAdmin"
-  "roles/iam.serviceAccountTokenCreator"
-  "roles/storage.admin"
-  "roles/compute.securityAdmin"
   "roles/compute.loadBalancerAdmin"
   "roles/container.admin"
-  "roles/logging.admin"
-  "roles/monitoring.admin"
+  "roles/iam.serviceAccountAdmin"
+  "roles/iam.serviceAccountTokenCreator"
+  "roles/resourcemanager.projectIamAdmin"
   "roles/iam.serviceAccountUser"
+  "roles/storage.admin"
   "roles/cloudsql.admin"
-  "roles/storage.objectAdmin"
+  "roles/redis.admin"
+  "roles/pubsub.editor"
+  "roles/secretmanager.admin"
   "roles/dns.admin"
+  "roles/compute.securityAdmin"
+  "roles/aiplatform.admin"
+  "roles/run.admin"
+  "roles/iam.workloadIdentityPoolAdmin"
 )
 
 # Assign each role to the service account

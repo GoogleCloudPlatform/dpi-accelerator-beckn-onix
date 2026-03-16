@@ -58,6 +58,57 @@ MAX_RETRIES=1
 RETRY_DELAY=10
 ATTEMPT=1
 
+# --- Remote Backend Configuration ---
+
+# Try to extract APP_NAME (suffix) and PROJECT_ID from generated variables if not set
+if [ -f "generated-terraform.tfvars" ]; then
+    if [ -z "$APP_NAME" ]; then
+        # Strict match: line must start with 'app_name' followed by '='
+        APP_NAME=$(grep '^app_name[[:space:]]*=' generated-terraform.tfvars | cut -d'=' -f2 | tr -d ' "')
+    fi
+    if [ -z "$PROJECT_ID" ]; then
+        # Strict match: line must start with 'project_id' followed by '='
+        PROJECT_ID=$(grep '^project_id[[:space:]]*=' generated-terraform.tfvars | cut -d'=' -f2 | tr -d ' "')
+    fi
+fi
+
+if [ -n "$APP_NAME" ] && [ -n "$PROJECT_ID" ]; then
+    BUCKET_NAME="dpi-${APP_NAME}-bucket"
+
+    # Strict match for region, cleanly fallback to us-central1 if empty
+    TARGET_REGION=$(grep '^region[[:space:]]*=' generated-terraform.tfvars | cut -d'=' -f2 | tr -d ' "')
+    TARGET_REGION=${TARGET_REGION:-us-central1}
+
+    echo ">> Configuring Remote Terraform State in GCS..."
+
+    # Check/Create Bucket (Idempotent-ish)
+    if gsutil ls -b "gs://${BUCKET_NAME}" >/dev/null 2>&1; then
+        echo "✅ Bucket gs://${BUCKET_NAME} exists."
+    else
+        echo "Bucket does not exist. Creating gs://${BUCKET_NAME}..."
+        if gsutil mb -p "$PROJECT_ID" -l "$TARGET_REGION" "gs://${BUCKET_NAME}"; then
+             gsutil versioning set on "gs://${BUCKET_NAME}"
+             echo "✅ Bucket created."
+        else
+             echo "⚠️ Warning: Failed to create bucket. Usage may fail if state is not local."
+        fi
+    fi
+
+    # Generate backend.tf
+    cat <<EOF > backend.tf
+terraform {
+  backend "gcs" {
+    bucket  = "${BUCKET_NAME}"
+    prefix  = "terraform/state"
+  }
+}
+EOF
+    echo "✅ backend.tf configured for Remote State: gs://${BUCKET_NAME}/terraform/state"
+else
+    echo "⚠️ Warning: Could not determine APP_NAME or PROJECT_ID. Skipping GCS backend configuration."
+fi
+
+
 while [ $ATTEMPT -le $MAX_RETRIES ]; do
     echo -e "\nInitializing Terraform (Attempt $ATTEMPT)...\n"
     terraform init && break

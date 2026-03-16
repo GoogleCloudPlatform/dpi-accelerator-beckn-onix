@@ -2,9 +2,9 @@ name: Onix CI
 
 on:
   push:
-    branches: [ "release_v1.0" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "release_v1.0" ]
+    branches: [ "main" ]
 
 jobs:
   test-go:

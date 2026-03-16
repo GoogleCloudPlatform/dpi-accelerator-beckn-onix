@@ -75,16 +75,19 @@ def _prepare_template_context(app_deployment_request: AppDeploymentRequest, infr
     logger.debug("Preparing Jinja2 template context for application configurations...")
     context = {
         "project_id": infra_output_values.get("project_id"),
-        "region": infra_output_values.get("cluster_region"),
-        "cluster_region": infra_output_values.get("cluster_region"),
+        "project_number": infra_output_values.get("project_number"),
+        "region": infra_output_values.get("region"),
+        "cluster_region": infra_output_values.get("region"),
         "redis_instance_ip": infra_output_values.get("redis_instance_ip"),
         "onix_topic_name": infra_output_values.get("onix_topic_name"),
         "adapter_topic_name": infra_output_values.get("adapter_topic_name"),
         "database_user_sa_email": (infra_output_values.get("database_user_sa_email") or "").removesuffix(iam_sa_suffix),
         "registry_admin_database_user_sa_email": (infra_output_values.get("registry_admin_database_user_sa_email") or "").removesuffix(iam_sa_suffix),
-        "registry_database_name": infra_output_values.get("registry_database_name"),
-        "registry_db_connection_name": infra_output_values.get("registry_db_connection_name"),
-        "config_bucket_name": infra_output_values.get("config_bucket_name"),
+        "registry_database_name":
+            infra_output_values.get("registry_database_name"),
+        "registry_db_connection_name":
+            infra_output_values.get("db_instance_connection_name"),
+        "config_bucket_name": infra_output_values.get("gcs_bucket"),
 
         "suffix": app_deployment_request.app_name,
         "registry_url": str(app_deployment_request.registry_url),
@@ -92,6 +95,7 @@ def _prepare_template_context(app_deployment_request: AppDeploymentRequest, infr
         "adapter": app_deployment_request.adapter_config.model_dump() if app_deployment_request.adapter_config else {},
         "registry": app_deployment_request.registry_config.model_dump(),
         "gateway": app_deployment_request.gateway_config.model_dump() if app_deployment_request.gateway_config else {},
+        "security": app_deployment_request.security_config.model_dump() if app_deployment_request.security_config else {},
         "domains": app_deployment_request.domain_names,
         "deploy_bap": app_deployment_request.components.get("bap", False),
         "deploy_bpp": app_deployment_request.components.get("bpp", False),
@@ -177,7 +181,7 @@ def generate_app_configs(app_deployment_request: AppDeploymentRequest):
                 context=template_context
             )
 
-        tf_vars_output_dir = os.path.join(TERRAFORM_DIRECTORY, 'phase2')
+        tf_vars_output_dir = os.path.join(TERRAFORM_DIRECTORY, "modules/ONIX/phase2")
         tf_template_source_dir = os.path.join(TEMPLATE_DIRECTORY, 'tf_configs')
         _generate_file_from_template(
             template_source_dir=tf_template_source_dir,
@@ -287,7 +291,7 @@ def generate_logs_explorer_urls(service_names: List[str]) -> Dict[str, str]:
         infra_output_values = _load_infrastructure_outputs(TERRAFORM_DIRECTORY)
         project_id = infra_output_values.get("project_id")
         cluster_name = infra_output_values.get("cluster_name")
-        cluster_region = infra_output_values.get("cluster_region")
+        cluster_region = infra_output_values.get("region")
 
         for service_name in service_names:
             container_name = f"onix-{service_name.replace('_', '-')}"

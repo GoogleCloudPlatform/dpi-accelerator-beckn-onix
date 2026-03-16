@@ -50,9 +50,9 @@ echo -e "\nReading infrastructure outputs from $OUTPUTS_FILE...\n"
 
 NAMESPACE=$(jq -r '.app_namespace_name.value' "$OUTPUTS_FILE")
 CLUSTER_NAME=$(jq -r '.cluster_name.value' "$OUTPUTS_FILE")
-CLUSTER_REGION=$(jq -r '.cluster_region.value' "$OUTPUTS_FILE")
+CLUSTER_REGION=$(jq -r '.region.value' "$OUTPUTS_FILE")
 PROJECT_NAME=$(jq -r '.project_id.value' "$OUTPUTS_FILE")
-CONFIG_BUCKET=$(jq -r '.config_bucket_name.value' "$OUTPUTS_FILE")
+CONFIG_BUCKET=$(jq -r '.gcs_bucket.value' "$OUTPUTS_FILE")
 
 # Service Account Names
 ADAPTER_KSA_NAME=$(jq -r '.adapter_ksa_name.value' "$OUTPUTS_FILE")
@@ -160,19 +160,19 @@ gcloud container clusters get-credentials "$CLUSTER_NAME" --region "$CLUSTER_REG
 get_chart_path_for_service() {
     case "$1" in
         registry)
-            echo "./helm-charts/onix-registry"
+            echo "./helm_charts/onix_registry"
             ;;
         registry-admin)
-            echo "./helm-charts/onix-registry-admin"
+            echo "./helm_charts/onix_registry_admin"
             ;;
         subscriber)
-            echo "./helm-charts/onix-subscriber"
+            echo "./helm_charts/onix_subscriber"
             ;;
         gateway)
-            echo "./helm-charts/onix-gateway"
+            echo "./helm_charts/onix_gateway"
             ;;
         adapter)
-            echo "./helm-charts/onix-adapter"
+            echo "./helm_charts/onix_adapter"
             ;;
         *)
             echo "" # Return empty string for unknown service
@@ -210,7 +210,7 @@ for SERVICE in "${SERVICES_TO_DEPLOY[@]}"; do
         exit 1
     fi
     echo deploying service: "$SERVICE"
-    
+
 
     # Validate that essential env vars are indeed set for current service
     if [ -z "$DOMAIN" ]; then
@@ -339,7 +339,7 @@ EOF
             for k in {1..4}; do # Check for 20 seconds (4 * 5s)
                 CONTAINER_READY=$(kubectl get pod "$POD_NAME" -n "$NAMESPACE" -o jsonpath='{.status.containerStatuses[0].ready}' 2>/dev/null || echo "false")
                 RESTARTS=$(kubectl get pod "$POD_NAME" -n "$NAMESPACE" -o jsonpath='{.status.containerStatuses[0].restartCount}' 2>/dev/null || echo 0)
-                
+
                 if [[ "$CONTAINER_READY" != "true" || "$RESTARTS" -gt 0 ]]; then
                     echo -e "$SERVICE pod not yet stable (ready: $CONTAINER_READY, restarts: $RESTARTS). Checking again..."
                     STABLE=0
@@ -385,7 +385,7 @@ done
 echo -e "\n====================================================="
 echo -e "All services deployed! Now enabling HTTPS Load Balancer and SSL certificate with Terraform...\n"
 
-cd phase2
+cd modules/ONIX/phase2
 terraform init
 terraform apply --var-file p2.tfvars -auto-approve
 # terraform plan --var-file p2.tfvars

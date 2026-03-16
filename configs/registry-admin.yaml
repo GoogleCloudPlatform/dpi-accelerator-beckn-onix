@@ -42,3 +42,11 @@ setup:
   subscriberID: <REGISTRY_ID>
   url: <REGISTRY_URL>
   domain: beckn_network
+auth:
+  allowedAudience: <OIDC_AUDIENCE>
+  allowedIssuers:
+    - <OIDC_ISSUER_1>
+    - <OIDC_ISSUER_2>
+  allowedSAs:
+    - <ALLOWED_SA_1>
+    - <ALLOWED_SA_2>

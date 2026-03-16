@@ -13,8 +13,12 @@
 # limitations under the License.
 
 from enum import Enum
-from typing import Annotated, Dict, Optional, Any
-from pydantic import BaseModel, Field, HttpUrl
+from typing import Annotated, Any, Dict, Optional
+
+from pydantic.fields import Field
+from pydantic.functional_validators import model_validator
+from pydantic.main import BaseModel
+from pydantic.networks import HttpUrl
 
 
 # Define a type alias for non-empty strings
@@ -32,6 +36,16 @@ class DeploymentType(str, Enum):
 class InfraDeploymentRequest(BaseModel):
     """
     Pydantic model for incoming infrastructure deployment requests.
+
+    Attributes:
+        project_id: The Google Cloud Project ID.
+        region: The Google Cloud region for deployment.
+        app_name: The name of the application.
+        type: The deployment size type (e.g., "small", "medium", "large").
+        components: A dictionary indicating which components to deploy.
+        enable_cloud_armor: Whether to enable Cloud Armor. Defaults to False.
+        allowed_regions: A tuple of regions. Defaults to ("IN",).
+        rate_limit_count: Max requests per time frame. Defaults to 100.
     """
     project_id: NonEmptyStr
     region: NonEmptyStr
@@ -39,6 +53,9 @@ class InfraDeploymentRequest(BaseModel):
     type: DeploymentType
     components: Dict[str, bool]
     # Expected keys for components: "gateway", "registry", "bap", "bpp"
+    enable_cloud_armor: bool | None = False
+    allowed_regions: tuple[str, ...] | None = ("IN",)
+    rate_limit_count: int | None = 100
 
 class AdapterConfig(BaseModel):
     """
@@ -60,10 +77,46 @@ class GatewayConfig(BaseModel):
     """
     subscriber_id: NonEmptyStr
 
+class SecurityConfig(BaseModel):
+    """
+    Configuration specific to security policies.
+    """
+    enable_inbound_auth: Optional[bool] = False
+    issuer_url: Optional[str] = None
+    idclaim: Optional[str] = None
+    allowed_values: Optional[list[str]] = None
+    jwks_content: Optional[str] = None
+    enable_outbound_auth: Optional[bool] = False
+    aud_overrides: Optional[str] = None
+
+    @model_validator(mode='after')
+    def validate_inbound_auth_requirements(self) -> 'SecurityConfig':
+        # Only run this check if inbound auth is explicitly set to True
+        if self.enable_inbound_auth:
+            missing_fields = []
+            # Check if fields are either None or empty strings
+            if not self.issuer_url:
+                missing_fields.append("issuer_url")
+            if not self.idclaim:
+                missing_fields.append("idclaim")
+            # This checks for both None and an empty list []
+            if not self.allowed_values:
+                missing_fields.append("allowed_values")
+
+            if missing_fields:
+              raise ValueError(
+                  f"When enable_inbound_auth is True, the following fields cannot be empty: {', '.join(missing_fields)}"
+                )
+        return self
+
+
 class DomainConfig(BaseModel):
+    
     domainType: NonEmptyStr
     baseDomain: str
     dnsZone: str
+
+
     
 class AppDeploymentRequest(BaseModel):
     """
@@ -79,12 +132,15 @@ class AppDeploymentRequest(BaseModel):
 
     registry_url: HttpUrl
 
-    adapter_config: Optional[AdapterConfig] = None
     registry_config: RegistryConfig
-    gateway_config: Optional[GatewayConfig] = None
     domain_config: DomainConfig
+    adapter_config: Optional[AdapterConfig] = None
+    gateway_config: Optional[GatewayConfig] = None
+    security_config: Optional[SecurityConfig] = None
 
 
 class ProxyRequest(BaseModel):
-    targetUrl: str
+    target_url: str
     payload: Dict[Any, Any]
+    impersonate_service_account: Optional[str] = None
+    audience: Optional[str] = None

@@ -35,5 +35,12 @@ regKeyID: <REGISTRY_ENCRYPTION_KEY_ID>
 event:
   projectID: <PROJECT_ID>
   topicID: <EVENTS_TOPIC_ID>
-
+auth:
+  allowedAudience: <OIDC_AUDIENCE>
+  allowedIssuers:
+    - <OIDC_ISSUER_1>
+    - <OIDC_ISSUER_2>
+  allowedSAs:
+    - <ALLOWED_SA_1>
+    - <ALLOWED_SA_2>
 

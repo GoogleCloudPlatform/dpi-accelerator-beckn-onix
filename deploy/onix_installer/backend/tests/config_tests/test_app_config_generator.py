@@ -14,25 +14,12 @@
 
 import unittest
 import os
-import sys
 import logging
 from unittest.mock import patch, MagicMock, call
 
 import urllib
 
-# Add the project root to sys.path for proper imports
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-sys.path.insert(0, project_root)
-
-from core.models import (
-    AppDeploymentRequest,
-    DeploymentType,
-    AdapterConfig,
-    RegistryConfig,
-    GatewayConfig,
-    DomainConfig
-)
-
+from core import models
 from config import app_config_generator
 
 
@@ -71,16 +58,17 @@ class TestAppConfigGenerator(unittest.TestCase):
         # Define default infra outputs to be used by mocks when needed
         self.default_infra_outputs = {
             "project_id": "default-project",
+            "project_number": "123456789",
             "cluster_name": "default-cluster",
-            "cluster_region": "default-region",
+            "region": "default-region",
             "redis_instance_ip": "1.2.3.4",
             "onix_topic_name": "onix-topic",
             "adapter_topic_name": "adapter-topic",
             "database_user_sa_email": "db-user@example.gserviceaccount.com",
             "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
             "registry_database_name": "reg-db",
-            "registry_db_connection_name": "reg-conn",
-            "config_bucket_name": "config-bucket",
+            "db_instance_connection_name": "reg-conn",
+            "gcs_bucket": "config-bucket",
             "url_map": "mock-url-map",
             "global_ip_address": "35.35.35.35",
         }
@@ -118,15 +106,16 @@ class TestAppConfigGenerator(unittest.TestCase):
 
     @patch('config.app_config_generator.utils.read_json_file', return_value={
         "project_id": {"value": "test-project"},
-        "cluster_region": {"value": "test-region"},
+        "project_number": {"value": "123456789"},
+        "region": {"value": "test-region"},
         "redis_instance_ip": {"value": "1.2.3.4"},
         "onix_topic_name": {"value": "onix-topic"},
         "adapter_topic_name": {"value": "adapter-topic"},
         "database_user_sa_email": {"value": "db-user@example.gserviceaccount.com"},
         "registry_admin_database_user_sa_email": {"value": "reg-admin@example.gserviceaccount.com"},
         "registry_database_name": {"value": "reg-db"},
-        "registry_db_connection_name": {"value": "reg-conn"},
-        "config_bucket_name": {"value": "config-bucket"},
+        "db_instance_connection_name": {"value": "reg-conn"},
+        "gcs_bucket": {"value": "config-bucket"},
         "url_map": {"value": "mock-url-map"},
         "global_ip_address": {"value": "35.35.35.35"},
     })
@@ -142,15 +131,16 @@ class TestAppConfigGenerator(unittest.TestCase):
         mock_read_json_file.assert_called_once_with(expected_path)
         self.assertEqual(result, {
             "project_id": "test-project",
-            "cluster_region": "test-region",
+            "project_number": "123456789",
+            "region": "test-region",
             "redis_instance_ip": "1.2.3.4",
             "onix_topic_name": "onix-topic",
             "adapter_topic_name": "adapter-topic",
             "database_user_sa_email": "db-user@example.gserviceaccount.com",
             "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
             "registry_database_name": "reg-db",
-            "registry_db_connection_name": "reg-conn",
-            "config_bucket_name": "config-bucket",
+            "db_instance_connection_name": "reg-conn",
+            "gcs_bucket": "config-bucket",
             "url_map": "mock-url-map",
             "global_ip_address": "35.35.35.35",
         })
@@ -210,7 +200,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test that the Jinja2 context is prepared correctly, including SA email stripping.
         """
-        app_req = AppDeploymentRequest(
+        app_req = models.AppDeploymentRequest(
             app_name="test-app",
             components={"bap": True, "bpp": False, "gateway": True, "registry": False}, # Using string keys
             domain_names={
@@ -221,22 +211,24 @@ class TestAppConfigGenerator(unittest.TestCase):
             },
             image_urls={"adapter": "some-repo/adapter:1.0"},
             registry_url="http://reg.example.com",
-            adapter_config=AdapterConfig(enable_schema_validation=True),
-            registry_config=RegistryConfig(subscriber_id="test_sub", key_id="test_key", enable_auto_approver=True),
-            gateway_config=GatewayConfig(subscriber_id="test_gateway_sub"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            adapter_config=models.AdapterConfig(enable_schema_validation=True),
+            registry_config=models.RegistryConfig(subscriber_id="test_sub", key_id="test_key", enable_auto_approver=True),
+            gateway_config=models.GatewayConfig(subscriber_id="test_gateway_sub"),
+            security_config=models.SecurityConfig(enable_inbound_auth=True, issuer_url="http://issuer.url", idclaim="sub", allowed_values=["value1", "value2"], jwks_json="jwks.json"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
         infra_outputs = {
             "project_id": "infra-proj",
-            "cluster_region": "infra-region",
+            "project_number": "987654321",
+            "region": "infra-region",
             "redis_instance_ip": "10.0.0.1",
             "onix_topic_name": "onix-t",
             "adapter_topic_name": "adapter-t",
             "database_user_sa_email": "user@my-proj.iam.gserviceaccount.com",
             "registry_admin_database_user_sa_email": "admin@my-proj.iam.gserviceaccount.com",
             "registry_database_name": "reg-db",
-            "registry_db_connection_name": "reg-conn",
-            "config_bucket_name": "config-bucket-name",
+            "db_instance_connection_name": "reg-conn",
+            "gcs_bucket": "config-bucket-name",
             "url_map": "mock-url-map-id",
             "global_ip_address": "35.35.35.35",
         }
@@ -244,6 +236,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         context = app_config_generator._prepare_template_context(app_req, infra_outputs)
 
         self.assertEqual(context["project_id"], "infra-proj")
+        self.assertEqual(context["project_number"], "987654321")
         self.assertEqual(context["cluster_region"], "infra-region")
         self.assertEqual(context["redis_instance_ip"], "10.0.0.1")
         self.assertEqual(context["onix_topic_name"], "onix-t")
@@ -251,6 +244,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         self.assertEqual(context["database_user_sa_email"], "user@my-proj.iam")
         self.assertEqual(context["registry_admin_database_user_sa_email"], "admin@my-proj.iam")
         self.assertEqual(context["registry_url"], "http://reg.example.com/")
+        self.assertEqual(context["suffix"], "test-app")
         self.assertEqual(context["domains"], {
                 "auth_domain": "auth.example.com",
                 "adapter": "adapter.example.com",
@@ -261,6 +255,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         self.assertEqual(context["adapter"], app_req.adapter_config.model_dump())
         self.assertEqual(context["registry"], app_req.registry_config.model_dump())
         self.assertEqual(context["gateway"], app_req.gateway_config.model_dump())
+        self.assertEqual(context["security"], app_req.security_config.model_dump())
 
         self.assertTrue(context["deploy_bap"])
         self.assertFalse(context["deploy_bpp"])
@@ -279,10 +274,10 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('config.app_config_generator.utils.render_jinja_template', return_value="rendered_content")
     @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
-        "project_id": "test-project", "cluster_name": "test-cluster", "cluster_region": "us-central1",
+        "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
         "database_user_sa_email": "db-user@example.gserviceaccount.com", "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
-        "registry_database_name": "reg-db", "registry_db_connection_name": "reg-conn", "config_bucket_name": "config-bucket",
+        "registry_database_name": "reg-db", "db_instance_connection_name": "reg-conn", "gcs_bucket": "config-bucket",
         "url_map": "mock-url-map", "global_ip_address": "35.35.35.35",
     })
     @patch('os.path.join', side_effect=os.path.join)
@@ -290,7 +285,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test generation of app configs when all components that create config files are enabled.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={
                 "bap": True,
@@ -301,8 +296,8 @@ class TestAppConfigGenerator(unittest.TestCase):
             domain_names={},
             image_urls={},
             registry_url="http://mock-reg.com",
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
 
         app_config_generator.generate_app_configs(req)
@@ -340,7 +335,7 @@ class TestAppConfigGenerator(unittest.TestCase):
             call(os.path.join(self.mock_generated_configs_dir, self.mock_registry_admin_template.replace('.j2', '')), "rendered_content"),
         ]
 
-        tf_vars_output_dir = os.path.join(self.mock_tf_dir, 'phase2')
+        tf_vars_output_dir = os.path.join(self.mock_tf_dir, 'modules/ONIX/phase2')
         expected_write_calls_tfvars = [
             call(os.path.join(tf_vars_output_dir, self.mock_tfvars_template.replace('.j2', '')), "rendered_content"),
         ]
@@ -356,10 +351,10 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('config.app_config_generator.utils.render_jinja_template', return_value="rendered_content")
     @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
-        "project_id": "test-project", "cluster_name": "test-cluster", "cluster_region": "us-central1",
+        "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
         "database_user_sa_email": "db-user@example.gserviceaccount.com", "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
-        "registry_database_name": "reg-db", "registry_db_connection_name": "reg-conn", "config_bucket_name": "config-bucket",
+        "registry_database_name": "reg-db", "db_instance_connection_name": "reg-conn", "gcs_bucket": "config-bucket",
         "url_map": "mock-url-map", "global_ip_address": "35.35.35.35",
     })
     @patch('os.path.join', side_effect=os.path.join)
@@ -367,7 +362,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test generation of app configs when only registry component is enabled.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={
                 "registry": True
@@ -375,8 +370,8 @@ class TestAppConfigGenerator(unittest.TestCase):
             domain_names={},
             image_urls={},
             registry_url="http://mock-reg.com",
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
 
         app_config_generator.generate_app_configs(req)
@@ -406,7 +401,7 @@ class TestAppConfigGenerator(unittest.TestCase):
             call(os.path.join(self.mock_generated_configs_dir, self.mock_registry_admin_template.replace('.j2', '')), "rendered_content"),
         ]
 
-        tf_vars_output_dir = os.path.join(self.mock_tf_dir, 'phase2')
+        tf_vars_output_dir = os.path.join(self.mock_tf_dir, 'modules/ONIX/phase2')
         expected_write_calls_tfvars = [
             call(os.path.join(tf_vars_output_dir, self.mock_tfvars_template.replace('.j2', '')), "rendered_content"),
         ]
@@ -422,10 +417,10 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('config.app_config_generator.utils.render_jinja_template', side_effect=FileNotFoundError("Missing J2"))
     @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
-        "project_id": "test-project", "cluster_name": "test-cluster", "cluster_region": "us-central1",
+        "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
         "database_user_sa_email": "db-user@example.gserviceaccount.com", "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
-        "registry_database_name": "reg-db", "registry_db_connection_name": "reg-conn", "config_bucket_name": "config-bucket",
+        "registry_database_name": "reg-db", "db_instance_connection_name": "reg-conn", "gcs_bucket": "config-bucket",
         "url_map": "mock-url-map", "global_ip_address": "35.35.35.35",
     })
     @patch('os.path.join', side_effect=os.path.join)
@@ -433,14 +428,14 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test that FileNotFoundError during template rendering is caught and re-raised.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={"bap": True},
             domain_names={},
             image_urls={},
             registry_url="http://mock-reg.com",
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
 
         with self.assertRaisesRegex(FileNotFoundError, "Missing J2"):
@@ -455,10 +450,10 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('config.app_config_generator.utils.render_jinja_template', return_value="content")
     @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
-        "project_id": "test-project", "cluster_name": "test-cluster", "cluster_region": "us-central1",
+        "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
         "database_user_sa_email": "db-user@example.gserviceaccount.com", "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
-        "registry_database_name": "reg-db", "registry_db_connection_name": "reg-conn", "config_bucket_name": "config-bucket",
+        "registry_database_name": "reg-db", "db_instance_connection_name": "reg-conn", "gcs_bucket": "config-bucket",
         "url_map": "mock-url-map", "global_ip_address": "35.35.35.35",
     })
     @patch('os.path.join', side_effect=os.path.join)
@@ -466,14 +461,14 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test that IOError during file writing is caught and re-raised.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={"gateway": True},
             domain_names={},
             image_urls={},
             registry_url="http://mock-reg.com",
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
 
         with self.assertRaisesRegex(IOError, "No disk space"):
@@ -489,7 +484,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test that all relevant environment variables are generated correctly for all components.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={
                 "bap": True,
@@ -510,8 +505,8 @@ class TestAppConfigGenerator(unittest.TestCase):
                 "subscriber": "repo/subscriber:1.0"
             },
             registry_url="http://mock-reg.com",
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
 
         # Call with an explicit list of services to deploy
@@ -549,14 +544,14 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test environment variables when no deployable components are selected.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={},
             domain_names={},
             image_urls={},
             registry_url="http://mock-reg.com",
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
         services_to_deploy = []
         env_vars = app_config_generator.get_deployment_environment_variables(req, services_to_deploy)
@@ -570,7 +565,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test environment variables for a subset of components.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={
                 "registry": True,
@@ -584,8 +579,8 @@ class TestAppConfigGenerator(unittest.TestCase):
                 "registry": "repo/reg:1.0"
             },
             registry_url="http://mock-reg.com",
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
         services_to_deploy = ["adapter", "registry", "registry-admin", "subscriber"]
         env_vars = app_config_generator.get_deployment_environment_variables(req, services_to_deploy)
@@ -601,15 +596,15 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test that ENABLE_SCHEMA_VALIDATION is set to 'true' when enabled in the request.
         """
-        req = AppDeploymentRequest(
+        req = models.AppDeploymentRequest(
             app_name="test-app",
             components={"bap": True},
             domain_names={},
             image_urls={},
             registry_url="http://mock-reg.com",
-            adapter_config=AdapterConfig(enable_schema_validation=True),
-            registry_config=RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            adapter_config=models.AdapterConfig(enable_schema_validation=True),
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
         )
         services_to_deploy = ["adapter"]
         env_vars = app_config_generator.get_deployment_environment_variables(req, services_to_deploy)
@@ -762,7 +757,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         mock_load_infra.return_value = {
             "project_id": "test-project-id",
             "cluster_name": "test-cluster",
-            "cluster_region": "us-central1",
+            "region": "us-central1",
         }
         services = ["adapter", "registry", "my_custom_service"]
         
@@ -808,10 +803,10 @@ class TestAppConfigGenerator(unittest.TestCase):
         mock_load_infra.return_value = {
             "project_id": "test-project-id",
             "cluster_name": "test-cluster",
-            "cluster_region": "us-central1",
+            "region": "us-central1",
         }
         services = []
-        
+
         result_urls = app_config_generator.generate_logs_explorer_urls(services)
 
         self.assertEqual(result_urls, {})

@@ -22,13 +22,12 @@ import (
 
 	keymgr "github.com/google/dpi-accelerator-beckn-onix/plugins/cachingsecretskeymanager"
 
-	plugin "github.com/beckn/beckn-onix/pkg/plugin/definition" // Plugin definitions will be imported from here.
+	plugin "github.com/beckn-one/beckn-onix/pkg/plugin/definition" // Plugin definitions will be imported from here.
 )
 
 var newKeyManager = func(ctx context.Context, cache plugin.Cache, registryLookup plugin.RegistryLookup, cfg *keymgr.Config) (plugin.KeyManager, func() error, error) {
 	return keymgr.New(ctx, cache, registryLookup, cfg)
 }
-
 
 // keyMgrProvider implements the KeyManagerProvider interface.
 type keyMgrProvider struct{}
@@ -86,3 +85,5 @@ func parseConfig(config map[string]string) (*keymgr.Config, error) {
 
 // Provider is the exported symbol that the plugin manager will look for.
 var Provider = keyMgrProvider{}
+
+func main() {}

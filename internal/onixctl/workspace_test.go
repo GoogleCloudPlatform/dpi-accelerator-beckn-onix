@@ -17,6 +17,7 @@ package onixctl
 import (
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -125,6 +126,10 @@ func TestWorkspace_PrepareModules_Local(t *testing.T) {
 }
 
 func TestWorkspace_PrepareModules_Remote(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not found in PATH")
+	}
+
 	// Create a temporary directory for the remote repository
 	remoteRepoDir, err := os.MkdirTemp("", "remote-repo-*")
 	assert.NoError(t, err)
@@ -183,6 +188,10 @@ func TestWorkspace_PrepareModules_Remote(t *testing.T) {
 }
 
 func TestWorkspace_PrepareModules_Remote_InvalidVersion(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not found in PATH")
+	}
+
 	// Create a temporary directory for the remote repository
 	remoteRepoDir, err := os.MkdirTemp("", "remote-repo-*")
 	assert.NoError(t, err)
@@ -257,6 +266,8 @@ func TestWorkspace_SetupGoWorkspace(t *testing.T) {
 	}
 
 	goVersion := "1.21.0"
+	// Use a mock runner to avoid executing 'go' command
+	ws.runner = &MockCommandRunner{}
 	err = ws.SetupGoWorkspace(modules, goVersion)
 	assert.NoError(t, err)
 
@@ -268,7 +279,7 @@ func TestWorkspace_SetupGoWorkspace(t *testing.T) {
 	// Check go.work content
 	content, err := os.ReadFile(goWorkPath)
 	assert.NoError(t, err)
-	expectedContent := "go 1.21.0\n\nuse (\n\t./module-a\n\t./module-b\n)\n"
+	expectedContent := "go 1.21.0\n\nuse (\n\t\"./module-a\"\n\t\"./module-b\"\n)\n"
 	assert.Equal(t, expectedContent, string(content))
 }
 
@@ -289,6 +300,11 @@ func TestWorkspace_SetupGoWorkspace_NoGoMod(t *testing.T) {
 	modulePath := filepath.Join(ws.Path(), "module-a")
 	err = os.MkdirAll(modulePath, 0755)
 	assert.NoError(t, err)
+
+	// Simulate failure in go work sync
+	ws.runner = &MockCommandRunner{
+		ShouldError: assert.AnError,
+	}
 
 	goVersion := "1.21.0"
 	err = ws.SetupGoWorkspace(modules, goVersion)

@@ -22,7 +22,7 @@ import (
 	"strings"
 	"testing"
 
-	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 
 	"github.com/googleapis/gax-go/v2"
 	"google.golang.org/grpc/codes"

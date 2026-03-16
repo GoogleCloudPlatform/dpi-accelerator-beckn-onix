@@ -21,17 +21,17 @@ import (
 	"time"
 
 	keymgr "github.com/google/dpi-accelerator-beckn-onix/plugins/inmemorysecretkeymanager"
-	"github.com/beckn/beckn-onix/pkg/model"
-	plugin "github.com/beckn/beckn-onix/pkg/plugin/definition"
+	"github.com/beckn-one/beckn-onix/pkg/model"
+	plugin "github.com/beckn-one/beckn-onix/pkg/plugin/definition"
 )
 
 // mockKeyManager is a fake KeyManager that does nothing.
 type mockKeyManager struct{}
 
-func (m *mockKeyManager) GenerateKeyset() (*model.Keyset, error)       { return nil, nil }
+func (m *mockKeyManager) GenerateKeyset() (*model.Keyset, error)                    { return nil, nil }
 func (m *mockKeyManager) InsertKeyset(context.Context, string, *model.Keyset) error { return nil }
-func (m *mockKeyManager) Keyset(context.Context, string) (*model.Keyset, error) { return nil, nil }
-func (m *mockKeyManager) DeleteKeyset(context.Context, string) error      { return nil }
+func (m *mockKeyManager) Keyset(context.Context, string) (*model.Keyset, error)     { return nil, nil }
+func (m *mockKeyManager) DeleteKeyset(context.Context, string) error                { return nil }
 func (m *mockKeyManager) LookupNPKeys(context.Context, string, string) (string, string, error) {
 	return "", "", nil
 }
@@ -128,11 +128,13 @@ func TestParseConfig_Errors(t *testing.T) {
 
 type mockCache struct{}
 
-func (m *mockCache) Get(ctx context.Context, key string) (string, error)                            { return "", nil }
-func (m *mockCache) Set(ctx context.Context, key string, value string, expiration time.Duration) error { return nil }
-func (m *mockCache) Delete(ctx context.Context, key string) error                                  { return nil }
-func (m *mockCache) Clear(ctx context.Context) error                                               { return nil }
-func (m *mockCache) Close() error                                                                  { return nil }
+func (m *mockCache) Get(ctx context.Context, key string) (string, error) { return "", nil }
+func (m *mockCache) Set(ctx context.Context, key string, value string, expiration time.Duration) error {
+	return nil
+}
+func (m *mockCache) Delete(ctx context.Context, key string) error { return nil }
+func (m *mockCache) Clear(ctx context.Context) error              { return nil }
+func (m *mockCache) Close() error                                 { return nil }
 
 type mockRegistry struct{}
 

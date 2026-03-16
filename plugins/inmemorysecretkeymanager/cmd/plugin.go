@@ -23,7 +23,7 @@ import (
 	// Import the new key manager package
 	keymgr "github.com/google/dpi-accelerator-beckn-onix/plugins/inmemorysecretkeymanager"
 
-	plugin "github.com/beckn/beckn-onix/pkg/plugin/definition" // Plugin definitions will be imported from here.
+	plugin "github.com/beckn-one/beckn-onix/pkg/plugin/definition" // Plugin definitions will be imported from here.
 )
 
 const (
@@ -59,7 +59,7 @@ func parseConfig(config map[string]string) (*keymgr.Config, error) {
 	}
 
 	// Default TTLs if not provided.
-	privateKeyTTL := defaultPrivateKeyTTLSeconds 
+	privateKeyTTL := defaultPrivateKeyTTLSeconds
 	if ttlStr, exists := config["privateKeyCacheTTLSeconds"]; exists {
 		ttl, err := strconv.Atoi(ttlStr)
 		if err != nil || ttl <= 0 {
@@ -68,7 +68,7 @@ func parseConfig(config map[string]string) (*keymgr.Config, error) {
 		privateKeyTTL = ttl
 	}
 
-	publicKeyTTL := defaultPublicKeyTTLSeconds 
+	publicKeyTTL := defaultPublicKeyTTLSeconds
 	if ttlStr, exists := config["publicKeyCacheTTLSeconds"]; exists {
 		ttl, err := strconv.Atoi(ttlStr)
 		if err != nil || ttl <= 0 {
@@ -88,3 +88,5 @@ func parseConfig(config map[string]string) (*keymgr.Config, error) {
 
 // Provider is the exported symbol that the plugin manager will look for.
 var Provider = keyMgrProvider{}
+
+func main() {}

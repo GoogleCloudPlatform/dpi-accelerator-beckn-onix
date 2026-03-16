@@ -35,3 +35,13 @@ regKeyID: {{ registry.key_id }}
 event:
   projectID: {{ project_id }}
   topicID: {{ onix_topic_name }}
+{% if security.enable_inbound_auth %}
+auth:
+  allowedAudience: {{ domains.subscriber }}/api
+  allowedIssuers:
+    - https://accounts.google.com
+    - accounts.google.com
+    - https://iam.googleapis.com/projects/{{ project_number }}/locations/global/workloadIdentityPools/onix-{{ suffix }}-pool
+  allowedSAs:
+    - subscriber-invoker-sa-{{ suffix }}@{{ project_id }}.iam.gserviceaccount.com
+{% endif %}
