@@ -53,7 +53,7 @@ import { jsonValidator } from '../../../shared/validators/custom-validators';
 export class StepSubscribe implements OnInit {
   public subscriptionForm!: FormGroup;
   public subscriptionTypes: string[] = [];
-  public subscriptionUrl = ""
+  public subscriptionUrl = '';
 
   public showStatusPopup: boolean = false;
   public popupMessage: string = '';
@@ -159,7 +159,11 @@ export class StepSubscribe implements OnInit {
         payload.impersonate_service_account = saEmail;
       }
       if (this.subscriptionUrl) {
-        payload.audience = `${this.subscriptionUrl}/api`;
+        const subscriberSubdomain =
+            state.subdomainConfigs?.find(x => x.component === 'subscriber')
+                ?.subdomainName ||
+            '';
+        payload.audience = `${subscriberSubdomain}/api`;
       }
     }
 

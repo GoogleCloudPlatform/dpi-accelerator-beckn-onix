@@ -173,7 +173,18 @@ describe('StepSubscribe', () => {
        () => {
          mockApiService.subscribeToNetwork.and.returnValue(of('12345'));
          component.onSubscriptionSubmit();
-
+         mockInstallerStateService.getCurrentState.and.returnValue({
+           deploymentGoal: {all: false, bap: true, bpp: true, gateway: true},
+           deployedServiceUrls: {
+             'subscriber': 'https://subscriber.beckn.org',
+             'adapter_bapTxnReceiver': 'https://adapter-bap.beckn.org',
+             'adapter_bppTxnReceiver': 'https://adapter-bpp.beckn.org',
+             'gateway': 'https://gateway.beckn.org'
+           },
+           appName: 'testapp',
+           gcpConfiguration: {projectId: 'test-project'},
+           appDeploySecurityConfig: {enableInBoundAuth: false}
+         } as any);
          const expectedPayload = {
            target_url: 'https://subscriber.beckn.org/subscribe',
            payload: {
@@ -199,6 +210,9 @@ describe('StepSubscribe', () => {
              'adapter_bppTxnReceiver': 'https://adapter-bpp.beckn.org',
              'gateway': 'https://gateway.beckn.org'
            },
+           subdomainConfigs: [
+             {component: 'subscriber', subdomainName: 'subscriber.beckn.org'}
+           ],
            appName: 'testapp',
            gcpConfiguration: {projectId: 'test-project'},
            appDeploySecurityConfig: {enableInBoundAuth: true}
@@ -220,7 +234,7 @@ describe('StepSubscribe', () => {
            },
            impersonate_service_account:
                'subscriber-invokertestapp@test-project.iam.gserviceaccount.com',
-           audience: 'https://subscriber.beckn.org/api'
+           audience: 'subscriber.beckn.org/api'
          };
 
          expect(apiService.subscribeToNetwork)
