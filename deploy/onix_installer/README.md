@@ -106,6 +106,7 @@ This script will prompt for your GCP Project ID and User Email, then assign the 
 -   Artifact Registry Administrator
 -   Kubernetes Engine Cluster Admin
 -   Storage Object Admin
+-   Workload Identity Pool Admin
 
 
 ### 2. Create and Configure the Installer Service Account
@@ -133,6 +134,7 @@ If you prefer, create a service account in the GCP Console and manually assign i
 -   Secret Manager Admin
 -   DNS Administrator
 -   Compute Security Admin
+-   Workload Identity Pool Admin
 
 
 ### 3. Configuration
