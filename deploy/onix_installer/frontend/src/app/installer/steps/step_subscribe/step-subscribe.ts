@@ -154,8 +154,8 @@ export class StepSubscribe implements OnInit {
       const projectId = state.gcpConfiguration?.projectId;
 
       if (appName && projectId) {
-        const saEmail =
-            `subscriber-invoker${appName}@${projectId}.iam.gserviceaccount.com`;
+        const saEmail = `subscriber-invoker-sa-${appName}@${
+            projectId}.iam.gserviceaccount.com`;
         payload.impersonate_service_account = saEmail;
       }
       if (this.subscriptionUrl) {
