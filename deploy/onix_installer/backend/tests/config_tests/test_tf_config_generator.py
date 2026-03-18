@@ -162,7 +162,6 @@ class TestTerraformConfigGenerator(unittest.TestCase):
             "provision_gateway_infra": False, # GATEWAY is False
             "provision_registry_infra": True, # REGISTRY is True
             "enable_cloud_armor": False,
-            "allowed_regions": ("IN",),
             "rate_limit_count": 100,
             "enable_onix": True,
             "enable_agent": False,
@@ -224,7 +223,6 @@ class TestTerraformConfigGenerator(unittest.TestCase):
             "provision_gateway_infra": True,
             "provision_registry_infra": False,
             "enable_cloud_armor": False,
-            "allowed_regions": ("IN",),
             "rate_limit_count": 100,
             "enable_onix": True,
             "enable_agent": False,

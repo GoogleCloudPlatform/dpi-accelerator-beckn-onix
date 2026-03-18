@@ -54,7 +54,6 @@ class InfraDeploymentRequest(BaseModel):
     components: Dict[str, bool]
     # Expected keys for components: "gateway", "registry", "bap", "bpp"
     enable_cloud_armor: bool | None = False
-    allowed_regions: tuple[str, ...] | None = ("IN",)
     rate_limit_count: int | None = 100
 
 class AdapterConfig(BaseModel):

@@ -269,11 +269,6 @@ variable "enable_cloud_armor" {
   default = false
 }
 
-variable "allowed_regions" {
-  type    = list(string)
-  default = ["IN"]
-}
-
 variable "rate_limit_count" {
   type    = number
   default = 100
