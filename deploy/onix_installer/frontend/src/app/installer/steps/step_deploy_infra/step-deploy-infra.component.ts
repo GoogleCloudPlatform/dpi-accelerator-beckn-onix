@@ -74,24 +74,19 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
       ],
       deploymentSize: [currentState.deploymentSize || '', Validators.required],
       enableCloudArmor: [false],
-      cloudArmorRegions: ['IN, US, AU'],
       cloudArmorRateLimit: ['']
     });
 
     this.deployInfraForm.get('enableCloudArmor')?.valueChanges
       .pipe(takeUntil(this.unsubscribe$))
       .subscribe((enabled: boolean) => {
-        const regionsCtrl = this.deployInfraForm.get('cloudArmorRegions');
         const rateLimitCtrl = this.deployInfraForm.get('cloudArmorRateLimit');
 
         if (enabled) {
-          regionsCtrl?.setValidators([Validators.required]);
           rateLimitCtrl?.setValidators([Validators.required]);
         } else {
-          regionsCtrl?.clearValidators();
           rateLimitCtrl?.clearValidators();
         }
-        regionsCtrl?.updateValueAndValidity();
         rateLimitCtrl?.updateValueAndValidity();
       });
 
@@ -169,9 +164,6 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
       },
       enable_cloud_armor:
           this.deployInfraForm.get('enableCloudArmor')?.value || false,
-      allowed_regions: this.deployInfraForm.get('cloudArmorRegions')?.value ?
-          this.deployInfraForm.get('cloudArmorRegions')?.value.split(',').map((s: string) => s.trim()) :
-          [],
       rate_limit_count:
           (this.deployInfraForm.get('cloudArmorRateLimit')?.value !== null &&
            this.deployInfraForm.get('cloudArmorRateLimit')?.value !==

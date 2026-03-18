@@ -185,7 +185,7 @@ describe('StepDeployInfraComponent', () => {
       state.deploymentGoal =
           {all: true, gateway: true, registry: true, bap: true, bpp: true};
       component.deployInfraForm.patchValue(
-          {appName: 'onix', deploymentSize: 'small', cloudArmorRegions: 'IN'});
+          {appName: 'onix', deploymentSize: 'small'});
       fixture.detectChanges();
     });
 
@@ -202,7 +202,7 @@ describe('StepDeployInfraComponent', () => {
              '');                                              // invalid value
          component.deployInfraForm.get('appName')?.disable();  // but disabled
          component.deployInfraForm.patchValue(
-             {deploymentSize: 'small', cloudArmorRegions: 'IN'});
+             {deploymentSize: 'small'});
 
          component.onDeployInfra();
          expect(webSocketService.connect).toHaveBeenCalled();
@@ -234,7 +234,6 @@ describe('StepDeployInfraComponent', () => {
            type: 'small',
            components: {gateway: true, registry: true, bap: true, bpp: true},
            enable_cloud_armor: false,
-           allowed_regions: ['IN'],
            rate_limit_count: 100
          };
          expect(webSocketService.sendMessage)
@@ -245,7 +244,6 @@ describe('StepDeployInfraComponent', () => {
       component.deployInfraForm.patchValue({
         appName: 'onix',
         deploymentSize: 'small',
-        cloudArmorRegions: 'IN',
         cloudArmorRateLimit: '500'
       });
       component.onDeployInfra();

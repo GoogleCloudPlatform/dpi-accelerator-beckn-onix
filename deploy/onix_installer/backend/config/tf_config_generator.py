@@ -107,7 +107,6 @@ def generate_config(deploy_infra_req: InfraDeploymentRequest) -> None:
           "registry", False
       ),
       "enable_cloud_armor": deploy_infra_req.enable_cloud_armor,
-      "allowed_regions": deploy_infra_req.allowed_regions,
       "rate_limit_count": deploy_infra_req.rate_limit_count,
       "enable_onix": any(
           deploy_infra_req.components.get(k, False)

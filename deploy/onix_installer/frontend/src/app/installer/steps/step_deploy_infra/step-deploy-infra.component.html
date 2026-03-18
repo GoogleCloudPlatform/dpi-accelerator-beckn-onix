@@ -61,20 +61,6 @@
         <div *ngIf="deployInfraForm.get('enableCloudArmor')?.value" 
             style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px; background-color: #fff;">
 
-          <div style="margin-bottom: 20px;">
-            <label style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px;">
-              Region Codes<span style="color: red;">*</span>
-            </label>
-            <p style="margin: 0 0 8px 0; font-size: 12px; color: #666; line-height: 1.4;">
-              If you want to allow traffic only from a specific region, you specify regions using ISO 3166-1 alpha-2 country codes (e.g., US, AU, GB).
-            </p>
-            <mat-form-field appearance="outline" style="width: 100%; font-size: 14px;">
-              <input matInput 
-                    formControlName="cloudArmorRegions" 
-                    placeholder="US, IN, AU">
-            </mat-form-field>
-          </div>
-
           <div>
             <label style="display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px;">
               Rate Limiter
