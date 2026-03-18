@@ -211,7 +211,6 @@ export interface InfraDeploymentRequestPayload {
     bpp: boolean;
   };
   enable_cloud_armor: boolean;
-  allowed_regions: string[];
   rate_limit_count: number;
 }
 

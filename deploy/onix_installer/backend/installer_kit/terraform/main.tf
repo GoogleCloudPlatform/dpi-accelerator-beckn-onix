@@ -200,7 +200,6 @@ module "onix" {
   health_check_name                = var.health_check_name
   health_check_description         = var.health_check_description
   enable_cloud_armor               = var.enable_cloud_armor
-  allowed_regions                  = var.allowed_regions
   rate_limit_count                 = var.rate_limit_count
   backend_service_name             = var.backend_service_name
   backend_service_description      = var.backend_service_description

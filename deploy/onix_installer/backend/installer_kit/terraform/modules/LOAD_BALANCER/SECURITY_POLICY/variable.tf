@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-variable "allowed_regions" {
-  type        = list(string)
-  description = "List of regions to allow in the Geo-Location filter"
-}
-
 variable "rate_limit_count" {
   type        = number
   description = "The threshold for IP-based rate limiting"
