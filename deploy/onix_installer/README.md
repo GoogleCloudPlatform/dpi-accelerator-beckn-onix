@@ -104,8 +104,8 @@ This script will prompt for your GCP Project ID and User Email, then assign the 
 -   Secret Manager Admin
 -   Cloud SQL Admin
 -   Artifact Registry Administrator
--   Kubernetes Engine Cluster Admin
--   Storage Object Admin
+-   Kubernetes Engine Admin
+-   Storage Admin
 -   Workload Identity Pool Admin
 
 
@@ -113,13 +113,13 @@ This script will prompt for your GCP Project ID and User Email, then assign the 
 
 The installer requires a dedicated service account to manage resources.
 
-**Option A: Automated Script (Recommended)**
+**Option A: Automated Setup (Recommended)**
 
-The provided `installer.sh` script can create the service account and assign all required roles automatically. It will prompt for your Project ID and a service account name.
+When you run the installer, it will ask for a service account. If it is not created yet, the installer will automatically create it for you and assign all required roles. You do not need to create it separately, you can proceed directly to [Section 3: Configuration](#3-configuration).
 
 **Option B: Manual Setup**
 
-If you prefer, create a service account in the GCP Console and manually assign it the following roles:
+If you prefer creating a service account manually, create a service account in the GCP Console and manually assign it the following roles:
 
 -   Compute Network Admin
 -   Compute Load Balancer Admin
@@ -223,7 +223,7 @@ docker push $REGISTRY_URL/subscriber:$TAG
 ```
 
 ### 5. Run the installer
-Once all prerequisites and configurations are complete, change into the installer directory and execute the installer script:
+Once all prerequisites and configurations are complete, change into the installer directory and execute the installer:
 
 ```bash
  cd deploy/onix_installer
