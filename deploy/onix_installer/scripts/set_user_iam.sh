@@ -40,8 +40,8 @@ ROLES=(
   "roles/secretmanager.admin"               # Secret Manager Admin
   "roles/cloudsql.admin"                    # Cloud SQL Admin
   "roles/artifactregistry.admin"            # Artifact Registry Administrator
-  "roles/container.clusterAdmin"            # Kubernetes Engine Cluster Admin
-  "roles/storage.objectAdmin"               # Storage Object Admin
+  "roles/container.admin"                   # Kubernetes Engine Admin
+  "roles/storage.admin"                     # Storage Admin
   "roles/iam.workloadIdentityPoolAdmin"      # Workload Identity Pool Admin
 )
 
