@@ -92,7 +92,6 @@ curl -L -o terraform.zip "https://releases.hashicorp.com/terraform/${TERRAFORM_V
 unzip -o terraform.zip
 sudo mv terraform /usr/local/bin/
 rm terraform.zip
-fi
 elif [[ "$OS" == "macOS" ]]; then
     brew install tfenv
     tfenv install 1.5.7
