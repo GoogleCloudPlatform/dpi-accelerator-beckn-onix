@@ -16,26 +16,27 @@
 
 // src/app/installer/steps/step-subscribe/step-subscribe.component.ts
 
-import { ChangeDetectorRef, Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
+import {CommonModule} from '@angular/common';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit} from '@angular/core';
+import {AbstractControl, FormBuilder, FormGroup, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators} from '@angular/forms';
+import {MatButtonModule} from '@angular/material/button';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIconModule} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';  // Import MatProgressSpinnerModule
+import {MatSelectModule} from '@angular/material/select';
+import {Router} from '@angular/router';
+import {finalize} from 'rxjs/operators';
 
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'; // Import MatProgressSpinnerModule
-
-import { InstallerStateService } from '../../../core/services/installer-state.service';
-import { ApiService } from '../../../core/services/api.service';
-import { jsonValidator } from '../../../shared/validators/custom-validators';
+import {ApiService} from '../../../core/services/api.service';
+import {InstallerStateService} from '../../../core/services/installer-state.service';
+import {jsonValidator} from '../../../shared/validators/custom-validators';
 
 
 
 @Component({
-  changeDetection: ChangeDetectionStrategy.Eager,selector: 'app-step-subscription',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  selector: 'app-step-subscription',
   standalone: true,
   imports: [
     CommonModule,
@@ -122,9 +123,11 @@ export class StepSubscribe implements OnInit {
         }
         domainControl.updateValueAndValidity();
       }
+      this.cdr.detectChanges();
     });
 
     this.subscriptionForm.get('type')?.updateValueAndValidity({ emitEvent: true });
+    this.cdr.detectChanges();
   }
 
   onSubscriptionSubmit(): void {
@@ -173,45 +176,53 @@ export class StepSubscribe implements OnInit {
     this.isError = false;
     this.responseMessageId = null;
     this.popupIcon = '';
+    this.cdr.detectChanges();
+
     console.log('Subscription payload:', payload);
-    this.apiService.subscribeToNetwork(payload).subscribe({
-      next: (response: any) => {
-        console.log('Subscription successful:', response);
+    this.apiService.subscribeToNetwork(payload)
+        .pipe(finalize(() => {
+          this.showSpinner = false;
+          this.cdr.detectChanges();
+        }))
+        .subscribe({
+          next: (response: any) => {
+            console.log('Subscription successful:', response);
 
-        this.popupMessage = 'Subscription request sent successfully!';
-        this.showSpinner = false;
-        this.isError = false;
-        this.popupIcon = 'check_circle';
+            this.popupMessage = 'Subscription request sent successfully!';
+            this.isError = false;
+            this.popupIcon = 'check_circle';
 
+            if (response) {
+              this.responseMessageId = response;
+            }
 
-        if (response) {
-          this.responseMessageId = response
-        }
+            this.subscriptionForm.reset();
+            this.subscriptionForm.get('url')?.disable();
+            this.subscriptionForm.markAsUntouched();
+            this.subscriptionForm.markAsPristine();
+            this.cdr.detectChanges();
+          },
+          error: (error) => {
+            console.error('Subscription failed:', error);
+            this.popupMessage = `Subscription failed: ${
+                error.error?.message || error.error?.detail || error.message ||
+                'Unknown error'}`;
+            this.isError = true;
+            this.popupIcon = 'error_outline';
+            this.responseMessageId = null;
 
-        this.subscriptionForm.reset();
-        this.subscriptionForm.get('url')?.disable();
-        this.subscriptionForm.markAsUntouched();
-        this.subscriptionForm.markAsPristine();
-      },
-      error: (error) => {
-        console.error('Subscription failed:', error);
-        this.popupMessage = `Subscription failed: ${error.error?.message || error.message || 'Unknown error'}`;
-        this.showSpinner = false;
-        this.isError = true;
-        this.popupIcon = 'error_outline';
-        this.responseMessageId = null;
-
-        this.showStatusPopup = true;
-      }
-    });
+            this.showStatusPopup = true;
+            this.cdr.detectChanges();
+          }
+        });
   }
 
   closePopupAndNavigate(): void {
     this.showStatusPopup = false;
+    this.cdr.detectChanges();
   }
 
   onBack(): void {
     this.router.navigate(['installer', 'health-checks']);
   }
 }
-
