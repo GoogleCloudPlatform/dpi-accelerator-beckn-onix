@@ -15,7 +15,7 @@
 -->
 
 <div class="step-content app-deploy-step-content">
-  <div *ngIf="!isAppDeploying && !appDeploymentComplete && !appDeploymentFailed" class="app-deploy-config">
+  <div class="app-deploy-config">
     <h2>Configure Your Onix Components</h2>
     <p class="subtitle">
       Configure the final BAP/BPP settings and deploy the application.
@@ -131,14 +131,13 @@
               <mat-icon>arrow_forward</mat-icon>
             </button>
             <button mat-flat-button color="accent" class="deploy-button"
-              [disabled]="!isAppDeployStepValid || isAppDeploying" (click)="onDeployApp()"
+              [disabled]="!isAppConfigValid" (click)="proceedToConfigGeneration()"
               *ngIf="isLastConfigTabActive()">
               <div class="button-content-wrapper">
-                <mat-spinner *ngIf="isAppDeploying" [diameter]="20"></mat-spinner>
                 <span>Deploy Application</span>
               </div>
             </button>
-          </div>
+          </div>  
         </ng-template>
       </mat-tab>
 
@@ -165,10 +164,9 @@
               <mat-icon>arrow_forward</mat-icon>
             </button>
             <button mat-flat-button color="accent" class="deploy-button"
-              [disabled]="!isAppDeployStepValid || isAppDeploying" (click)="onDeployApp()"
+              [disabled]="!isAppConfigValid" (click)="proceedToConfigGeneration()"
               *ngIf="isLastConfigTabActive()">
               <div class="button-content-wrapper">
-                <mat-spinner *ngIf="isAppDeploying" [diameter]="20"></mat-spinner>
                 <span>Deploy Application</span>
               </div>
             </button>
@@ -191,10 +189,9 @@
               <span>Back</span>
             </button>
             <button mat-flat-button color="accent" class="deploy-button"
-              [disabled]="!isAppDeployStepValid || isAppDeploying" (click)="onDeployApp()"
+              [disabled]="!isAppConfigValid" (click)="proceedToConfigGeneration()"
               *ngIf="isLastConfigTabActive()">
               <div class="button-content-wrapper">
-                <mat-spinner *ngIf="isAppDeploying" [diameter]="20"></mat-spinner>
                 <span>Deploy Application</span>
               </div>
             </button>
@@ -302,10 +299,9 @@
             </button>
             
             <button mat-flat-button color="accent" class="deploy-button"
-              [disabled]="!isAppDeployStepValid || isAppDeploying" (click)="onDeployApp()">
+              [disabled]="!isAppConfigValid" (click)="proceedToConfigGeneration()">
               <div class="button-content-wrapper">
-                <mat-spinner *ngIf="isAppDeploying" [diameter]="20"></mat-spinner>
-                <span>Deploy Application</span>
+                <span>Generate Config</span>
               </div>
             </button>
           </div>
@@ -313,161 +309,5 @@
       </mat-tab>
     </mat-tab-group>
 
-  </div>
-
-  <div *ngIf="isAppDeploying || appDeploymentComplete || appDeploymentFailed" class="app-deploy-status-section">
-    <h2 *ngIf="isAppDeploying">Configuring & Deploying Application...</h2>
-    <h2 *ngIf="appDeploymentComplete">Application Deployment Status</h2>
-    <h2 *ngIf="appDeploymentFailed">Application Deployment Status</h2>
-
-  <div class="deployment-notice" *ngIf="isAppDeploying">
-    <mat-icon>info_outline</mat-icon>
-    <span>This process usually takes around 15 minutes to complete. Please keep this window open.</span>
-  </div>
-
-    <div #appLogContainer class="app-deployment-logs-container" *ngIf="isAppDeploying">
-      <p *ngFor="let log of appDeploymentLogs" class="app-log-entry">{{ log }}</p>
-      <p class="app-log-line-cursor">_</p>
-    </div>
-
-    <div *ngIf="appDeploymentComplete" class="app-result-panel app-success-panel">
-      <div class="app-deployment-summary">
-        <h4>Application Deployed Successfully!</h4>
-        <p>Your Onix application components have been deployed successfully.</p>
-        <p *ngIf="appExternalIp">
-          External IP: <strong>{{ appExternalIp }}</strong>
-          <button mat-icon-button (click)="copyToClipboard(appExternalIp)">
-            <mat-icon matTooltip="Copy to clipboard">content_copy</mat-icon>
-          </button>
-        </p>
-      </div>
-
-      <hr class="app-summary-divider">
-
-      <div class="app-output-wrapper">
-        <h4>Deployed Service URLs:</h4>
-        <div class="app-output-details-scrollable">
-
-          <ng-container *ngIf="showAdapterLogButton">
-            <div class="section-header-row">
-              <strong>Adapter</strong>
-              <button mat-stroked-button color="primary" class="log-button" *ngIf="logsExplorerUrls['adapter']"
-                (click)="openUrl(logsExplorerUrls['adapter'])" matTooltip="View Adapter Logs">
-                <mat-icon>launch</mat-icon> Logs
-              </button>
-            </div>
-            <ng-container *ngFor="let key of serviceUrls | keyvalue">
-              <div class="service-url-row indented-row" *ngIf="key.key.startsWith('adapter_')">
-                <span class="service-name">{{ key.key.replace('adapter_', '').replace('Txn', ' Transaction ') }}:</span>
-                <a [href]="key.value" target="_blank" rel="noopener noreferrer">{{ key.value }}</a>
-                <button mat-icon-button (click)="copyToClipboard(key.value)" matTooltip="Copy URL">
-                  <mat-icon>content_copy</mat-icon>
-                </button>
-              </div>
-            </ng-container>
-          </ng-container>
-
-          <ng-container *ngIf="serviceUrls['registry']">
-            <div class="section-header-row">
-              <strong>Registry</strong>
-              <button mat-stroked-button color="primary" class="log-button" *ngIf="logsExplorerUrls['registry']"
-                (click)="openUrl(logsExplorerUrls['registry'])" matTooltip="View Registry Logs">
-                <mat-icon>launch</mat-icon> Logs
-              </button>
-            </div>
-            <div class="service-url-row indented-row">
-              <a [href]="serviceUrls['registry']" target="_blank" rel="noopener noreferrer">{{ serviceUrls['registry']
-                }}</a>
-              <button mat-icon-button (click)="copyToClipboard(serviceUrls['registry'])" matTooltip="Copy URL">
-                <mat-icon>content_copy</mat-icon>
-              </button>
-            </div>
-          </ng-container>
-
-          <ng-container *ngIf="serviceUrls['registry_admin']">
-            <div class="section-header-row">
-              <strong>Registry Admin</strong>
-              <button mat-stroked-button color="primary" class="log-button" *ngIf="logsExplorerUrls['registry_admin']"
-                (click)="openUrl(logsExplorerUrls['registry_admin'])" matTooltip="View Registry Admin Logs">
-                <mat-icon>launch</mat-icon> Logs
-              </button>
-            </div>
-            <div class="service-url-row indented-row">
-              <a [href]="serviceUrls['registry_admin']" target="_blank" rel="noopener noreferrer">{{
-                serviceUrls['registry_admin'] }}</a>
-              <button mat-icon-button (click)="copyToClipboard(serviceUrls['registry_admin'])" matTooltip="Copy URL">
-                <mat-icon>content_copy</mat-icon>
-              </button>
-            </div>
-          </ng-container>
-
-          <ng-container *ngIf="serviceUrls['gateway']">
-            <div class="section-header-row">
-              <strong>Gateway</strong>
-              <button mat-stroked-button color="primary" class="log-button" *ngIf="logsExplorerUrls['gateway']"
-                (click)="openUrl(logsExplorerUrls['gateway'])" matTooltip="View Gateway Logs">
-                <mat-icon>launch</mat-icon> Logs
-              </button>
-            </div>
-            <div class="service-url-row indented-row">
-              <a [href]="serviceUrls['gateway']" target="_blank" rel="noopener noreferrer">{{ serviceUrls['gateway']
-                }}</a>
-              <button mat-icon-button (click)="copyToClipboard(serviceUrls['gateway'])" matTooltip="Copy URL">
-                <mat-icon>content_copy</mat-icon>
-              </button>
-            </div>
-          </ng-container>
-
-          <ng-container *ngIf="serviceUrls['subscriber']">
-            <div class="section-header-row">
-              <strong>Subscriber</strong>
-              <button mat-stroked-button color="primary" class="log-button" *ngIf="logsExplorerUrls['subscriber']"
-                (click)="openUrl(logsExplorerUrls['subscriber'])" matTooltip="View Subscriber Logs">
-                <mat-icon>launch</mat-icon> Logs
-              </button>
-            </div>
-            <div class="service-url-row indented-row">
-              <a [href]="serviceUrls['subscriber']" target="_blank" rel="noopener noreferrer">{{
-                serviceUrls['subscriber'] }}</a>
-              <button mat-icon-button (click)="copyToClipboard(serviceUrls['subscriber'])" matTooltip="Copy URL">
-                <mat-icon>content_copy</mat-icon>
-              </button>
-            </div>
-          </ng-container>
-
-          <ng-container *ngIf="servicesDeployed.length > 0">
-            <p><strong>Services Deployed:</strong> {{ servicesDeployed.join(', ') }}</p>
-          </ng-container>
-
-          <p *ngIf="servicesDeployed.length === 0 && (serviceUrls | keyvalue).length === 0" class="no-app-outputs">
-            No service details available.
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <div *ngIf="appDeploymentFailed" class="app-result-panel app-error-panel">
-      <h4>Application Deployment Failed!</h4>
-      <p>{{ 'An unknown error occurred during deployment.' }}</p>
-
-      <div class="app-output-wrapper">
-        <h4>Deployment Logs:</h4>
-        <div class="app-output-details-scrollable">
-          <p *ngFor="let log of appDeploymentLogs" class="app-log-entry">{{ log }}</p>
-          <p *ngIf="appDeploymentLogs.length === 0" class="no-app-logs">No logs available for failed deployment.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="button-row" *ngIf="appDeploymentComplete || appDeploymentFailed">
-      <button mat-stroked-button (click)="resetDeployment()">
-        <span *ngIf="appDeploymentFailed">Retry Deployment</span>
-        <span *ngIf="appDeploymentComplete">Back to Config</span>
-      </button>
-      <button mat-raised-button color="primary" class="action-button" [disabled]="!appDeploymentComplete"
-        (click)="continueToNextStep()">
-        Next: Health Checks <mat-icon>arrow_forward</mat-icon>
-      </button>
-    </div>
   </div>
 </div>

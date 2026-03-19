@@ -28,7 +28,9 @@ import {ApiService} from './api.service';
 })
 export class InstallerStateService {
   private initialState: InstallerState = {
+    isConfigChanged: true,
     isConfigLocked: false,
+    isAppConfigValid: false,
     currentStepIndex: 0,
     highestStepReached: 0,
     installerGoal: null,
@@ -75,9 +77,10 @@ export class InstallerStateService {
       issuerUrl: '',
       idclaim: '',
       allowedValues: '',
-      jwksFile: null,
+      jwksFileContent: '',
       audOverrides: ''
-    }
+    },
+    lastDeployedAppPayload: null as any
   };
 
   private isDeployingSubject = new BehaviorSubject<boolean>(false);
