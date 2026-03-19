@@ -27,7 +27,9 @@ import {InstallerState} from '../../types/installer.types';
 import {StepHealthCheck} from './step-health-check';
 
 const initialMockState: InstallerState = {
+  isConfigChanged: false,
   isConfigLocked: false,
+  isAppConfigValid: false,
   currentStepIndex: 8,
   installerGoal: 'create_new_open_network',
   prerequisitesMet: true,
@@ -73,14 +75,15 @@ const initialMockState: InstallerState = {
     issuerUrl: '',
     idclaim: '',
     allowedValues: '',
-    jwksFile: null,
+    jwksFileContent: '',
     audOverrides: ''
   },
   globalDomainConfig: null,
   highestStepReached: 8,
   appDeploymentStatus: 'completed',
   servicesDeployed: [],
-  logsExplorerUrls: {}
+  logsExplorerUrls: {},
+  lastDeployedAppPayload: null as any
 };
 
 class MockInstallerStateService {

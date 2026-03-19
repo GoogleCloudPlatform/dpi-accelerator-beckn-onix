@@ -21,7 +21,7 @@ import {RouterModule, Routes} from '@angular/router';
 import {InstallerStepGuard} from '../core/guards/installer-step.guard';
 
 import {InstallerComponent} from './installer.component';
-import {StepAppDeployComponent} from './steps/step_deploy_app/step-deploy-app.component';
+import {StepAppConfigComponent} from './steps/step_app_config/step-app-config.component';
 import {StepDeployInfraComponent} from './steps/step_deploy_infra/step-deploy-infra.component';
 import {StepDomainConfigComponent} from './steps/step_domain_configuration/step-domain-configuration.component';
 import {StepGcpConnectionComponent} from './steps/step_gcp_connection/step-gcp-connection.component';
@@ -29,30 +29,37 @@ import {StepGoalComponent} from './steps/step_goal/step-goal.component';
 import {StepHealthCheck} from './steps/step_health_check/step-health-check';
 import {StepPrerequisitesComponent} from './steps/step_prerequisites/step-prerequisites.component';
 import {StepSubscribe} from './steps/step_subscribe/step-subscribe';
+import {StepViewConfigComponent} from './steps/step_view_config/step_view_config.component';
+import {StepViewDeployment} from './steps/step_view_deployment/step_view_deployment.component';
 // Import the new step component
 import {StepWelcomeComponent} from './steps/step_welcome/step-welcome.component';
 
-const routes: Routes = [
-  {
-    path: '',
-    component: InstallerComponent,
-    children: [
-      { path: 'welcome', component: StepWelcomeComponent },
-      { path: 'goal', component: StepGoalComponent},
-      { path: 'prerequisites', component: StepPrerequisitesComponent},
-      { path: 'gcp-connection', component: StepGcpConnectionComponent },
-      { path: 'deploy-infra', component: StepDeployInfraComponent },
-      { path: 'domain-configuration', component: StepDomainConfigComponent},
-      { path: 'deploy-app', component: StepAppDeployComponent},
-      { path: 'health-checks', component: StepHealthCheck },
-      { path: 'subscribe', component: StepSubscribe },
+const routes: Routes = [{
+  path: '',
+  component: InstallerComponent,
+  children: [
+    {path: 'welcome', component: StepWelcomeComponent},
+    {path: 'goal', component: StepGoalComponent},
+    {path: 'prerequisites', component: StepPrerequisitesComponent},
+    {path: 'gcp-connection', component: StepGcpConnectionComponent},
+    {path: 'deploy-infra', component: StepDeployInfraComponent},
+    {path: 'domain-configuration', component: StepDomainConfigComponent},
+    {path: 'app-config', component: StepAppConfigComponent},
+    {path: 'view-config', component: StepViewConfigComponent},
+    {path: 'view-deployment', component: StepViewDeployment},
+    {path: 'health-checks', component: StepHealthCheck},
+    {path: 'subscribe', component: StepSubscribe},
 
-    //   { path: 'summary', component: undefined /* StepSummaryComponent */ /*, canActivate: [InstallerStepGuard] */ },
-      { path: '', redirectTo: 'welcome', pathMatch: 'full' }, // Redirect to welcome by default
-      { path: '**', redirectTo: 'welcome' } // Catch-all
-    ]
-  }
-];
+    //   { path: 'summary', component: undefined /* StepSummaryComponent */ /*,
+    //   canActivate: [InstallerStepGuard] */ },
+    {
+      path: '',
+      redirectTo: 'welcome',
+      pathMatch: 'full'
+    },                                   // Redirect to welcome by default
+    {path: '**', redirectTo: 'welcome'}  // Catch-all
+  ]
+}];
 
 @NgModule({
   imports: [RouterModule.forChild(routes)],

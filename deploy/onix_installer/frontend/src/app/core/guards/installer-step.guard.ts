@@ -39,15 +39,17 @@ export class InstallerStepGuard implements CanActivate {
     const targetStepPath = route.url[0]?.path;
     const currentState = this.installerStateService.getCurrentState();
     const stepOrder = [
-        'welcome',
-        'goal',
-        'prerequisites',
-        'gcp-connection',
-        'deploy-infra',
-        'domain-configuration',
-        'deploy-app',
-        'health-checks',
-        'subscribe'
+      'welcome',
+      'goal',
+      'prerequisites',
+      'gcp-connection',
+      'deploy-infra',
+      'domain-configuration',
+      'app-config',
+      'view-config',
+      'view-deployment',
+      'health-checks',
+      'subscribe',
     ];
 
     const targetIndex = stepOrder.indexOf(targetStepPath);
@@ -79,18 +81,32 @@ export class InstallerStepGuard implements CanActivate {
         }
         break;
 
-      case 'deploy-app':
+      case 'app-config':
         if (!currentState.globalDomainConfig || currentState.subdomainConfigs.length === 0) {
           return of(this.router.createUrlTree(['/installer/domain-configuration']));
         }
         break;
 
+      case 'view-config':
+        if (!currentState.isAppConfigValid) {
+          return of(this.router.createUrlTree(['/installer/app-config']));
+        }
+        break;
+
+      case 'view-deployment':
+        if (currentState.appDeploymentStatus !== 'completed' ||
+            Object.keys(currentState.deployedServiceUrls).length === 0) {
+          return of(this.router.createUrlTree(['/installer/view-config']));
+        }
+        break;
+
       case 'health-checks':
         if (currentState.appDeploymentStatus !== 'completed' || Object.keys(currentState.deployedServiceUrls).length === 0) {
-          return of(this.router.createUrlTree(['/installer/deploy-app']));
+          return of(this.router.createUrlTree(['/installer/view-deployment']));
         }
         break;
     }
+    // Default to allowing activation if no specific redirection is needed.
     return of(true);
   }
 }

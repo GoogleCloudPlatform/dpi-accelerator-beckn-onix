@@ -27,7 +27,9 @@ import {ComponentSubdomainPrefix, DomainConfig, InstallerState} from '../../type
 import {StepDomainConfigComponent} from './step-domain-configuration.component';
 
 const initialMockState: InstallerState = {
+  isConfigChanged: false,
   isConfigLocked: false,
+  isAppConfigValid: false,
   currentStepIndex: 5,
   installerGoal: 'create_new_open_network',
   prerequisitesMet: true,
@@ -68,13 +70,14 @@ const initialMockState: InstallerState = {
     issuerUrl: '',
     idclaim: '',
     allowedValues: '',
-    jwksFile: null,
+    jwksFileContent: '',
     audOverrides: ''
   },
   highestStepReached: 5,
   appDeploymentStatus: 'pending',
   servicesDeployed: [],
-  logsExplorerUrls: {}
+  logsExplorerUrls: {},
+  lastDeployedAppPayload: null as any
 };
 
 // Mock Services

@@ -29,7 +29,9 @@ import {DeploymentStatus, InfraDetails, InstallerState} from '../../types/instal
 import {StepDeployInfraComponent} from './step-deploy-infra.component';
 
 const initialMockState: InstallerState = {
+  isConfigChanged: false,
   isConfigLocked: false,
+  isAppConfigValid: false,
   currentStepIndex: 4,
   installerGoal: 'create_new_open_network',
   prerequisitesMet: true,
@@ -70,13 +72,14 @@ const initialMockState: InstallerState = {
     issuerUrl: '',
     idclaim: '',
     allowedValues: '',
-    jwksFile: null,
+    jwksFileContent: '',
     audOverrides: ''
   },
   highestStepReached: 4,
   appDeploymentStatus: 'pending',
   servicesDeployed: [],
-  logsExplorerUrls: {}
+  logsExplorerUrls: {},
+  lastDeployedAppPayload: null as any
 };
 
 

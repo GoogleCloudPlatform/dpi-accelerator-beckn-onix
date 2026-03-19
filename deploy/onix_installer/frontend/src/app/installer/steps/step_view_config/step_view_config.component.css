@@ -1,0 +1,211 @@
+/*
+Copyright 2026 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+.step-container {
+  display: flex;
+  flex-direction: column;
+  padding: 32px;
+  min-height: 400px;
+}
+
+.file-icon {
+    color: #1967d2;
+    font-size: 20px;
+    padding-bottom: 0;
+}
+
+.step-header {
+  margin-bottom: 16px;
+  h2 { font-size: 22px; font-weight: 500; color: #202124; margin-bottom: 8px; }
+  p { color: #5f6368; font-size: 14px; }
+}
+
+.divider { border: 0; border-top: 1px solid #e0e0e0; margin: 16px 0 24px 0; }
+
+.loader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  p { margin-top: 16px; color: #5f6368; }
+}
+
+.onix-table {
+  width: 100%;
+  border-collapse: collapse;
+  
+  th {
+    text-align: left;
+    padding: 12px;
+    background-color: #f8f9fa;
+    color: #3c4043;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    border-bottom: 2px solid #e0e0e0;
+  }
+
+  td {
+    align-items: center;
+    padding: 10px 10px;
+    border-bottom: 1px solid #f1f3f4;
+    font-size: 14px;
+    color: #3c4043;
+  }
+}
+
+.file-name-cell{
+    display: flex;
+}
+
+.file-path {
+  align-items: center;
+  .file-icon { font-size: 18px; height: 18px; width: 18px; margin-right: 8px; color: #1a73e8; }
+}
+
+.badge-yaml {
+  background: #e8f0fe;
+  color: #1967d2;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+
+.step-footer {
+  display: flex;
+  margin-top: auto;
+  padding-top: 32px;
+  .spacer { flex: 1; }
+}
+
+.actions-cell {
+  text-align: center;
+
+  button {
+    size: 15px;
+    color: #5f6368; 
+    
+    &:hover {
+      color: #1a73e8; 
+      background-color: rgba(26, 115, 232, 0.04);
+    }
+  }
+
+  mat-icon {
+    font-size: 20px;
+    height: 20px;
+    width: 20px;
+  }
+
+}
+
+
+.view-content {
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.2s ease-in;
+}
+
+/* Editor Specifics */
+.editor-view {
+  height: 100%;
+  
+  .editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    
+    .header-main {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      h3 { margin: 0; font-size: 18px; color: #202124; }
+      mat-icon { color: #1a73e8; }
+    }
+  }
+
+  .editor-body {
+    flex: 1;
+    background: #f8f9fa;
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    margin-bottom: 24px;
+    overflow: hidden;
+
+    .yaml-editor-textarea {
+      width: 100%;
+      height: 750px; 
+      padding: 20px;
+      border: none;
+      background: transparent;
+      font-family: 'Roboto Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+    }
+  }
+}
+
+.editor-footer {
+  display: flex;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+  .spacer { flex: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cancel-button{
+    margin-left: 5px;
+    size: 10px;
+    color: #5f6368; 
+    
+    &:hover {
+      color: #1a73e8; 
+      background-color: rgba(26, 115, 232, 0.04);
+    }
+}
+
+.file-title{
+    cursor: default;
+}
+
+.name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.folder-row {
+  background-color: #f8f9fa;
+  font-weight: 500;
+  
+  .file-icon { color: #5f6368; }
+}
+
+.child-row {
+  .file-icon { color: #1a73e8; font-size: 18px; }
+  background-color: #ffffff;
+}

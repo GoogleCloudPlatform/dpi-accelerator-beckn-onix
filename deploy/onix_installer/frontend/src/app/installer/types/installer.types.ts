@@ -136,12 +136,14 @@ export interface AppDeploySecurityConfig {
   issuerUrl: string;
   idclaim: string;
   allowedValues: string;
-  jwksFile: File | null;
+  jwksFileContent: string;
   audOverrides: string;
 }
 
 export interface InstallerState {
+  isConfigChanged: boolean;
   isConfigLocked: boolean;
+  isAppConfigValid: boolean;
   currentStepIndex: number;
   highestStepReached: number;
   installerGoal: 'create_new_open_network' | 'join_existing_network' | null;
@@ -172,6 +174,7 @@ export interface InstallerState {
   appDeployGatewayConfig: AppDeployGatewayConfig | null;
   appDeployAdapterConfig: AppDeployAdapterConfig | null;
   appDeploySecurityConfig: AppDeploySecurityConfig | null;
+  lastDeployedAppPayload: BackendAppDeploymentRequest;
 }
 
 
