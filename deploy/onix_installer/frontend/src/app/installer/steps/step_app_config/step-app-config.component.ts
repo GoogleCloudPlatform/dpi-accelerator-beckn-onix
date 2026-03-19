@@ -31,15 +31,11 @@ import {MatSnackBar, MatSnackBarModule} from '@angular/material/snack-bar';
 import {MatTabGroup, MatTabsModule} from '@angular/material/tabs';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {Router} from '@angular/router';
-import {EMPTY, Observable, Subject, Subscription} from 'rxjs';
-import {catchError, finalize, takeUntil} from 'rxjs/operators';
-import {windowOpen} from 'safevalues/dom';
+import {Observable, Subject, Subscription} from 'rxjs';
+import {takeUntil} from 'rxjs/operators';
 
-import {ApiService} from '../../../core/services/api.service';
 import {InstallerStateService} from '../../../core/services/installer-state.service';
-import {WebSocketService} from '../../../core/services/websocket.service';
-import {removeEmptyValues} from '../../../shared/utils';
-import {AppDeployAdapterConfig, AppDeployGatewayConfig, AppDeployImageConfig, AppDeployRegistryConfig, BackendAppDeploymentRequest, DeploymentGoal, DomainConfig, InstallerState, SubdomainConfig} from '../../types/installer.types';
+import {AppDeployAdapterConfig, AppDeployGatewayConfig, AppDeployImageConfig, AppDeployRegistryConfig, AppDeploySecurityConfig, DeploymentGoal, InstallerState} from '../../types/installer.types';
 
 // Custom async validator for JWKS file content
 const jwksJsonValidator: AsyncValidatorFn =
@@ -69,7 +65,7 @@ const jwksJsonValidator: AsyncValidatorFn =
     };
 
 @Component({
-  selector: 'app-step-app-deploy',
+  selector: 'app-step-app-config',
   standalone: true,
   imports: [
     CommonModule,
@@ -88,42 +84,29 @@ const jwksJsonValidator: AsyncValidatorFn =
     ClipboardModule,
     MatSnackBarModule,
   ],
-  templateUrl: './step-deploy-app.component.html',
-  styleUrls: ['./step-deploy-app.component.css'],
+  templateUrl: './step-app-config.component.html',
+  styleUrls: ['./step-app-config.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class StepAppDeployComponent implements OnInit, OnDestroy {
+export class StepAppConfigComponent implements OnInit, OnDestroy {
   @Input() currentWizardStep: number = 0;
-  @Output() deploymentInitiated = new EventEmitter<void>();
-  @Output() deploymentComplete = new EventEmitter<void>();
-  @Output() deploymentError = new EventEmitter<string>();
   @Output() goBackToPreviousWizardStep = new EventEmitter<void>();
   @ViewChild('componentConfigTabs') componentConfigTabs!: MatTabGroup;
   @ViewChild('adapterSubTabs') adapterSubTabs!: MatTabGroup;
-  @ViewChild('appLogContainer') private appLogContainer!: ElementRef;
 
   imageConfigForm!: FormGroup;
   registryConfigForm!: FormGroup;
   gatewayConfigForm!: FormGroup;
   adapterConfigForm!: FormGroup;
   securityConfigForm!: FormGroup;
-  appDeploymentLogs: string[] = [];
-  appExternalIp: string | null = null;
-
-  serviceUrls: { [key: string]: string } = {};
-  servicesDeployed: string[] = [];
-  logsExplorerUrls: { [key: string]: string } = {};
-  adapterLogButtonShown: boolean = false;
 
   showGatewayTab: boolean = false;
   showAdapterTab: boolean = false;
-  showAdapterLogButton: boolean = false;
-
+  isAppDeploying: boolean = false;
   selectedJwkFileName?: string|' ';
 
 
   installerState!: InstallerState;
-  private appWsSubscription!: Subscription;
   private unsubscribe$ = new Subject<void>();
 
   private readonly URL_REGEX = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i;
@@ -135,7 +118,6 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
       private fb: FormBuilder,
       private installerStateService: InstallerStateService,
       protected cdr: ChangeDetectorRef,
-      private webSocketService: WebSocketService,
       private clipboard: Clipboard,
       private router: Router,
       private snackBar: MatSnackBar,
@@ -144,25 +126,15 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.initializeForms();
     this.installerStateService.installerState$
-      .pipe(takeUntil(this.unsubscribe$))
-      .subscribe(state => {
-        this.installerState = state;
-      if (state.appDeploymentStatus === 'completed') {
-      this.serviceUrls = state.deployedServiceUrls || {};
-      this.servicesDeployed = state.servicesDeployed || [];
-      this.logsExplorerUrls = state.logsExplorerUrls || {};
-      this.appExternalIp = state.appExternalIp || null;
-      this.showAdapterLogButton = Object.keys(this.serviceUrls).some(key => key.startsWith('adapter_'));
-      }
-        this.updateTabVisibility(state.deploymentGoal);
-        this.patchFormValuesFromState(state);
-        this.setConditionalImageFormValidators(state.deploymentGoal);
-        this.updateTotalInternalSteps();
-        this.cdr.detectChanges();
-        if (this.isAppDeploying) {
-          this.scrollToBottom();
-        }
-      });
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe(state => {
+          this.installerState = state;
+          this.updateTabVisibility(state.deploymentGoal);
+          this.patchFormValuesFromState(state);
+          this.setConditionalImageFormValidators(state.deploymentGoal);
+          this.updateTotalInternalSteps();
+          this.cdr.detectChanges();
+        });
     this.adapterConfigForm.get('enableSchemaValidation')?.valueChanges
       .pipe(takeUntil(this.unsubscribe$))
       .subscribe(value => {
@@ -207,10 +179,6 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.appWsSubscription) {
-      this.appWsSubscription.unsubscribe();
-    }
-    this.webSocketService.closeConnection();
     this.unsubscribe$.next();
     this.unsubscribe$.complete();
   }
@@ -377,21 +345,17 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
     }
   }
 
-  get isAppDeployStepValid(): boolean {
-    console.log('--- Checking isAppDeployStepValid ---');
-    if (this.isAppDeploying) {
-      console.log('isAppDeployStepValid: false (isAppDeploying is true)');
-      return false;
-    }
+  get isAppConfigValid(): boolean {
+    console.log('--- Checking isAppConfigValid ---');
 
     if (this.imageConfigForm.invalid) {
-      console.log('isAppDeployStepValid: false (imageConfigForm is invalid)');
+      console.log('isAppConfigValid: false (imageConfigForm is invalid)');
       console.log('Image Form Errors:', this.imageConfigForm.errors);
       console.log('Image Form Controls status:', this.imageConfigForm.controls);
       return false;
     }
     if (this.registryConfigForm.invalid) {
-      console.log('isAppDeployStepValid: false (registryConfigForm is invalid)');
+      console.log('isAppConfigValid: false (registryConfigForm is invalid)');
       console.log('Registry Form Errors:', this.registryConfigForm.errors);
       console.log('Registry Form Controls status:', this.registryConfigForm.controls);
       return false;
@@ -403,7 +367,7 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
     if ((goal.all || goal.gateway)) {
       console.log('Gateway deployment enabled. Checking gatewayConfigForm...');
       if (this.gatewayConfigForm.invalid) {
-        console.log('isAppDeployStepValid: false (gatewayConfigForm is invalid)');
+        console.log('isAppConfigValid: false (gatewayConfigForm is invalid)');
         console.log('Gateway Form Errors:', this.gatewayConfigForm.errors);
         console.log('Gateway Form Controls status:', this.gatewayConfigForm.controls);
         return false;
@@ -419,7 +383,7 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
       // Mark adapter form as touched here to show errors immediately
       this.adapterConfigForm.markAllAsTouched();
       if (this.adapterConfigForm.invalid) {
-        console.log('isAppDeployStepValid: false (adapterConfigForm is invalid)');
+        console.log('isAppConfigValid: false (adapterConfigForm is invalid)');
         console.log('Adapter Form Errors:', this.adapterConfigForm.errors);
         console.log('Adapter Form Controls status:', this.adapterConfigForm.controls);
         return false;
@@ -432,13 +396,12 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
     }
 
     if (this.securityConfigForm.invalid) {
-      console.log(
-          'isAppDeployStepValid: false (securityConfigForm is invalid)');
+      console.log('isAppConfigValid: false (securityConfigForm is invalid)');
       console.log('Security Form Errors:', this.securityConfigForm.errors);
       return false;
     }
 
-    console.log('--- isAppDeployStepValid: TRUE ---');
+    console.log('--- isAppConfigValid: TRUE ---');
     return true;
   }
 
@@ -631,233 +594,6 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
     }
   }
 
-  public async onDeployApp(): Promise<void> {
-    this.saveCurrentTabConfigToState(this.currentInternalStep)
-    this.imageConfigForm.markAllAsTouched();
-    this.registryConfigForm.markAllAsTouched();
-    if (this.showGatewayTab) this.gatewayConfigForm.markAllAsTouched();
-    if (this.showAdapterTab) {
-      this.adapterConfigForm.markAllAsTouched();
-      const goal = this.installerState.deploymentGoal;
-    }
-    this.securityConfigForm.markAllAsTouched();
-
-    this.installerStateService.updateAppDeployImageConfig(this.imageConfigForm.getRawValue());
-    this.installerStateService.updateAppDeployRegistryConfig(this.registryConfigForm.getRawValue());
-    if (this.showGatewayTab) {
-      this.installerStateService.updateAppDeployGatewayConfig(this.gatewayConfigForm.getRawValue());
-    }
-    if (this.showAdapterTab) {
-      this.installerStateService.updateAppDeployAdapterConfig(this.adapterConfigForm.getRawValue());
-    }
-
-    if (!this.isAppDeployStepValid) {
-      console.error('One or more application configuration forms are invalid. Please fill in all required fields to proceed.');
-      this.cdr.detectChanges();
-      return;
-    }
-
-    this.installerStateService.updateAppDeploymentStatus('in-progress');
-    this.appDeploymentLogs = [];
-    this.appExternalIp = null;
-    this.serviceUrls = {};
-    this.servicesDeployed = [];
-    this.logsExplorerUrls = {};
-    this.adapterLogButtonShown = false;
-    this.cdr.detectChanges();
-
-    this.deploymentInitiated.emit();
-
-    const goal = this.installerState.deploymentGoal;
-
-    const deployBap = goal.all ||
-      goal.bap;
-    const deployBpp = goal.all || goal.bpp;
-    const deployRegistry = goal.all || goal.registry;
-    const deployGateway = goal.all || goal.gateway;
-    const deployAdapter = goal.all || goal.bap || goal.bpp;
-
-    const imageConfigRaw = this.imageConfigForm.getRawValue();
-    const registryConfigRaw = this.registryConfigForm.getRawValue();
-    const gatewayConfigRaw = this.gatewayConfigForm.getRawValue();
-    const adapterConfigRaw = this.adapterConfigForm.getRawValue();
-    const securityConfigRaw = this.securityConfigForm.getRawValue();
-
-    const subdomainConfigs: SubdomainConfig[] = this.installerState.subdomainConfigs || [];
-    const globalDomainDetails: DomainConfig | null = this.installerState.globalDomainConfig;
-
-    const potentialDomainNames = {
-    registry: subdomainConfigs.find(c => c.component === 'registry')?.subdomainName,
-    registry_admin: subdomainConfigs.find(c => c.component === 'registry_admin')?.subdomainName,
-    subscriber: subdomainConfigs.find(c => c.component === 'subscriber')?.subdomainName,
-    gateway: subdomainConfigs.find(c => c.component === 'gateway')?.subdomainName,
-    adapter: subdomainConfigs.find(c => c.component === 'adapter')?.subdomainName
-  };
-
-   const potentialImageUrls = {
-    registry: imageConfigRaw.registryImageUrl,
-    registry_admin: imageConfigRaw.registryAdminImageUrl,
-    subscriber: imageConfigRaw.subscriptionImageUrl,
-    gateway: imageConfigRaw.gatewayImageUrl,
-    adapter: imageConfigRaw.adapterImageUrl
-  };
-
-    const payload: BackendAppDeploymentRequest = {
-      app_name: this.installerState.appName,
-      components: {
-        adapter: deployAdapter,
-        gateway: deployGateway,
-        registry: deployRegistry,
-        bap: deployBap,
-        bpp: deployBpp
-      },
-
-      domain_names: removeEmptyValues(potentialDomainNames),
-      image_urls: removeEmptyValues(potentialImageUrls),
-
-      registry_url: registryConfigRaw.registryUrl ||
-        '',
-      registry_config: {
-        subscriber_id: registryConfigRaw.registrySubscriberId,
-        key_id: registryConfigRaw.registryKeyId,
-        enable_auto_approver: registryConfigRaw.enableAutoApprover
-      },
-      domain_config: {
-        domainType: globalDomainDetails?.domainType ||
-          'other_domain',
-        baseDomain: globalDomainDetails?.baseDomain ||
-          '',
-        dnsZone: globalDomainDetails?.dnsZone ||
-          ''
-      }
-    };
-    if (deployGateway) {
-      payload.gateway_config = {
-        subscriber_id: gatewayConfigRaw.gatewaySubscriptionId ||
-          ''
-      };
-    }
-
-    if (deployAdapter) {
-      payload.adapter_config = {
-        enable_schema_validation: adapterConfigRaw.enableSchemaValidation,
-      };
-    }
-
-    let jwksContent = '';
-    const jwksFileControl = this.securityConfigForm.get('jwksFile');
-
-    if (securityConfigRaw.enableInBoundAuth && jwksFileControl &&
-        !jwksFileControl.errors) {
-      if (securityConfigRaw.jwksFile &&
-          securityConfigRaw.jwksFile instanceof File) {
-        try {
-          const rawContent =
-              await this.readFileContent(securityConfigRaw.jwksFile);
-
-          // 1. Parse to validate the file is actual JSON
-          const parsedJson = JSON.parse(rawContent);
-
-          // 2. Stringify to create a compact, single-line JSON string
-          const compactJsonString = JSON.stringify(parsedJson);
-
-          // 3. Escape backslashes first, then escape double quotes for
-          // Terraform
-          jwksContent =
-              compactJsonString.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-
-        } catch (e) {
-          console.error('Unexpected error parsing JWKS file during deploy:', e);
-          const errorMessage =
-              'Failed to parse JWKS file. Please ensure it is a valid JSON file.';
-
-          this.snackBar.open(errorMessage, 'Close', {
-            duration: 5000,
-            panelClass: ['error-snackbar'],
-          });
-
-          this.deploymentError.emit(errorMessage);
-          this.installerStateService.updateAppDeploymentStatus('failed');
-          this.cdr.detectChanges();
-          return;
-        }
-      }
-    }
-
-    payload.security_config = {
-      enable_inbound_auth: securityConfigRaw.enableInBoundAuth,
-      issuer_url: securityConfigRaw.enableInBoundAuth ?
-          securityConfigRaw.issuerUrl :
-          '',
-      idclaim: securityConfigRaw.enableInBoundAuth ? securityConfigRaw.idclaim :
-                                                     '',
-      allowed_values: securityConfigRaw.enableInBoundAuth &&
-              securityConfigRaw.allowedValues ?
-          securityConfigRaw.allowedValues.split(',')
-              .map((val: string) => val.trim())
-              .filter((val: string) => val.length > 0) :
-          [],
-      jwks_content: securityConfigRaw.enableInBoundAuth ? jwksContent : '',
-      enable_outbound_auth: securityConfigRaw.enableOutBoundAuth,
-      aud_overrides: securityConfigRaw.enableOutBoundAuth ?
-          securityConfigRaw.audOverrides :
-          ''
-    };
-
-
-    console.log('Final Application Deployment Payload:', payload);
-    const wsUrl = `ws://localhost:8000/ws/deployApp`;
-    this.appWsSubscription = this.webSocketService.connect(wsUrl)
-    .pipe(
-        takeUntil(this.unsubscribe$),
-        catchError(error => {
-            console.error('WebSocket connection error for app deployment:', error);
-            const errorMessage = `WebSocket connection error: ${error.message || 'Could not connect to the backend server.'}`;
-
-            this.installerStateService.updateAppDeploymentStatus('failed');
-
-            this.appDeploymentLogs.push(errorMessage);
-            this.deploymentError.emit(errorMessage);
-            this.cdr.detectChanges();
-
-            return EMPTY;
-        }),
-        finalize(() => {
-            console.log('WebSocket stream for app deployment finalized.');
-            // Check if the deployment was still "in-progress" when the socket closed.
-            // This indicates an unexpected disconnection.
-            if (this.installerState.appDeploymentStatus === 'in-progress') {
-                const errorMessage = 'Deployment failed: The connection to the server was lost unexpectedly.';
-
-                this.installerStateService.updateAppDeploymentStatus('failed');
-
-                this.appDeploymentLogs.push(errorMessage);
-                this.deploymentError.emit(errorMessage);
-                this.cdr.detectChanges();
-            }
-            this.webSocketService.closeConnection();
-        })
-    )
-    .subscribe({
-        next: (message) => this.handleWebSocketMessage(message),
-        error: (err) => {
-            console.error('WebSocket runtime error during app deployment:', err);
-            const errorMessage = `Deployment failed: ${err.message || 'An unknown error occurred during deployment.'}`;
-
-            this.installerStateService.updateAppDeploymentStatus('failed');
-
-            this.appDeploymentLogs.push(errorMessage);
-            this.deploymentError.emit(errorMessage);
-            this.cdr.detectChanges();
-        },
-        complete: () => {
-            console.log('WebSocket connection for app deployment closed by the server.');
-            this.cdr.detectChanges();
-        }
-    });
-   this.webSocketService.sendMessage(payload);
-  }
-
   private readFileContent(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -869,114 +605,81 @@ export class StepAppDeployComponent implements OnInit, OnDestroy {
     });
   }
 
-  private handleWebSocketMessage(message: any): void {
-    let parsedMessage: any;
-    try {
-      parsedMessage = typeof message === 'string' ? JSON.parse(message) : message;
-    } catch (e) {
-      console.warn('Received non-JSON WebSocket message for app deployment:', message);
-      this.appDeploymentLogs.push(String(message));
+  public async proceedToConfigGeneration(): Promise<void> {
+    this.saveCurrentTabConfigToState(this.currentInternalStep);
+
+    this.imageConfigForm.markAllAsTouched();
+    this.registryConfigForm.markAllAsTouched();
+    if (this.showGatewayTab) this.gatewayConfigForm.markAllAsTouched();
+    if (this.showAdapterTab) this.adapterConfigForm.markAllAsTouched();
+    this.securityConfigForm.markAllAsTouched();
+
+    if (!this.isAppConfigValid) {
+      console.warn(
+          'Cannot proceed: One or more configuration forms are invalid.');
       this.cdr.detectChanges();
-      this.scrollToBottom();
       return;
     }
 
-    console.log('Received parsed message for app deployment:', parsedMessage);
-    const { type, action, message: msgContent, data } = parsedMessage;
-    switch (type) {
-      case 'log':
-        this.appDeploymentLogs.push(msgContent);
-        break;
-      case 'success':
-       this.installerStateService.updateAppDeploymentStatus('completed');
-        this.appDeploymentLogs.push('Application Deployment Completed Successfully!');
-        if (data) {
-        this.installerStateService.updateState({
-        deployedServiceUrls: data.service_urls || {},
-        servicesDeployed: data.services_deployed || [],
-        logsExplorerUrls: data.logs_explorer_urls || {},
-        appExternalIp: data.app_external_ip || null,
-     });
-      this.serviceUrls = data.service_urls || {};
-      this.servicesDeployed = data.services_deployed || [];
-      this.logsExplorerUrls = data.logs_explorer_urls || {};
-      this.appExternalIp = data.app_external_ip || null;
-      this.showAdapterLogButton = Object.keys(this.serviceUrls).some(key => key.startsWith('adapter_'));
+    const securityConfigRaw = this.securityConfigForm.getRawValue();
+    let jwksContent = '';
 
-        } else {
-          console.warn('Success message data is missing or empty.');
+    // Process the JWKS file if inbound auth is enabled
+    if (securityConfigRaw.enableInBoundAuth) {
+      const jwksFileControl = this.securityConfigForm.get('jwksFile');
+      if (jwksFileControl && !jwksFileControl.errors &&
+          securityConfigRaw.jwksFile instanceof File) {
+        try {
+          const rawContent =
+              await this.readFileContent(securityConfigRaw.jwksFile);
+          const parsedJson = JSON.parse(rawContent);
+          const compactJsonString = JSON.stringify(parsedJson);
+          jwksContent =
+              compactJsonString.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        } catch (e) {
+          console.error('Unexpected error parsing JWKS file:', e);
+          this.snackBar.open(
+              'Failed to parse JWKS file. Please ensure it is a valid JSON file.',
+              'Close', {
+                duration: 5000,
+                panelClass: ['error-snackbar'],
+              });
+          this.cdr.detectChanges();
+          return;  // Stop navigation if file parsing fails
         }
-
-        this.deploymentComplete.emit();
-        this.webSocketService.closeConnection();
-        break;
-      case 'error':
-         this.installerStateService.updateAppDeploymentStatus('failed');
-         const errorMessage = msgContent || 'Unknown deployment error.';
-         this.appDeploymentLogs.push(`Application Deployment Failed: ${errorMessage}`);
-         this.deploymentError.emit(errorMessage);
-         this.webSocketService.closeConnection();
-         break;
-      default:
-        this.appDeploymentLogs.push(`[UNKNOWN MESSAGE TYPE FOR APP DEPLOYMENT] ${JSON.stringify(parsedMessage)}`);
-        break;
-    }
-    this.cdr.detectChanges();
-    this.scrollToBottom();
-  }
-
-  private scrollToBottom(): void {
-    try {
-      if (this.appLogContainer && this.appLogContainer.nativeElement) {
-        this.appLogContainer.nativeElement.scrollTop = this.appLogContainer.nativeElement.scrollHeight;
       }
-    } catch (err) {
-      console.error('Could not scroll app logs to bottom:', err);
     }
+
+    // Update State
+    this.installerStateService.updateAppDeployImageConfig(
+        this.imageConfigForm.getRawValue());
+    this.installerStateService.updateAppDeployRegistryConfig(
+        this.registryConfigForm.getRawValue());
+    if (this.showGatewayTab)
+      this.installerStateService.updateAppDeployGatewayConfig(
+          this.gatewayConfigForm.getRawValue());
+    if (this.showAdapterTab)
+      this.installerStateService.updateAppDeployAdapterConfig(
+          this.adapterConfigForm.getRawValue());
+
+    // Replace the raw File object with the processed string before saving to
+    // state
+    const finalSecurityConfigToSave: AppDeploySecurityConfig = {
+      enableInBoundAuth: securityConfigRaw.enableInBoundAuth,
+      enableOutBoundAuth: securityConfigRaw.enableOutBoundAuth,
+      issuerUrl: securityConfigRaw.issuerUrl,
+      idclaim: securityConfigRaw.idclaim,
+      allowedValues: securityConfigRaw.allowedValues,
+      audOverrides: securityConfigRaw.audOverrides,
+      jwksFileContent:
+          jwksContent,  // Storing the parsed string instead of the File
+    };
+    this.installerStateService.updateAppDeploySecurityConfig(
+        finalSecurityConfigToSave);
+
+    this.installerStateService.updateState({isAppConfigValid: true});
+
+    // Navigate to the next step
+    void this.router.navigate(['installer', 'view-config']);
   }
-
-  openUrl(url: string | null): void {
-    if (url) {
-        windowOpen(window, url, '_blank');
-    }
-  }
-
-  setAdapterLogButtonShown(): boolean {
-    this.adapterLogButtonShown = true;
-    return true;
-  }
-
-  copyToClipboard(text: string | null): void {
-    if (text) {
-      this.clipboard.copy(text!);
-      console.log('Copied to clipboard:', text);
-    }
-  }
-
-  continueToNextStep(): void {
-    this.router.navigate(['installer', 'health-checks']);
-  }
-
-  resetDeployment(): void {
-    this.installerStateService.updateAppDeploymentStatus('pending');
-    this.appDeploymentLogs = [];
-    this.appExternalIp = null;
-    this.serviceUrls = {};
-    this.servicesDeployed = [];
-    this.logsExplorerUrls = {};
-    this.adapterLogButtonShown = false;
-    this.cdr.detectChanges();
-  }
-
-  get isAppDeploying(): boolean {
-  return this.installerState?.appDeploymentStatus === 'in-progress';
-}
-
-get appDeploymentComplete(): boolean {
-  return this.installerState?.appDeploymentStatus === 'completed';
-}
-
-get appDeploymentFailed(): boolean {
-  return this.installerState?.appDeploymentStatus === 'failed';
-}
 }

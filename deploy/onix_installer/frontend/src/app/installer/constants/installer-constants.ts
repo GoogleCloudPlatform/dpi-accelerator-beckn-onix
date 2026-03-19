@@ -16,15 +16,9 @@
 
 export const InstallerConstants = {
   STEPS: [
-    'Welcome',
-    'Goal',
-    'Prerequisites',
-    'GCP Connection',
-    'Deploy Infra',
-    'Domain Configuration',
-    'Deploy App',
-    'Health Checks',
-    'Subscribe'
+    'Welcome', 'Goal', 'Prerequisites', 'GCP Connection', 'Deploy Infra',
+    'Domain Configuration', 'App Configuration', 'Review Configuration',
+    'View Deployment', 'Health Checks', 'Subscribe'
   ],
 
   STEP_PATHS: [
@@ -34,7 +28,9 @@ export const InstallerConstants = {
     'gcp-connection',
     'deploy-infra',
     'domain-configuration',
-    'deploy-app',
+    'app-config',
+    'view-config',
+    'view-deployment',
     'health-checks',
     'subscribe',
   ],

@@ -312,7 +312,7 @@ export class StepDomainConfigComponent implements OnInit, OnDestroy {
 
         this.installerStateService.updateGlobalDomainConfig(finalGlobalDomainDetails);
         this.installerStateService.updateSubdomainConfigs(finalSubdomainConfigs);
-         this.router.navigate(['installer', 'deploy-app']);
+        this.router.navigate(['installer', 'app-config']);
         return;
     }
 

@@ -31,7 +31,9 @@ import {InstallerState} from './types/installer.types';
 
 // A baseline mock state for the installer.
 const mockInitialState: InstallerState = {
+  isConfigChanged: false,
   isConfigLocked: false,
+  isAppConfigValid: false,
   currentStepIndex: 0,
   highestStepReached: 0,
   deploymentStatus: 'pending',
@@ -59,7 +61,8 @@ const mockInitialState: InstallerState = {
   appDeployRegistryConfig: null,
   appDeployGatewayConfig: null,
   appDeployAdapterConfig: null,
-  appDeploySecurityConfig: null
+  appDeploySecurityConfig: null,
+  lastDeployedAppPayload: null as any,
 };
 
 // A mock InstallerStateService to control the component's state during tests.

@@ -42,6 +42,22 @@ export class ApiService {
     return this.http.post(subscribeUrl, payload);
   }
 
+  postConfigs(payload: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}api/configs`, payload);
+  }
+
+  getConfigPaths(): Observable<{files: string[]}> {
+    return this.http.get<{files: string[]}>(`${this.apiUrl}api/configs/path`);
+  }
+
+  getConfigData(path: string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}api/config/data`, {params: {path}});
+  }
+
+  updateConfigData(payload: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}api/config/data`, payload);
+  }
+
     getState(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}store`);
   }
