@@ -172,6 +172,18 @@ The entire Onix suite is deployed using this UI-based installer that automates a
 For detailed prerequisites and step-by-step instructions, please refer to the **[Installer README](./deploy/onix_installer/README.md)**.
 
 
+## Data Protection and Privacy
+
+This project involves the use of several Google Cloud Platform (GCP) services, including:
+
+- **Google Kubernetes Engine (GKE)**: Orchestrates the core microservices.
+- **Cloud SQL for PostgreSQL**: Manages persistent data for the Registry.
+- **Google Cloud Pub/Sub**: Handles asynchronous messaging and event-driven workflows.
+- **Google Cloud Memorystore for Redis**: Provides caching for cryptographic keys and other data.
+- **Google Secret Manager**: Securely stores sensitive information like cryptographic keys.
+
+The data processed and stored within these GCP services is governed by the [Google Cloud Data Processing Addendum (CDPA)](https://cloud.google.com/terms/data-processing-addendum) and the [Google Cloud Privacy Notice](https://cloud.google.com/terms/cloud-privacy-notice). Users of this project are responsible for configuring these services and managing their data in compliance with applicable data protection laws and regulations.
+
 ## Licensing
 
 This project is licensed under the Apache 2.0 License. See the [LICENSE](./LICENSE) file for details.
