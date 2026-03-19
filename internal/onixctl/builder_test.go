@@ -125,10 +125,73 @@ func TestBuildPluginsInDocker(t *testing.T) {
 		"docker", "run", "--rm", "--platform", "linux/amd64",
 		"-v", wsPath + ":/workspace",
 		"-w", "/workspace",
-		"golang:1.24-bullseye",
+		"golang:1.24-bookworm",
 		"sh", "./build_plugins.sh",
 	}
 	assert.Equal(t, expectedCmdPrefix, mockRunner.CommandsRun[0])
+}
+
+func TestBuildImagesLocally_WithLocalDockerfile(t *testing.T) {
+	// 1. Setup
+	mockRunner := &MockCommandRunner{}
+	ws, err := NewWorkspace()
+	require.NoError(t, err)
+	defer ws.Close()
+	wsPath := ws.Path()
+
+	// Temporarily chdir to a temp directory since Bazel tests run in readonly directories.
+	originalWd, _ := os.Getwd()
+	tmpWd := t.TempDir()
+	require.NoError(t, os.Chdir(tmpWd))
+	defer os.Chdir(originalWd) // ensure clean state
+
+	tempDockerfile := "TestDockerfile.custom"
+	require.NoError(t, os.WriteFile(tempDockerfile, []byte("FROM scratch"), 0644))
+
+	config := &Config{
+		Modules: []Module{
+			{
+				Name:    "local-module",
+				Path:    tmpWd,
+				DirName: "app",
+				Images: map[string]Image{
+					"myimage": {Dockerfile: tempDockerfile, Tag: "v1"},
+				},
+			},
+		},
+	}
+
+	// Let Workspace do its preparation
+	err = ws.PrepareModules(config.Modules)
+	require.NoError(t, err)
+
+	builder := &Builder{
+		config:        config,
+		workspacePath: wsPath,
+		runner:        mockRunner,
+	}
+
+	// 2. Execute
+	err = builder.buildImagesLocally()
+
+	// 3. Assert
+	require.NoError(t, err)
+	// Check that the file was actually copied into the module workspace (app directory)
+	copiedDockerfilePath := filepath.Join(wsPath, "app", tempDockerfile)
+	assert.FileExists(t, copiedDockerfilePath)
+
+	content, err := os.ReadFile(copiedDockerfilePath)
+	require.NoError(t, err)
+	assert.Equal(t, string(content), "FROM scratch")
+
+	require.Len(t, mockRunner.CommandsRun, 1, "Expected only the build command")
+
+	expectedBuildCmd := []string{
+		"docker", "buildx", "build", "--platform", "linux/amd64", "--load",
+		"-t", "myimage:v1",
+		"-f", tempDockerfile, ".",
+	}
+	assert.Equal(t, expectedBuildCmd, mockRunner.CommandsRun[0])
 }
 
 func TestBuildImagesLocally_WithRegistry(t *testing.T) {

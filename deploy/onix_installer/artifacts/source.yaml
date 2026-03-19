@@ -39,4 +39,4 @@ modules:
 output: ./deploy/onix_installer/artifacts/plugins
 zipFileName: plugins_bundle.zip
 # gsPath: gs://<BucketName>/plugins/
-goVersion: 1.24
+goVersion: 1.26.1
