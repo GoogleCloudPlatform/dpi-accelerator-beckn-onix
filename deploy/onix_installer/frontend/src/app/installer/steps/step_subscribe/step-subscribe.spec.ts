@@ -251,6 +251,7 @@ describe('StepSubscribe', () => {
          fixture.detectChanges();
 
          expect(component.showStatusPopup).toBeTrue();
+         expect(component.showSpinner).toBeFalse();
          expect(component.isError).toBeFalse();
          expect(component.popupMessage)
              .toBe('Subscription request sent successfully!');
@@ -271,6 +272,7 @@ describe('StepSubscribe', () => {
          fixture.detectChanges();
 
          expect(component.showStatusPopup).toBeTrue();
+         expect(component.showSpinner).toBeFalse();
          expect(component.isError).toBeTrue();
          expect(component.popupMessage).toContain('Gateway timeout');
          expect(component.popupIcon).toBe('error_outline');
