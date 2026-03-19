@@ -25,6 +25,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewWorkspace(t *testing.T) {
@@ -185,6 +186,52 @@ func TestWorkspace_PrepareModules_Remote(t *testing.T) {
 	// Check if the module was cloned to the workspace
 	_, err = os.Stat(filepath.Join(ws.Path(), "remote-module", "test.txt"))
 	assert.NoError(t, err, "module file should exist in the workspace")
+}
+
+func TestWorkspace_PrepareModules_LocalDockerfile(t *testing.T) {
+	ws, err := NewWorkspace()
+	assert.NoError(t, err)
+	defer func() {
+		if err := ws.Close(); err != nil {
+			slog.Error("failed to clean up database connection", "error", err)
+		}
+	}()
+
+	// Temporarily chdir to a temp directory since Bazel tests run in readonly directories.
+	originalWd, _ := os.Getwd()
+	tmpWd := t.TempDir()
+	require.NoError(t, os.Chdir(tmpWd))
+	defer os.Chdir(originalWd) // ensure clean state
+
+	// Create a dummy local module
+	localModuleDir := filepath.Join(tmpWd, "local-module")
+	require.NoError(t, os.MkdirAll(localModuleDir, 0755))
+
+	// Create a dummy dockerfile locally (in the current working directory)
+	tempDockerfile := "TestDockerfile.custom"
+	require.NoError(t, os.WriteFile(tempDockerfile, []byte("FROM scratch"), 0644))
+
+	modules := []Module{
+		{
+			Name:    "local-module",
+			Path:    localModuleDir,
+			DirName: "app",
+			Images: map[string]Image{
+				"myimage": {Dockerfile: tempDockerfile, Tag: "v1"},
+			},
+		},
+	}
+
+	err = ws.PrepareModules(modules)
+	require.NoError(t, err)
+
+	// Check that the file was actually copied into the module workspace
+	copiedDockerfilePath := filepath.Join(ws.Path(), "app", tempDockerfile)
+	assert.FileExists(t, copiedDockerfilePath)
+
+	content, err := os.ReadFile(copiedDockerfilePath)
+	require.NoError(t, err)
+	assert.Equal(t, string(content), "FROM scratch")
 }
 
 func TestWorkspace_PrepareModules_Remote_InvalidVersion(t *testing.T) {

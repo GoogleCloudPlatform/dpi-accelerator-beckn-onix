@@ -110,7 +110,7 @@ func (b *Builder) buildPluginsInDocker() error {
 		"--platform", "linux/amd64",
 		"-v", fmt.Sprintf("%s:/workspace", b.workspacePath),
 		"-w", "/workspace",
-		fmt.Sprintf("golang:%s-bullseye", b.config.GoVersion),
+		fmt.Sprintf("golang:%s-bookworm", b.config.GoVersion),
 		"sh", "./build_plugins.sh",
 	)
 	cmd.Stdout = os.Stdout
