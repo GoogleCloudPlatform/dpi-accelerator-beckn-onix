@@ -34,11 +34,10 @@ check_command "jq"  # required for parsing JSON outputs to read outputs.json
 echo -e "\nAll required tools are installed. Proceeding...\n"
 
 OUTPUTS_FILE="outputs.json" # Relative to CWD
-CONFIG_DIR="../../../generated_configs" # Relative to CWD
-SCHEMA_DIR="../../../adapter_artifacts/schemas" # Relative to CWD
-PLUGIN_DIR="../../../adapter_artifacts/plugins" # Relative to CWD
-ROUTING_CONFIG_DIR="../../../adapter_artifacts/routing_configs" # Relative to CWD
-# HTTPS_TFVARS="https.tfvars" # Relative to CWD
+CONFIG_DIR="../../../artifacts/configs"
+SCHEMA_DIR="../../../artifacts/configs/schemas"
+PLUGIN_DIR="../../../artifacts/plugins"
+ROUTING_CONFIG_DIR="../../../artifacts/configs/routing_configs"
 
 # Checking if outputs.json exists
 if [ ! -f "$OUTPUTS_FILE" ]; then
@@ -104,7 +103,7 @@ DOMAINS_LIST=$(IFS=,; echo "${DOMAINS_ARRAY[*]}")
 #########################################
 
 echo -e "\nUploading configs and schemas from $CONFIG_DIR to bucket: gs://$CONFIG_BUCKET/ ...\n"
-gsutil -m cp -r "$CONFIG_DIR"/* "gs://$CONFIG_BUCKET/configs/"
+gsutil -m cp $(find "$CONFIG_DIR" -maxdepth 1 -type f) "gs://$CONFIG_BUCKET/configs/"
 
 if [ $? -eq 0 ]; then
     echo -e "\nConfig Files upload successful!\n"

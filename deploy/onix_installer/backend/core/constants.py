@@ -34,4 +34,6 @@ TEMPLATE_DIRECTORY = os.path.join(INSTALLER_KIT_PATH, "templates")
 INFRA_SCRIPT_PATH = os.path.join(INSTALLER_KIT_PATH, "installer_scripts", "deploy-infra.sh")
 APP_SCRIPT_PATH = os.path.join(INSTALLER_KIT_PATH, "installer_scripts", "deploy-app.sh")
 
-GENERATED_CONFIGS_DIR = os.path.join(os.path.dirname(BASE_DIR), 'generated_configs')
+# GENERATED_CONFIGS_DIR = os.path.join(os.path.dirname(BASE_DIR), 'generated_configs')
+ARTIFACTS_DIR = os.path.join(os.path.dirname(BASE_DIR), 'artifacts')
+GENERATED_CONFIGS_DIR = os.path.join(ARTIFACTS_DIR, 'configs')

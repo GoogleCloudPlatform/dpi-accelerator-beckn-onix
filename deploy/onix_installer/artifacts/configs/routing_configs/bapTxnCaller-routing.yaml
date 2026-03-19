@@ -14,12 +14,16 @@
 
 routingRules:
   - domain: <DOMAIN>
-    version: <VERSION
-    targetType: publisher
+    version: <VERSION>
+    targetType: url
     target:
-      publisherId: <ADAPAPTER_TOPIC_ID>
+      url: <GATEWAY_URL>
     endpoints:
       - search
+  - domain: <DOMAIN>
+    version: <VERSION>
+    targetType: bpp
+    endpoints:
       - select
       - init
       - confirm

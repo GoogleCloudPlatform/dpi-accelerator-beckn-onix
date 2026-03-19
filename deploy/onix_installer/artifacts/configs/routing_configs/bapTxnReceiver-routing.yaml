@@ -17,7 +17,7 @@ routingRules:
     version: <VERSION>
     targetType: publisher
     target:
-      publisherId: <ADAPAPTER_TOPIC_ID>
+      publisherId: <ADAPTER_TOPIC_ID>
     endpoints:
       - on_search
       - on_select
