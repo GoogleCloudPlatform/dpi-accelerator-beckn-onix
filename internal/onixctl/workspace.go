@@ -129,6 +129,24 @@ func (w *Workspace) PrepareModules(modules []Module) error {
 				return fmt.Errorf("failed to copy module root for %s: %w", module.Name, err)
 			}
 		}
+
+		// Copy local Dockerfiles if specified
+		for _, image := range module.Images {
+			if _, err := os.Stat(image.Dockerfile); err == nil {
+				fmt.Printf("Found local Dockerfile %s, copying to module workspace...\n", image.Dockerfile)
+				input, err := os.ReadFile(image.Dockerfile)
+				if err != nil {
+					return fmt.Errorf("failed to read local dockerfile %s: %w", image.Dockerfile, err)
+				}
+				destDockerfilePath := filepath.Join(destPath, image.Dockerfile)
+				if err := os.MkdirAll(filepath.Dir(destDockerfilePath), 0755); err != nil {
+					return fmt.Errorf("failed to create directory for local dockerfile: %w", err)
+				}
+				if err := os.WriteFile(destDockerfilePath, input, 0644); err != nil {
+					return fmt.Errorf("failed to copy dockerfile to module workspace: %w", err)
+				}
+			}
+		}
 	}
 	return nil
 }
