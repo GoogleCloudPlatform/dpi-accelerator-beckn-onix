@@ -14,7 +14,7 @@
 
 routingRules:
   - domain: <DOMAIN>
-    version: 2.0.0
+    version: <VERSION>
     targetType: bap
     endpoints:
       - on_search

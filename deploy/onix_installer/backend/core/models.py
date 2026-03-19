@@ -116,26 +116,40 @@ class DomainConfig(BaseModel):
     dnsZone: str
 
 
+class ConfigGenerationRequest(BaseModel):
+    """
+    Model for generating application configuration files (YAMLs).
+    Contains only the fields necessary for rendering service configs.
+    """
+    app_name: NonEmptyStr
+    components: dict[str, bool]
+    registry_url: HttpUrl
+    registry_config: RegistryConfig
+    adapter_config: AdapterConfig| None = None
+    gateway_config: GatewayConfig | None = None
+    security_config: SecurityConfig | None = None
+
+
     
 class AppDeploymentRequest(BaseModel):
     """
     Pydantic model for incoming application deployment requests.
     """
     app_name: NonEmptyStr
-    components: Dict[str, bool]
+    components: dict[str, bool]
     # Expected keys for components: "gateway", "registry", "bap", "bpp"
-    domain_names: Dict[str, NonEmptyStr]
+    domain_names: dict[str, NonEmptyStr]
     # Expected keys for domain_names: "registry", "registry_admin", "subscriber", "gateway", "adapter"
-    image_urls: Dict[str, NonEmptyStr]
+    image_urls: dict[str, NonEmptyStr]
     # Expected keys for image_urls: "registry", "registry_admin", "subscriber", "gateway", "adapter"
 
     registry_url: HttpUrl
 
     registry_config: RegistryConfig
     domain_config: DomainConfig
-    adapter_config: Optional[AdapterConfig] = None
-    gateway_config: Optional[GatewayConfig] = None
-    security_config: Optional[SecurityConfig] = None
+    adapter_config: AdapterConfig | None = None
+    gateway_config: GatewayConfig | None = None
+    security_config: SecurityConfig | None = None
 
 
 class ProxyRequest(BaseModel):
@@ -143,3 +157,7 @@ class ProxyRequest(BaseModel):
     payload: Dict[Any, Any]
     impersonate_service_account: Optional[str] = None
     audience: Optional[str] = None
+
+class ConfigUpdateRequest(BaseModel):
+    path: NonEmptyStr
+    content: str

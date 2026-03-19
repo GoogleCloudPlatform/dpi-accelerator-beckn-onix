@@ -196,26 +196,18 @@ class TestAppConfigGenerator(unittest.TestCase):
         self.mock_logger.info.assert_any_call(f"Loading infrastructure outputs from {expected_path}")
 
 
-    def test_prepare_template_context(self):
+    def test_prepare_app_template_context(self):
         """
-        Test that the Jinja2 context is prepared correctly, including SA email stripping.
+        Test that the app Jinja2 context is prepared correctly, including SA email stripping.
         """
-        app_req = models.AppDeploymentRequest(
+        app_req = models.ConfigGenerationRequest(
             app_name="test-app",
             components={"bap": True, "bpp": False, "gateway": True, "registry": False}, # Using string keys
-            domain_names={
-                "auth_domain": "auth.example.com",
-                "adapter": "adapter.example.com",
-                "gateway": "gateway.example.com",
-                "registry": "registry.example.com"
-            },
-            image_urls={"adapter": "some-repo/adapter:1.0"},
             registry_url="http://reg.example.com",
             adapter_config=models.AdapterConfig(enable_schema_validation=True),
             registry_config=models.RegistryConfig(subscriber_id="test_sub", key_id="test_key", enable_auto_approver=True),
             gateway_config=models.GatewayConfig(subscriber_id="test_gateway_sub"),
-            security_config=models.SecurityConfig(enable_inbound_auth=True, issuer_url="http://issuer.url", idclaim="sub", allowed_values=["value1", "value2"], jwks_json="jwks.json"),
-            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            security_config=models.SecurityConfig(enable_inbound_auth=True, issuer_url="http://issuer.url", idclaim="sub", allowed_values=["value1", "value2"], jwks_content="jwks.json")
         )
         infra_outputs = {
             "project_id": "infra-proj",
@@ -233,7 +225,7 @@ class TestAppConfigGenerator(unittest.TestCase):
             "global_ip_address": "35.35.35.35",
         }
 
-        context = app_config_generator._prepare_template_context(app_req, infra_outputs)
+        context = app_config_generator._prepare_app_template_context(app_req, infra_outputs)
 
         self.assertEqual(context["project_id"], "infra-proj")
         self.assertEqual(context["project_number"], "987654321")
@@ -245,12 +237,6 @@ class TestAppConfigGenerator(unittest.TestCase):
         self.assertEqual(context["registry_admin_database_user_sa_email"], "admin@my-proj.iam")
         self.assertEqual(context["registry_url"], "http://reg.example.com/")
         self.assertEqual(context["suffix"], "test-app")
-        self.assertEqual(context["domains"], {
-                "auth_domain": "auth.example.com",
-                "adapter": "adapter.example.com",
-                "gateway": "gateway.example.com",
-                "registry": "registry.example.com"
-            })
 
         self.assertEqual(context["adapter"], app_req.adapter_config.model_dump())
         self.assertEqual(context["registry"], app_req.registry_config.model_dump())
@@ -261,18 +247,96 @@ class TestAppConfigGenerator(unittest.TestCase):
         self.assertFalse(context["deploy_bpp"])
         self.assertTrue(context["enable_subscriber"])
         self.assertTrue(context["enable_auto_approver"])
+
+    def test_prepare_app_template_context_no_bap_bpp(self):
+        """
+        Test that deploy_bap and deploy_bpp are False in context when not in components.
+        """
+        app_req = models.ConfigGenerationRequest(
+            app_name="test-app",
+            components={},
+            registry_url="http://reg.example.com",
+            registry_config=models.RegistryConfig(subscriber_id="test_sub", key_id="test_key", enable_auto_approver=True),
+        )
+        infra_outputs = {
+            "project_id": "infra-proj",
+            "project_number": "987654321",
+            "region": "infra-region",
+            "redis_instance_ip": "10.0.0.1",
+            "onix_topic_name": "onix-t",
+            "adapter_topic_name": "adapter-t",
+            "database_user_sa_email": "user@my-proj.iam.gserviceaccount.com",
+            "registry_admin_database_user_sa_email": "admin@my-proj.iam.gserviceaccount.com",
+            "registry_database_name": "reg-db",
+            "db_instance_connection_name": "reg-conn",
+            "gcs_bucket": "config-bucket-name",
+            "url_map": "mock-url-map-id",
+            "global_ip_address": "35.35.35.35",
+        }
+
+        context = app_config_generator._prepare_app_template_context(app_req, infra_outputs)
+
+        self.assertFalse(context["deploy_bap"])
+        self.assertFalse(context["deploy_bpp"])
+
+    def test_prepare_tfvars_template_context(self):
+        """
+        Test that the tfvars Jinja2 context is prepared correctly.
+        """
+        app_req = models.AppDeploymentRequest(
+            app_name="test-app",
+            components={"bap": True, "bpp": False, "gateway": True, "registry": False}, # Using string keys
+            domain_names={
+                "auth_domain": "auth.example.com",
+                "adapter": "adapter.example.com",
+                "gateway": "gateway.example.com",
+                "registry": "registry.example.com"
+            },
+            image_urls={"adapter": "some-repo/adapter:1.0"},
+            registry_url="http://reg.example.com",
+            adapter_config=models.AdapterConfig(enable_schema_validation=True),
+            registry_config=models.RegistryConfig(subscriber_id="test_sub", key_id="test_key", enable_auto_approver=True),
+            gateway_config=models.GatewayConfig(subscriber_id="test_gateway_sub"),
+            security_config=models.SecurityConfig(enable_inbound_auth=True, issuer_url="http://issuer.url", idclaim="sub", allowed_values=["value1", "value2"], jwks_content="jwks.json"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+        )
+        infra_outputs = {
+            "project_id": "infra-proj",
+            "region": "infra-region",
+            "onix_topic_name": "onix-t",
+            "url_map": "mock-url-map-id",
+            "global_ip_address": "35.35.35.35",
+        }
+
+        context = app_config_generator._prepare_tfvars_template_context(app_req, infra_outputs)
+
+        self.assertEqual(context["project_id"], "infra-proj")
+        self.assertEqual(context["region"], "infra-region")
+        self.assertEqual(context["global_ip_address"], "35.35.35.35")
         self.assertEqual(context["url_map"], "mock-url-map-id")
+        self.assertEqual(context["onix_topic_name"], "onix-t")
+
+        self.assertEqual(context["suffix"], "test-app")
+        self.assertEqual(context["domains"], {
+                "auth_domain": "auth.example.com",
+                "adapter": "adapter.example.com",
+                "gateway": "gateway.example.com",
+                "registry": "registry.example.com"
+            })
+        self.assertEqual(context["security"], app_req.security_config.model_dump())
+
+        self.assertTrue(context["enable_subscriber"])
+        self.assertTrue(context["enable_auto_approver"])
         self.assertTrue(context["is_google_domain"])
         self.assertEqual(context["domain_name"], "example.com")
         self.assertEqual(context["dns_zone"], "example-zone")
-        self.assertEqual(context["global_ip_address"], "35.35.35.35")
         self.assertIn("adapter.example.com", context["domain_list"])
         self.assertIn("gateway.example.com", context["domain_list"])
 
     @patch('config.app_config_generator.os.makedirs')
     @patch('config.app_config_generator.utils.write_file_content')
     @patch('config.app_config_generator.utils.render_jinja_template', return_value="rendered_content")
-    @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
+    @patch('config.app_config_generator._prepare_app_template_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
         "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
@@ -285,7 +349,7 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test generation of app configs when all components that create config files are enabled.
         """
-        req = models.AppDeploymentRequest(
+        req = models.ConfigGenerationRequest(
             app_name="test-app",
             components={
                 "bap": True,
@@ -294,10 +358,9 @@ class TestAppConfigGenerator(unittest.TestCase):
                 "registry": True
             },
             domain_names={},
-            image_urls={},
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone"),
             registry_url="http://mock-reg.com",
-            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id")
         )
 
         app_config_generator.generate_app_configs(req)
@@ -315,17 +378,9 @@ class TestAppConfigGenerator(unittest.TestCase):
             call(template_dir=expected_template_source_dir, template_name=self.mock_registry_template, context={"mock_context": True}),
             call(template_dir=expected_template_source_dir, template_name=self.mock_registry_admin_template, context={"mock_context": True}),
         ]
-        
-        # Test for tfvars template as well
-        tf_template_source_dir = os.path.join(self.mock_template_dir, 'tf_configs')
-        expected_render_calls_tfvars = [
-            call(template_dir=tf_template_source_dir, template_name=self.mock_tfvars_template, context={"mock_context": True}),
-        ]
 
-        all_expected_render_calls = sorted(expected_render_calls_configs + expected_render_calls_tfvars, key=lambda c: str(c))
-        actual_render_calls = sorted(mock_render.call_args_list, key=lambda c: str(c))
-        self.assertEqual(actual_render_calls, all_expected_render_calls)
-        self.assertEqual(mock_render.call_count, 6) # 5 app configs + 1 tfvars
+        self.assertCountEqual(mock_render.call_args_list, expected_render_calls_configs)
+        self.assertEqual(mock_render.call_count, 5) # 5 app configs
 
         expected_write_calls_configs = [
             call(os.path.join(self.mock_generated_configs_dir, self.mock_adapter_template.replace('.j2', '')), "rendered_content"),
@@ -335,21 +390,14 @@ class TestAppConfigGenerator(unittest.TestCase):
             call(os.path.join(self.mock_generated_configs_dir, self.mock_registry_admin_template.replace('.j2', '')), "rendered_content"),
         ]
 
-        tf_vars_output_dir = os.path.join(self.mock_tf_dir, 'modules/ONIX/phase2')
-        expected_write_calls_tfvars = [
-            call(os.path.join(tf_vars_output_dir, self.mock_tfvars_template.replace('.j2', '')), "rendered_content"),
-        ]
-
-        all_expected_write_calls = sorted(expected_write_calls_configs + expected_write_calls_tfvars, key=lambda c: str(c))
-        actual_write_calls = sorted(mock_write_file.call_args_list, key=lambda c: str(c))
-        self.assertEqual(actual_write_calls, all_expected_write_calls)
-        self.assertEqual(mock_write_file.call_count, 6)
+        self.assertCountEqual(mock_render.call_args_list, expected_render_calls_configs)
+        self.assertEqual(mock_write_file.call_count, 5)
 
 
     @patch('config.app_config_generator.os.makedirs')
     @patch('config.app_config_generator.utils.write_file_content')
     @patch('config.app_config_generator.utils.render_jinja_template', return_value="rendered_content")
-    @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
+    @patch('config.app_config_generator._prepare_app_template_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
         "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
@@ -362,16 +410,15 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test generation of app configs when only registry component is enabled.
         """
-        req = models.AppDeploymentRequest(
+        req = models.ConfigGenerationRequest(
             app_name="test-app",
             components={
                 "registry": True
             },
             domain_names={},
-            image_urls={},
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone"),
             registry_url="http://mock-reg.com",
-            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id")
         )
 
         app_config_generator.generate_app_configs(req)
@@ -386,36 +433,58 @@ class TestAppConfigGenerator(unittest.TestCase):
             call(template_dir=expected_template_source_dir, template_name=self.mock_registry_admin_template, context={"mock_context": True}),
         ]
 
-        tf_template_source_dir = os.path.join(self.mock_template_dir, 'tf_configs')
-        expected_render_calls_tfvars = [
-            call(template_dir=tf_template_source_dir, template_name=self.mock_tfvars_template, context={"mock_context": True}),
-        ]
-
-        all_expected_render_calls = sorted(expected_render_calls_configs + expected_render_calls_tfvars, key=lambda c: str(c))
+        all_expected_render_calls = sorted(expected_render_calls_configs, key=lambda c: str(c))
         actual_render_calls = sorted(mock_render.call_args_list, key=lambda c: str(c))
         self.assertEqual(actual_render_calls, all_expected_render_calls)
-        self.assertEqual(mock_render.call_count, 3) # Registry, Registry-Admin, and tfvars
+        self.assertEqual(mock_render.call_count, 2) # Registry, Registry-Admin
 
         expected_write_calls_configs = [
             call(os.path.join(self.mock_generated_configs_dir, self.mock_registry_template.replace('.j2', '')), "rendered_content"),
             call(os.path.join(self.mock_generated_configs_dir, self.mock_registry_admin_template.replace('.j2', '')), "rendered_content"),
         ]
 
-        tf_vars_output_dir = os.path.join(self.mock_tf_dir, 'modules/ONIX/phase2')
-        expected_write_calls_tfvars = [
-            call(os.path.join(tf_vars_output_dir, self.mock_tfvars_template.replace('.j2', '')), "rendered_content"),
-        ]
-
-        all_expected_write_calls = sorted(expected_write_calls_configs + expected_write_calls_tfvars, key=lambda c: str(c))
+        all_expected_write_calls = sorted(expected_write_calls_configs, key=lambda c: str(c))
         actual_write_calls = sorted(mock_write_file.call_args_list, key=lambda c: str(c))
         self.assertEqual(actual_write_calls, all_expected_write_calls)
-        self.assertEqual(mock_write_file.call_count, 3) # Registry, Registry-Admin, and tfvars
+        self.assertEqual(mock_write_file.call_count, 2) # Registry, Registry-Admin
 
+    @patch('config.app_config_generator.utils.write_file_content')
+    @patch('config.app_config_generator.utils.render_jinja_template', return_value="rendered_content")
+    @patch('config.app_config_generator._prepare_tfvars_template_context', return_value={"mock_context": True})
+    @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
+        "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
+        "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
+        "database_user_sa_email": "db-user@example.gserviceaccount.com", "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
+        "registry_database_name": "reg-db", "db_instance_connection_name": "reg-conn", "gcs_bucket": "config-bucket",
+        "url_map": "mock-url-map", "global_ip_address": "35.35.35.35",
+    })
+    @patch('os.path.join', side_effect=os.path.join)
+    def test_generate_tfvars_file(self, mock_os_path_join, mock_load_infra, mock_prepare_context, mock_render, mock_write_file):
+        req = models.AppDeploymentRequest(
+            app_name="test-app",
+            components={"registry": True},
+            domain_names={},
+            image_urls={},
+            registry_url="http://mock-reg.com",
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
+            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+        )
+
+        app_config_generator.generate_tfvars_file(req)
+
+        mock_load_infra.assert_called_once()
+        mock_prepare_context.assert_called_once()
+        
+        tf_template_source_dir = os.path.join(self.mock_template_dir, 'tf_configs')
+        mock_render.assert_called_once_with(template_dir=tf_template_source_dir, template_name=self.mock_tfvars_template, context={"mock_context": True})
+        
+        tf_vars_output_dir = os.path.join(self.mock_tf_dir, 'modules/ONIX/phase2')
+        mock_write_file.assert_called_once_with(os.path.join(tf_vars_output_dir, self.mock_tfvars_template.replace('.j2', '')), "rendered_content")
 
     @patch('config.app_config_generator.os.makedirs')
     @patch('config.app_config_generator.utils.write_file_content')
     @patch('config.app_config_generator.utils.render_jinja_template', side_effect=FileNotFoundError("Missing J2"))
-    @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
+    @patch('config.app_config_generator._prepare_app_template_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
         "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
@@ -428,14 +497,11 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test that FileNotFoundError during template rendering is caught and re-raised.
         """
-        req = models.AppDeploymentRequest(
+        req = models.ConfigGenerationRequest(
             app_name="test-app",
             components={"bap": True},
-            domain_names={},
-            image_urls={},
             registry_url="http://mock-reg.com",
-            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id")
         )
 
         with self.assertRaisesRegex(FileNotFoundError, "Missing J2"):
@@ -448,7 +514,7 @@ class TestAppConfigGenerator(unittest.TestCase):
     @patch('config.app_config_generator.os.makedirs')
     @patch('config.app_config_generator.utils.write_file_content', side_effect=IOError("No disk space"))
     @patch('config.app_config_generator.utils.render_jinja_template', return_value="content")
-    @patch('config.app_config_generator._prepare_template_context', return_value={"mock_context": True})
+    @patch('config.app_config_generator._prepare_app_template_context', return_value={"mock_context": True})
     @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
         "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
         "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
@@ -461,14 +527,72 @@ class TestAppConfigGenerator(unittest.TestCase):
         """
         Test that IOError during file writing is caught and re-raised.
         """
-        req = models.AppDeploymentRequest(
+        req = models.ConfigGenerationRequest(
             app_name="test-app",
             components={"gateway": True},
-            domain_names={},
-            image_urls={},
             registry_url="http://mock-reg.com",
-            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id"),
-            domain_config=models.DomainConfig(baseDomain="example.com", domainType="google_domain", dnsZone="example-zone")
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id")
+        )
+
+        with self.assertRaisesRegex(IOError, "No disk space"):
+            app_config_generator.generate_app_configs(req)
+        
+        mock_render.assert_called_once()
+        mock_write_file.assert_called_once()
+        self.mock_logger.error.assert_called_once()
+
+
+    @patch('config.app_config_generator.os.makedirs')
+    @patch('config.app_config_generator.utils.write_file_content')
+    @patch('config.app_config_generator.utils.render_jinja_template', side_effect=FileNotFoundError("Missing J2"))
+    @patch('config.app_config_generator._prepare_app_template_context', return_value={"mock_context": True})
+    @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
+        "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
+        "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
+        "database_user_sa_email": "db-user@example.gserviceaccount.com", "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
+        "registry_database_name": "reg-db", "db_instance_connection_name": "reg-conn", "gcs_bucket": "config-bucket",
+        "url_map": "mock-url-map", "global_ip_address": "35.35.35.35",
+    })
+    @patch('os.path.join', side_effect=os.path.join)
+    def test_generate_app_configs_template_error_propagates(self, mock_os_path_join, mock_load_infra, mock_prepare_context, mock_render, mock_write_file, mock_makedirs):
+        """
+        Test that FileNotFoundError during template rendering is caught and re-raised.
+        """
+        req = models.ConfigGenerationRequest(
+            app_name="test-app",
+            components={"bap": True},
+            registry_url="http://mock-reg.com",
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id")
+        )
+
+        with self.assertRaisesRegex(FileNotFoundError, "Missing J2"):
+            app_config_generator.generate_app_configs(req)
+        
+        mock_render.assert_called_once()
+        self.mock_logger.error.assert_called_once()
+        mock_write_file.assert_not_called()
+
+    @patch('config.app_config_generator.os.makedirs')
+    @patch('config.app_config_generator.utils.write_file_content', side_effect=IOError("No disk space"))
+    @patch('config.app_config_generator.utils.render_jinja_template', return_value="content")
+    @patch('config.app_config_generator._prepare_app_template_context', return_value={"mock_context": True})
+    @patch('config.app_config_generator._load_infrastructure_outputs', return_value={
+        "project_id": "test-project", "cluster_name": "test-cluster", "region": "us-central1",
+        "redis_instance_ip": "1.2.3.4", "onix_topic_name": "onix-topic", "adapter_topic_name": "adapter-topic",
+        "database_user_sa_email": "db-user@example.gserviceaccount.com", "registry_admin_database_user_sa_email": "reg-admin@example.gserviceaccount.com",
+        "registry_database_name": "reg-db", "db_instance_connection_name": "reg-conn", "gcs_bucket": "config-bucket",
+        "url_map": "mock-url-map", "global_ip_address": "35.35.35.35",
+    })
+    @patch('os.path.join', side_effect=os.path.join)
+    def test_generate_app_configs_write_error_propagates(self, mock_os_path_join, mock_load_infra, mock_prepare_context, mock_render, mock_write_file, mock_makedirs):
+        """
+        Test that IOError during file writing is caught and re-raised.
+        """
+        req = models.ConfigGenerationRequest(
+            app_name="test-app",
+            components={"gateway": True},
+            registry_url="http://mock-reg.com",
+            registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id")
         )
 
         with self.assertRaisesRegex(IOError, "No disk space"):

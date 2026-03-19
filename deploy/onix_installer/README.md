@@ -190,12 +190,12 @@ Before running the installer, you need to build and push the required Docker ima
     export REGISTRY_URL=${AR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${AR_REPO_NAME}
     ```
 
-2.  Update the `source.yaml` file with your registry URL. The file is located at `deploy/onix_installer/adapter_artifacts/source.yaml`. Uncomment the `registry` field and replace the placeholder `<REGISTRY_URL>` with the value of `$REGISTRY_URL`.
+2.  Update the `source.yaml` file with your registry URL. The file is located at `deploy/onix_installer/artifacts/source.yaml`. Uncomment the `registry` field and replace the placeholder `<REGISTRY_URL>` with the value of `$REGISTRY_URL`.
 
 3.  Build and run `onixctl` to build the adapter image and plugins:
     ```bash
     go build ./cmd/onixctl
-    ./onixctl --config deploy/onix_installer/adapter_artifacts/source.yaml
+    ./onixctl --config deploy/onix_installer/artifacts/source.yaml
     ```
 
 **C. Build and Push Core Service Images**
@@ -236,10 +236,10 @@ go to any browser, and open localhost:4200
 
 ### 7. Prepare Adapter Deployment Artifacts
 
-Before proceeding with the application deployment step in the installer, if either a BAP (Buyer Application Provider) or BPP (Seller Application Provider) is being deployed, ensure that the `adapter_artifacts` folder contains the necessary artifacts.
+Before proceeding with the application deployment step in the installer, if either a BAP (Buyer Application Provider) or BPP (Seller Application Provider) is being deployed, ensure that the `artifacts` folder contains the necessary artifacts.
 
 -   **`schemas` folder**: This folder is needed if you want to enable schema validation. It should contain all required schema files.
--   **`routing_configs` folder**: This folder must contain the routing configuration files specific to your deployment. For detailed information on configuring routing rules, please refer to the [routing configuration documentation](adapter_artifacts/routing_configs/README.md).
+-   **`routing_configs` folder**: This folder must contain the routing configuration files specific to your deployment. For detailed information on configuring routing rules, please refer to the [routing configuration documentation](artifacts/routing_configs/README.md).
     -   `bapTxnReceiver-routing.yaml`: Required if a BAP is being deployed.
     -   `bapTxnCaller-routing.yaml`: Required if a BAP is being deployed.
     -   `bppTxnReceiver-routing.yaml`: Required if a BPP is being deployed.
@@ -247,8 +247,8 @@ Before proceeding with the application deployment step in the installer, if eith
 -   **`plugins` folder**: This folder should contain the plugin bundle, which is a `.zip` file.
 
 ***Important Notes***
-- Please add your routing config .yaml files in adapter_artifacts/routing_configs folder before infra deployment step.
-- If you are using pubsub please add Adapter topic name from infra deployment output and add in .yaml files in adapter_artifacts/routing_configs folder.
+- Please add your routing config .yaml files in artifacts/routing_configs folder before infra deployment step.
+- If you are using pubsub please add Adapter topic name from infra deployment output and add in .yaml files in artifacts/routing_configs folder.
 
 
 ---

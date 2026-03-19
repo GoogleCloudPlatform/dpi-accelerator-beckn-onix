@@ -36,7 +36,7 @@ modules:
       oidcauth: plugins/oidcauth/cmd
       oidcauthtransportwrapper: plugins/oidcauthtransportwrapper/cmd
 # registry: <REGISTRY_URL>
-output: ./deploy/onix_installer/adapter_artifacts/plugins
+output: ./deploy/onix_installer/artifacts/plugins
 zipFileName: plugins_bundle.zip
 # gsPath: gs://<BucketName>/plugins/
 goVersion: 1.24

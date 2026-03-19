@@ -18,7 +18,7 @@ from typing import Dict, List
 
 import urllib
 
-from core.models import AppDeploymentRequest
+from core.models import AppDeploymentRequest, ConfigGenerationRequest
 from core.constants import TERRAFORM_DIRECTORY, TEMPLATE_DIRECTORY, GENERATED_CONFIGS_DIR
 from core import utils
 
@@ -66,9 +66,16 @@ def _load_infrastructure_outputs(terraform_outputs_dir: str) -> dict:
         raise
 
 
-def _prepare_template_context(app_deployment_request: AppDeploymentRequest, infra_output_values: dict) -> dict:
+def _prepare_app_template_context(request: ConfigGenerationRequest, infra_output_values: dict) -> dict:
     """
-    Prepares the context dictionary for Jinja2 template rendering.
+    Prepares the context dictionary for app configuration Jinja2 template rendering.
+
+    Args:
+        request: The ConfigGenerationRequest object containing application configuration details.
+        infra_output_values: A dictionary containing outputs from the infrastructureV1 Terraform deployment.
+
+    Returns:
+        A dictionary to be used as context for rendering Jinja2 templates.
     """
     iam_sa_suffix = ".gserviceaccount.com"
 
@@ -89,27 +96,53 @@ def _prepare_template_context(app_deployment_request: AppDeploymentRequest, infr
             infra_output_values.get("db_instance_connection_name"),
         "config_bucket_name": infra_output_values.get("gcs_bucket"),
 
-        "suffix": app_deployment_request.app_name,
-        "registry_url": str(app_deployment_request.registry_url),
+        "suffix": request.app_name,
+        "registry_url": str(request.registry_url),
 
-        "adapter": app_deployment_request.adapter_config.model_dump() if app_deployment_request.adapter_config else {},
-        "registry": app_deployment_request.registry_config.model_dump(),
-        "gateway": app_deployment_request.gateway_config.model_dump() if app_deployment_request.gateway_config else {},
-        "security": app_deployment_request.security_config.model_dump() if app_deployment_request.security_config else {},
-        "domains": app_deployment_request.domain_names,
-        "deploy_bap": app_deployment_request.components.get("bap", False),
-        "deploy_bpp": app_deployment_request.components.get("bpp", False),
+        "adapter": request.adapter_config.model_dump() if request.adapter_config else {},
+        "registry": request.registry_config.model_dump(),
+        "gateway": request.gateway_config.model_dump() if request.gateway_config else {},
+        "security": request.security_config.model_dump() if request.security_config else {},
+        "deploy_bap": request.components.get("bap", False),
+        "deploy_bpp": request.components.get("bpp", False),
 
-        "url_map": infra_output_values.get("url_map", ""),
-        "enable_subscriber": should_deploy_subscriber(app_deployment_request.components),
-        "enable_auto_approver": app_deployment_request.registry_config.enable_auto_approver,
-        "is_google_domain": (app_deployment_request.domain_config.domainType == "google_domain"),
-        "domain_name": app_deployment_request.domain_config.baseDomain,
-        "dns_zone": app_deployment_request.domain_config.dnsZone,
-        "global_ip_address": infra_output_values.get("global_ip_address"),
-        "domain_list": list(app_deployment_request.domain_names.values()),
+        "enable_subscriber": should_deploy_subscriber(request.components),
+        "enable_auto_approver": request.registry_config.enable_auto_approver,
     }
-    logger.debug("Jinja2 template context prepared.")
+    logger.debug("Jinja2 template context prepared for app configs.")
+    return context
+
+def _prepare_tfvars_template_context(request: AppDeploymentRequest, infra_output_values: dict) -> dict:
+    """
+    Prepares the context dictionary for tfvars Jinja2 template rendering.
+
+    Args:
+        request: The AppDeploymentRequest object containing application deployment details.
+        infra_output_values: A dictionary containing outputs from the infrastructureV1 Terraform deployment.
+
+    Returns:
+        A dictionary to be used as context for rendering the tfvars Jinja2 template.
+    """
+    logger.debug("Preparing Jinja2 template context for tfvars file...")
+    context = {
+        "project_id": infra_output_values.get("project_id"),
+        "region": infra_output_values.get("region"),
+        "global_ip_address": infra_output_values.get("global_ip_address"),
+        "url_map": infra_output_values.get("url_map"),
+        "onix_topic_name": infra_output_values.get("onix_topic_name"),
+
+        "suffix": request.app_name,
+        "domains": request.domain_names,
+        "security": request.security_config.model_dump() if request.security_config else {},
+
+        "enable_subscriber": should_deploy_subscriber(request.components),
+        "enable_auto_approver": request.registry_config.enable_auto_approver,
+        "is_google_domain": (request.domain_config.domainType == "google_domain"),
+        "domain_name": request.domain_config.baseDomain,
+        "dns_zone": request.domain_config.dnsZone,
+        "domain_list": list(request.domain_names.values()),
+    }
+    logger.debug("Jinja2 template context prepared for tfvars.")
     return context
 
 def _generate_file_from_template(
@@ -120,6 +153,17 @@ def _generate_file_from_template(
 ):
     """
     Helper function to render a Jinja2 template and write the content to a file.
+
+    Args:
+        template_source_dir: The directory where the Jinja2 templates are located.
+        template_j2_filename: The filename of the Jinja2 template (e.g., "adapter.yaml.j2").
+        output_dir: The directory where the generated file will be written.
+        context: A dictionary containing the variables to be used in the template rendering.
+
+    Raises:
+        FileNotFoundError: If the template file is not found.
+        RuntimeError: If there's an issue during template rendering.
+        IOError: If there's an issue writing the output file.
     """
     output_filename = template_j2_filename.replace('.j2', '')
     output_path = os.path.join(output_dir, output_filename)
@@ -139,33 +183,43 @@ def _generate_file_from_template(
 
 # Main Configuration Functions.
 
-def generate_app_configs(app_deployment_request: AppDeploymentRequest):
+def generate_app_configs(request: ConfigGenerationRequest):
     """
-    Generates application configuration YAML files based on the AppDeploymentRequest object
+    Generates application configuration YAML files based on the ConfigGenerationRequest object
     and infrastructure outputs. Generates templates for selected components.
+
+    Args:
+        request: The ConfigGenerationRequest object specifying which components to configure
+                 and their respective settings.
+
+    Raises:
+        FileNotFoundError: If required infrastructure output files or templates are missing.
+        ValueError: If there's an error parsing configuration data.
+        IOError: If there's an error writing the generated files.
+        RuntimeError: If there's an issue during template rendering.
     """
     logger.info("Starting Application Configuration YAML Generation")
 
     try:
         # Loading infrastructure outputs.
         infra_output_values = _load_infrastructure_outputs(TERRAFORM_DIRECTORY)
-        template_context = _prepare_template_context(app_deployment_request, infra_output_values)
+        template_context = _prepare_app_template_context(request, infra_output_values)
 
         os.makedirs(GENERATED_CONFIGS_DIR, exist_ok=True)
 
         templates_to_generate = set()
 
         # Determining which templates to generate based on components.
-        if _should_deploy_adapter(app_deployment_request.components):
+        if _should_deploy_adapter(request.components):
             templates_to_generate.add(ADAPTER_CONFIG_TEMPLATE_NAME)
             logger.debug("Adapter deployment requested. Adding adapter template.")
-        if app_deployment_request.components.get("gateway", False):
+        if request.components.get("gateway", False):
             templates_to_generate.add(GATEWAY_CONFIG_TEMPLATE_NAME)
             logger.debug("Gateway deployment requested. Adding gateway template.")
-        if should_deploy_subscriber(app_deployment_request.components):
+        if should_deploy_subscriber(request.components):
             templates_to_generate.add(SUBSCRIBER_CONFIG_TEMPLATE_NAME)
             logger.debug("Subscriber deployment requested. Adding subscriber template.")
-        if app_deployment_request.components.get("registry", False):
+        if request.components.get("registry", False):
             templates_to_generate.add(REGISTRY_CONFIG_TEMPLATE_NAME)
             templates_to_generate.add(REGISTRY_ADMIN_CONFIG_TEMPLATE_NAME)
             logger.debug("Registry deployment requested. Adding registry and registry-admin templates.")
@@ -181,6 +235,33 @@ def generate_app_configs(app_deployment_request: AppDeploymentRequest):
                 context=template_context
             )
 
+    except (FileNotFoundError, ValueError, IOError, RuntimeError) as e:
+        logger.critical("Critical Error during Application Configuration YAML Generation: %s", e, exc_info=True)
+        raise
+
+    logger.info("Application Config YAML files generation completed")
+
+
+def generate_tfvars_file(request: AppDeploymentRequest) -> None:
+    """
+    Generates tfvars file based on the AppDeploymentRequest object.
+
+    Args:
+        request: The AppDeploymentRequest object containing details needed for tfvars generation.
+
+    Raises:
+        FileNotFoundError: If required infrastructure output files or templates are missing.
+        ValueError: If there's an error parsing configuration data.
+        IOError: If there's an error writing the generated tfvars file.
+        RuntimeError: If there's an issue during template rendering.
+    """
+    logger.info("Starting tfvars Generation")
+
+    try:
+        # Loading infrastructure outputs.
+        infra_output_values = _load_infrastructure_outputs(TERRAFORM_DIRECTORY)
+        template_context = _prepare_tfvars_template_context(request, infra_output_values)
+
         tf_vars_output_dir = os.path.join(TERRAFORM_DIRECTORY, "modules/ONIX/phase2")
         tf_template_source_dir = os.path.join(TEMPLATE_DIRECTORY, 'tf_configs')
         _generate_file_from_template(
@@ -191,16 +272,23 @@ def generate_app_configs(app_deployment_request: AppDeploymentRequest):
         )
 
     except (FileNotFoundError, ValueError, IOError, RuntimeError) as e:
-        logger.critical(f"Critical Error during Application Configuration YAML Generation: {e}", exc_info=True)
+        logger.critical(f"Critical Error during tfvars Generation: {e}", exc_info=True)
         raise
 
-    logger.info("Application Ccnfig YAML files generation completed")
+    logger.info("tfvars file generation completed")
 
 
 def get_deployment_environment_variables(app_deployment_request: AppDeploymentRequest, services_to_deploy: List[str]) -> dict[str, str]:
     """
     Prepares environment variables needed for the deploy-app.sh script based on the
     AppDeploymentRequest.
+
+    Args:
+        app_deployment_request: The AppDeploymentRequest object.
+        services_to_deploy: A list of service names that are being deployed.
+
+    Returns:
+        A dictionary where keys are environment variable names and values are their string values.
     """
     logger.info("Preparing environment variables for deploy-app.sh...")
     env_vars = {}
@@ -232,7 +320,17 @@ def get_deployment_environment_variables(app_deployment_request: AppDeploymentRe
     return env_vars
 
 def extract_final_urls(domain_names: Dict[str, str], services: List[str]) -> Dict[str, str]:
+    """
+    Extracts and generates the final URLs for the deployed services, including special handling
+    for adapter modules.
 
+    Args:
+        domain_names: A dictionary mapping service names to their assigned domain names.
+        services: A list of service names for which URLs should be extracted.
+
+    Returns:
+        A dictionary mapping service names (and adapter module names) to their final URLs.
+    """
     logger.info("Extracting final URLs for services...")
     service_urls = {}
     logger.debug(f"Domain names provided: {domain_names}")
@@ -283,6 +381,13 @@ def generate_logs_explorer_urls(service_names: List[str]) -> Dict[str, str]:
     Generates Cloud Logs Explorer URLs for a given list of services,
     assuming container names follow the 'onix-{service_name}' pattern.
     It loads necessary infrastructure details from outputs.json.
+
+    Args:
+        service_names: A list of service names (e.g., ["adapter", "registry"]).
+
+    Returns:
+        A dictionary mapping service names to their corresponding Cloud Logs Explorer URLs.
+        Returns an empty dictionary if infrastructure outputs cannot be loaded.
     """
 
     logger.info("Generating Logs Explorer URLs for services...")

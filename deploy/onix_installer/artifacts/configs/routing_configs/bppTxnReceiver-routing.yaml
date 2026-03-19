@@ -15,15 +15,11 @@
 routingRules:
   - domain: <DOMAIN>
     version: <VERSION>
-    targetType: url
+    targetType: publisher
     target:
-      url: <GATEWAY_URL>
+      publisherId: <ADAPTER_TOPIC_ID>
     endpoints:
       - search
-  - domain: <DOMAIN>
-    version: 2.0.0
-    targetType: bpp
-    endpoints:
       - select
       - init
       - confirm
