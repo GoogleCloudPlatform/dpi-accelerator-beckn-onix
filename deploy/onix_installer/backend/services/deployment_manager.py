@@ -18,7 +18,7 @@ import logging
 import os
 from typing import List
 from core import utils
-from core.models import InfraDeploymentRequest, AppDeploymentRequest
+from core.models import InfraDeploymentRequest, AppDeploymentRequest, ConfigGenerationRequest
 from core.constants import INFRA_SCRIPT_PATH, APP_SCRIPT_PATH, TERRAFORM_DIRECTORY, ANSI_ESCAPE_PATTERN
 from config import tf_config_generator as tf_config
 from config import app_config_generator as app_config
@@ -138,9 +138,12 @@ async def run_app_deployment(app_deployment_request: AppDeploymentRequest, webso
 
     await websocket.send_text(json.dumps({"type": "info", "message": "Generating application configurations..."}))
     try:
-        app_config.generate_app_configs(app_deployment_request)
-        logger.info("Application configuration YAMLs generated successfully.")
-        await websocket.send_text(json.dumps({"type": "info", "message": "Application configurations generated successfully."}))
+        app_config.generate_tfvars_file(app_deployment_request)
+        logger.info("p2.tfvars file generated successfully.")
+        await websocket.send_text(json.dumps({
+            "type": "info",
+            "message": "p2.tfvars file generated successfully."
+        }))
 
         services = _get_services_to_deploy(app_deployment_request)
     

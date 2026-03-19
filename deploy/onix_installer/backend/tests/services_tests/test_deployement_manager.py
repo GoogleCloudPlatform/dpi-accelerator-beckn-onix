@@ -287,7 +287,8 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
         await deployment_manager.run_app_deployment(app_req, self.mock_websocket)
 
-        self.mock_app_config.generate_app_configs.assert_called_once_with(app_req)
+        self.mock_app_config.generate_app_configs.assert_not_called()
+        self.mock_app_config.generate_tfvars_file.assert_called_once_with(app_req)
         mock_get_services_to_deploy.assert_called_once_with(app_req)
         self.mock_app_config.get_deployment_environment_variables.assert_called_once_with(app_req, ["adapter", "registry"])
         
@@ -313,7 +314,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
             }
         })
         self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "info", "message": "Generating application configurations..."}))
-        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "info", "message": "Application configurations generated successfully."}))
+        self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "info", "message": "p2.tfvars file generated successfully."}))
         self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "info", "message": "Executing application deployment script..."}))
         self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "log", "action": "app_deploy_log", "message": "App log 1"})) # Added expected log messages
         self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "log", "action": "app_deploy_log", "message": "App log 2"})) # Added expected log messages
@@ -322,12 +323,12 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
         self.mock_app_config.generate_logs_explorer_urls.assert_called_once_with(["adapter", "registry"])
         self.mock_app_config.extract_final_urls.assert_called_once_with(app_req.domain_names, ["adapter", "registry"])
         self.mock_logger.info.assert_any_call("Environment variables for app script prepared.")
-        self.mock_logger.info.assert_any_call("Application configuration YAMLs generated successfully.")
+        self.mock_logger.info.assert_any_call("p2.tfvars file generated successfully.")
         self.mock_logger.info.assert_any_call(expected_success_message)
 
 
     async def test_run_app_deployment_config_generation_failure(self):
-        self.mock_app_config.generate_app_configs.side_effect = FileNotFoundError("App config template missing")
+        self.mock_app_config.generate_tfvars_file.side_effect = FileNotFoundError("App config template missing")
 
         app_req = models.AppDeploymentRequest(
             app_name="test-app",
@@ -339,7 +340,7 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
         await deployment_manager.run_app_deployment(app_req, self.mock_websocket)
 
-        self.mock_app_config.generate_app_configs.assert_called_once_with(app_req)
+        self.mock_app_config.generate_tfvars_file.assert_called_once_with(app_req)
         self.mock_websocket.send_text.assert_any_call(json.dumps({"type": "info", "message": "Generating application configurations..."}))
         self.mock_websocket.send_text.assert_called_with(json.dumps({
             "type": "error",
@@ -371,7 +372,8 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
         await deployment_manager.run_app_deployment(app_req, self.mock_websocket)
 
-        self.mock_app_config.generate_app_configs.assert_called_once()
+        self.mock_app_config.generate_app_configs.assert_not_called()
+        self.mock_app_config.generate_tfvars_file.assert_called_once_with(app_req)
         mock_get_services_to_deploy.assert_called_once_with(app_req)
         self.mock_app_config.get_deployment_environment_variables.assert_called_once_with(app_req, ["adapter"])
         mock_create_subprocess_exec.assert_called_once()
@@ -396,7 +398,8 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
         await deployment_manager.run_app_deployment(app_req, self.mock_websocket)
 
-        self.mock_app_config.generate_app_configs.assert_called_once()
+        self.mock_app_config.generate_app_configs.assert_not_called()
+        self.mock_app_config.generate_tfvars_file.assert_called_once_with(app_req)
         mock_get_services_to_deploy.assert_called_once_with(app_req)
         self.mock_app_config.get_deployment_environment_variables.assert_called_once_with(app_req, ["adapter"])
         mock_create_subprocess_exec.assert_called_once()
