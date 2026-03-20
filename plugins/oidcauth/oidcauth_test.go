@@ -366,7 +366,7 @@ func TestHelpers(t *testing.T) {
 			{map[string]any{"email": "a@b.com"}, nil, false},           // nil allowed
 		}
 		for _, tc := range tests {
-			if got := isSAAuthorized(tc.claims, tc.allowed); got != tc.want {
+			if got := isSAAuthorized(context.Background(), tc.claims, tc.allowed); got != tc.want {
 				t.Errorf("isSAAuthorized(%v, %v) = %t, want %t", tc.claims, tc.allowed, got, tc.want)
 			}
 		}
@@ -386,7 +386,7 @@ func TestHelpers(t *testing.T) {
 			{"iss1", nil, false},
 		}
 		for _, tc := range tests {
-			if got := isIssuerAuthorized(tc.issuer, tc.allowed); got != tc.want {
+			if got := isIssuerAuthorized(context.Background(), tc.issuer, tc.allowed); got != tc.want {
 				t.Errorf("isIssuerAuthorized(%q, %v) = %t, want %t", tc.issuer, tc.allowed, got, tc.want)
 			}
 		}

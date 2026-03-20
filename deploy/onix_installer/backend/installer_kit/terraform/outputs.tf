@@ -154,7 +154,7 @@ output "agent_db_password" {
 
 output "gcs_bucket" {
   description = "The GCS bucket used for Terraform state and configs"
-  value       = "dpi-${var.app_name}-bucket"
+  value       = "${var.project_id}-dpi-${var.app_name}-bucket"
 }
 
 

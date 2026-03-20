@@ -108,13 +108,13 @@ func validateToken(ctx context.Context, token string, config *Config) (*idtoken.
 
 	if isGoogleIssuer(payload.Issuer) {
 		// For Google issuers, validate against the allowed SAs
-		if !isSAAuthorized(payload.Claims, config.AllowedSAs) {
+		if !isSAAuthorized(ctx, payload.Claims, config.AllowedSAs) {
 			log.Errorf(ctx, nil, "token failed sa validation")
 			return nil, errors.New("Unauthorized: invalid sa")
 		}
 	} else {
 		// For non-Google issuers, validate against the allowed issuer
-		if !isIssuerAuthorized(payload.Issuer, config.AllowedIssuers) {
+		if !isIssuerAuthorized(ctx, payload.Issuer, config.AllowedIssuers) {
 			log.Errorf(ctx, nil, "token failed issuer validation")
 			return nil, errors.New("Unauthorized: invalid issuer")
 		}
@@ -127,12 +127,14 @@ func isGoogleIssuer(issuer string) bool {
 	return issuer == "https://accounts.google.com" || issuer == "accounts.google.com"
 }
 
-func isSAAuthorized(claims map[string]any, allowedSAs []string) bool {
+func isSAAuthorized(ctx context.Context, claims map[string]any, allowedSAs []string) bool {
 	if len(allowedSAs) == 0 {
+		log.Errorf(ctx, nil, "no allowed SAs configured")
 		return false
 	}
 	emailClaim, ok := claims["email"].(string)
 	if !ok || emailClaim == "" {
+		log.Errorf(ctx, nil, "no email claim found in token")
 		return false
 	}
 	for _, allowedSA := range allowedSAs {
@@ -140,11 +142,13 @@ func isSAAuthorized(claims map[string]any, allowedSAs []string) bool {
 			return true
 		}
 	}
+	log.Errorf(ctx, nil, "email %q not found in allowed SAs", emailClaim)
 	return false
 }
 
-func isIssuerAuthorized(tokenIssuer string, allowedIssuers []string) bool {
+func isIssuerAuthorized(ctx context.Context, tokenIssuer string, allowedIssuers []string) bool {
 	if len(allowedIssuers) == 0 {
+		log.Errorf(ctx, nil, "no allowed issuers configured")
 		return false
 	}
 	for _, allowedIssuer := range allowedIssuers {
@@ -152,5 +156,6 @@ func isIssuerAuthorized(tokenIssuer string, allowedIssuers []string) bool {
 			return true
 		}
 	}
+	log.Errorf(ctx, nil, "token issuer %q not found in allowed issuers", tokenIssuer)
 	return false
 }
