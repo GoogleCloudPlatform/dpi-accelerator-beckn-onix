@@ -73,7 +73,7 @@ if [ -f "generated-terraform.tfvars" ]; then
 fi
 
 if [ -n "$APP_NAME" ] && [ -n "$PROJECT_ID" ]; then
-    BUCKET_NAME="dpi-${APP_NAME}-bucket"
+    BUCKET_NAME="${PROJECT_ID}-dpi-${APP_NAME}-bucket"
 
     # Strict match for region, cleanly fallback to us-central1 if empty
     TARGET_REGION=$(grep '^region[[:space:]]*=' generated-terraform.tfvars | cut -d'=' -f2 | tr -d ' "')
