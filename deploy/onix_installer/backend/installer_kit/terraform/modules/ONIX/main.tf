@@ -159,7 +159,6 @@ module "security_policy" {
   count            = var.enable_onix && var.enable_cloud_armor ? 1 : 0
   source           = "../LOAD_BALANCER/SECURITY_POLICY"
   app_name         = var.app_name
-  allowed_regions  = var.allowed_regions
   rate_limit_count = var.rate_limit_count
 }
 
