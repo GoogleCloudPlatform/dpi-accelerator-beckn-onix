@@ -135,6 +135,7 @@ If you prefer creating a service account manually, create a service account in t
 -   DNS Administrator
 -   Compute Security Admin
 -   Workload Identity Pool Admin
+-   Service Usage Admin
 
 
 ### 3. Configuration
