@@ -105,13 +105,32 @@ async def test_dynamic_proxy_impersonation_success(mock_httpx_client, mock_googl
     # Verify ID token args
     id_token_args = mock_google_auth["id_token_credentials"].call_args
     assert id_token_args[1]["target_audience"] == "https://audience.api"
+    assert id_token_args[1]["include_email"] == True
+
+    # Verify refresh is called
+    mock_request_instance = mock_google_auth["request"].return_value
+    mock_id_token_instance = mock_google_auth[
+        "id_token_credentials"
+    ].return_value
+    mock_id_token_instance.refresh.assert_called_once_with(
+        mock_request_instance
+    )
 
     assert mock_httpx_client.post.call_count == 1
     call_args = mock_httpx_client.post.call_args
     assert call_args[1]["headers"]["Authorization"] == "Bearer mock_oidc_token"
 
+
 @pytest.mark.asyncio
-async def test_dynamic_proxy_impersonation_failure(mock_httpx_client, mock_google_auth):
+async def test_dynamic_proxy_impersonation_failure(
+    mock_httpx_client, mock_google_auth
+):
+  """Tests the dynamic proxy endpoint when service account impersonation fails.
+
+  Args:
+      mock_httpx_client: Mocked httpx.AsyncClient.
+      mock_google_auth: Mocked Google authentication components.
+  """
   mock_google_auth["id_token_credentials"].side_effect = Exception(
       "Impersonation failed"
   )
