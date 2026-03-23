@@ -29,6 +29,36 @@ data "google_project" "project" {
   project_id = var.project_id
 }
 
+#--------------------------------------------- API/Service Configuration ---------------------------------------------#
+
+locals {
+  agent_apis = [
+    "aiplatform.googleapis.com",
+    "logging.googleapis.com",
+    "cloudtrace.googleapis.com",
+    "storage.googleapis.com",
+    "serviceusage.googleapis.com",
+    "discoveryengine.googleapis.com",
+    "cloudresourcemanager.googleapis.com",
+    "compute.googleapis.com",
+    "sqladmin.googleapis.com",
+    "redis.googleapis.com",
+    "servicenetworking.googleapis.com"
+  ]
+}
+
+resource "google_project_service" "apis" {
+  for_each           = var.enable_agent ? toset(local.agent_apis) : []
+  project            = var.project_id
+  service            = each.value
+  disable_on_destroy = false
+}
+
+resource "time_sleep" "wait_for_apis" {
+  depends_on      = [google_project_service.apis]
+  create_duration = var.enable_agent ? "30s" : "0s"
+}
+
 
 #--------------------------------------------- Network Configuration ---------------------------------------------#
 
@@ -47,6 +77,8 @@ module "network" {
   range_name_1       = var.range_name_1
   ip_range_1         = var.ip_range_1
   region             = var.region
+
+  depends_on = [time_sleep.wait_for_apis]
 }
 
 #--------------------------------------------- Router Configuration ---------------------------------------------#
@@ -104,7 +136,7 @@ resource "time_sleep" "wait_for_ps_networking" {
 
 # Controls whether the Cloud SQL Instance should be provisioned
 locals {
-  provision_db_instance = var.provision_registry_infra || var.enable_agent
+  provision_db_instance = var.provision_registry_infra || (var.enable_agent && var.provision_agent_db)
 }
 
 module "db_instance" {
@@ -279,34 +311,30 @@ module "agent" {
 
   # Core Inputs
   project_id   = var.project_id
+  project_number = data.google_project.project.number
   region       = var.region
   app_name     = var.app_name
-  image_url    = var.agent_image_url
 
   # Networking
-  network_name = module.network.network_name
-  subnet_name  = module.network.subnet_name
+  subnet_name                   = module.network.subnet_name
+  subnetwork_id                 = module.network.subnetwork_id
+  agent_network_attachment_name = var.agent_network_attachment_name
 
   # Data
+  provision_agent_db = var.provision_agent_db
   db_instance_name = local.provision_db_instance ? module.db_instance[0].db_instance_name : null
   agent_db_name    = var.agent_db_name
   agent_db_user    = var.agent_db_user
 
   # IAM
-  agent_sa_account_id = var.agent_sa_account_id
+  agent_sa_account_id   = var.agent_sa_account_id
   agent_sa_display_name = var.agent_sa_display_name
   agent_sa_description  = var.agent_sa_description
   agent_sa_roles        = var.agent_sa_roles
 
-  cpu                   = var.agent_cpu
-  memory                = var.agent_memory
-  ingress               = var.agent_ingress
-  vpc_egress            = var.agent_vpc_egress
-  allow_unauthenticated = var.agent_allow_unauthenticated
-
   depends_on = [
     module.network,
     module.db_instance,
-    module.redis
+    time_sleep.wait_for_apis
   ]
 }

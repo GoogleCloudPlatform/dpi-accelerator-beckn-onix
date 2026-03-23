@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_vertex_ai_reasoning_engine" "agent_engine" {
-  region       = var.region
-  display_name = "${var.app_name}-reasoning-engine"
-  description  = "Reasoning Engine for ${var.app_name}"
+output "network_attachment_id" {
+  value       = google_compute_network_attachment.psc_attachment.id
+  description = "The ID of the Network Attachment for PSC"
 }

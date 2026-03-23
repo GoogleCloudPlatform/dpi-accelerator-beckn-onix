@@ -17,6 +17,11 @@ variable "project_id" {
   type        = string
 }
 
+variable "project_number" {
+  description = "The project number"
+  type        = string
+}
+
 variable "region" {
   description = "The region"
   type        = string
@@ -27,18 +32,24 @@ variable "app_name" {
   type        = string
 }
 
-variable "image_url" {
-  description = "The URL of the pre-built Agent image"
-  type        = string
-}
-
-variable "network_name" {
-  description = "The name of the VPC network"
-  type        = string
-}
-
 variable "subnet_name" {
   description = "The name of the subnetwork"
+  type        = string
+}
+
+variable "subnetwork_id" {
+  description = "The self-link of the subnetwork"
+  type        = string
+}
+
+variable "provision_agent_db" {
+  description = "Whether to provision the agent database"
+  type        = bool
+  default     = true
+}
+
+variable "agent_network_attachment_name" {
+  description = "The name of the network attachment for the agent"
   type        = string
 }
 
@@ -80,28 +91,4 @@ variable "agent_sa_roles" {
   type        = list(string)
 }
 
-# Cloud Run Configuration
-variable "cpu" {
-  description = "CPU limit for the Cloud Run container"
-  type        = string
-}
 
-variable "memory" {
-  description = "Memory limit for the Cloud Run container"
-  type        = string
-}
-
-variable "ingress" {
-  description = "Ingress traffic configuration for the Cloud Run service"
-  type        = string
-}
-
-variable "vpc_egress" {
-  description = "VPC egress traffic configuration for the Cloud Run service"
-  type        = string
-}
-
-variable "allow_unauthenticated" {
-  description = "Whether to allow unauthenticated access to the service"
-  type        = bool
-}

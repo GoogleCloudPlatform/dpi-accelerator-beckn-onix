@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 #--------------------------------------------- Secret Management ---------------------------------------------#
 
 resource "random_password" "db_password" {
+  count   = var.provision_agent_db ? 1 : 0
   length  = 16
   special = false
 }
 
 resource "google_secret_manager_secret" "db_password_secret" {
+  count     = var.provision_agent_db ? 1 : 0
   secret_id = "${var.app_name}-agent-session-db-password"
   replication {
     auto {}
@@ -29,8 +30,9 @@ resource "google_secret_manager_secret" "db_password_secret" {
 }
 
 resource "google_secret_manager_secret_version" "db_password_secret_version" {
-  secret      = google_secret_manager_secret.db_password_secret.id
-  secret_data = random_password.db_password.result
+  count       = var.provision_agent_db ? 1 : 0
+  secret      = google_secret_manager_secret.db_password_secret[0].id
+  secret_data = random_password.db_password[0].result
 }
 
 #--------------------------------------------- IAM Configuration ---------------------------------------------#
@@ -53,23 +55,37 @@ module "agent_iam_binding" {
 
 # Grant the agent service account access to the secret
 resource "google_secret_manager_secret_iam_member" "agent_secret_access" {
-  secret_id = google_secret_manager_secret.db_password_secret.id
+  count     = var.provision_agent_db ? 1 : 0
+  secret_id = google_secret_manager_secret.db_password_secret[0].id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${module.agent_service_account.service_account_email}"
+}
+
+resource "google_project_iam_member" "vertex_permissions" {
+  project = var.project_id
+  role    = "roles/compute.networkAdmin"
+  member  = "serviceAccount:service-${var.project_number}@gcp-sa-aiplatform.iam.gserviceaccount.com"
+}
+
+resource "time_sleep" "wait_for_iam_propagation" {
+  depends_on      = [google_project_iam_member.vertex_permissions]
+  create_duration = "40s"
 }
 
 #--------------------------------------------- Database Configuration ---------------------------------------------#
 
 module "agent_database" {
+  count         = var.provision_agent_db ? 1 : 0
   source        = "../CLOUD_SQL/DATABASE"
-  database_name      = var.agent_db_name
+  database_name = var.agent_db_name
   instance_name = var.db_instance_name
 }
 
 module "agent_db_user" {
+  count         = var.provision_agent_db ? 1 : 0
   source        = "../CLOUD_SQL/DB_USER"
   user_name     = var.agent_db_user
-  password = random_password.db_password.result
+  password      = random_password.db_password[0].result
   instance_name = var.db_instance_name
 
   depends_on = [module.agent_database]
@@ -77,25 +93,10 @@ module "agent_db_user" {
 
 #--------------------------------------------- Component Modules ---------------------------------------------#
 
-module "vertex_ai" {
-  source   = "../VERTEX_AI"
-  region   = var.region
-  app_name = var.app_name
-}
-
-module "cloud_run" {
-  source                = "../CLOUD_RUN"
-  region                = var.region
-  service_name          = "${var.app_name}-agent-app"
-  image_url             = var.image_url
-  network_name          = var.network_name
-  subnet_name           = var.subnet_name
-  service_account_email = module.agent_service_account.service_account_email
-
-  # Compute and Networking
-  cpu                   = var.cpu
-  memory                = var.memory
-  ingress               = var.ingress
-  vpc_egress            = var.vpc_egress
-  allow_unauthenticated = var.allow_unauthenticated
+# NETWORK_ATTACHMENT submodule for PSC
+module "network_attachment" {
+  source                  = "../VPC/NETWORK_ATTACHMENT"
+  network_attachment_name = var.agent_network_attachment_name
+  region                  = var.region
+  subnetworks             = [var.subnetwork_id]
 }

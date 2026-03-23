@@ -106,16 +106,6 @@ output "subscription_ksa_name" {
 
 # Values for "agent" module outputs
 
-output "agent_service_url" {
-  description = "The URL of the deployed Agent service"
-  value       = var.enable_agent ? module.agent[0].service_url : null
-}
-
-output "agent_service_name" {
-  description = "The name of the deployed Agent service"
-  value       = var.enable_agent ? module.agent[0].service_name : null
-}
-
 output "agent_db_user" {
   description = "The database user for the Agent"
   value       = var.enable_agent ? module.agent[0].db_user : null
@@ -131,25 +121,20 @@ output "agent_db_secret_name" {
   value       = var.enable_agent ? module.agent[0].db_secret_name : null
 }
 
+output "agent_db_password" {
+  description = "The database password for the Agent"
+  value       = var.enable_agent ? module.agent[0].db_password : null
+  sensitive   = true
+}
+
 output "agent_app_service_account_email" {
   description = "The email of the Agent service account"
   value       = var.enable_agent ? module.agent[0].agent_app_service_account_email : null
 }
 
-output "agent_reasoning_engine_name" {
-  description = "The Name of the Reasoning Engine"
-  value       = var.enable_agent ? module.agent[0].reasoning_engine_name : null
-}
-
-output "agent_reasoning_engine_id" {
-  description = "The Resource ID of the Reasoning Engine"
-  value       = var.enable_agent ? module.agent[0].reasoning_engine_id : null
-}
-
-output "agent_db_password" {
-  description = "The database password for the Agent"
-  value       = var.enable_agent ? module.agent[0].db_password : null
-  sensitive   = true
+output "agent_network_attachment_id" {
+  description = "The ID of the Network Attachment for PSC"
+  value       = var.enable_agent ? module.agent[0].agent_network_attachment_id : null
 }
 
 output "gcs_bucket" {
