@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import {beforeEach, bootstrap, describe, expect, it, setupModule,} from 'google3/javascript/angular2/testing/catalyst/fake_async';
+import {ComponentFixture, getTestBed, TestBed} from '@angular/core/testing';
+import {BrowserDynamicTestingModule, platformBrowserDynamicTesting} from '@angular/platform-browser-dynamic/testing';
 import {of} from 'rxjs';
 
 import {InstallerStateService} from '../../../core/services/installer-state.service';
@@ -26,8 +27,10 @@ import {StepViewDeployment} from './step_view_deployment.component';
 describe('StepViewDeployment', () => {
   let installerStateServiceSpy: jasmine.SpyObj<InstallerStateService>;
   let webSocketServiceSpy: jasmine.SpyObj<WebSocketService>;
+  let component: StepViewDeployment;
+  let fixture: ComponentFixture<StepViewDeployment>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     installerStateServiceSpy = jasmine.createSpyObj(
         'InstallerStateService',
         ['getCurrentState', 'updateState', 'updateAppDeploymentStatus'],
@@ -102,17 +105,24 @@ describe('StepViewDeployment', () => {
     } as unknown as InstallerState);
     webSocketServiceSpy.connect.and.returnValue(of({}));
 
-    setupModule({
-      imports: [StepViewDeployment],
-      providers: [
-        {provide: InstallerStateService, useValue: installerStateServiceSpy},
-        {provide: WebSocketService, useValue: webSocketServiceSpy},
-      ],
-    });
+    await TestBed
+        .configureTestingModule({
+          imports: [StepViewDeployment],
+          providers: [
+            {
+              provide: InstallerStateService,
+              useValue: installerStateServiceSpy
+            },
+            {provide: WebSocketService, useValue: webSocketServiceSpy},
+          ],
+        })
+        .compileComponents();
+
+    fixture = TestBed.createComponent(StepViewDeployment);
+    component = fixture.componentInstance;
   });
 
   it('should create', () => {
-    const component = bootstrap(StepViewDeployment);
     expect(component).toBeTruthy();
   });
 });
