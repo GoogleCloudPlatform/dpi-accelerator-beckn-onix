@@ -109,9 +109,9 @@ def build_agent_config(
     ValueError: If required environment variables are missing.
   """
 
-  project = env_vars.get("PROJECT_ID")
+  project = env_vars.get("GOOGLE_CLOUD_PROJECT")
   if not project:
-    raise ValueError("PROJECT_ID must be set in the env file.")
+    raise ValueError("GOOGLE_CLOUD_PROJECT must be set in the env file.")
 
   location = env_vars.get("REGION")
   if not location:
@@ -171,9 +171,12 @@ def build_agent_config(
     config["psc_interface_config"] = {"network_attachment": network_attachment_id}
 
   if env_vars.get("ENABLE_LONG_TERM_MEMORY", "false").lower() == "true":
+    gemini_model_location = env_vars.get("GOOGLE_CLOUD_LOCATION")
+    if not gemini_model_location:
+      raise ValueError("GOOGLE_CLOUD_LOCATION must be set in the env file.")
     config["context_spec"] = {
         "memory_bank_config": memory.get_memory_bank_config(
-            project=project, location=location
+            project=project, location=gemini_model_location
         )
     }
 
@@ -241,8 +244,6 @@ def main():
   # Remove reserved deployment-time variables from the
   # agent's runtime environment
   for reserved_env_var in [
-      "GOOGLE_CLOUD_PROJECT",
-      "PROJECT_ID",
       "REGION",
       "STAGING_BUCKET",
       "AGENT_SA_EMAIL",

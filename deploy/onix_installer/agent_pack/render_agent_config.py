@@ -54,7 +54,7 @@ def validate_config(
   Returns:
     A tuple containing (project_id, region, app_name, staging_bucket).
   """
-  project_id = env_vars.get("PROJECT_ID")
+  project_id = env_vars.get("GOOGLE_CLOUD_PROJECT")
   region = env_vars.get("REGION")
   app_name = env_vars.get("APP_NAME")
   staging_bucket = env_vars.get("STAGING_BUCKET")
@@ -62,7 +62,7 @@ def validate_config(
   # Staging bucket is now optional as it is auto-derived in the shell script
   if not (project_id and region and app_name):
     print(
-        "Error: Missing required environment variables (PROJECT_ID, REGION,"
+        "Error: Missing required environment variables (GOOGLE_CLOUD_PROJECT, REGION,"
         " APP_NAME) in agent_config.env."
     )
     sys.exit(1)

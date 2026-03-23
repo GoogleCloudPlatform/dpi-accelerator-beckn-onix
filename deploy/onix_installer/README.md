@@ -97,6 +97,7 @@ deploy/onix_installer/scripts/set_user_iam.sh
 
 This script will prompt for your GCP Project ID and User Email, then assign the necessary roles:
 
+-   Service Usage Admin
 -   Service Account Token Creator
 -   Service Account User
 -   Service Account Admin
@@ -107,6 +108,7 @@ This script will prompt for your GCP Project ID and User Email, then assign the 
 -   Kubernetes Engine Admin
 -   Storage Admin
 -   Workload Identity Pool Admin
+-   Vertex AI Administrator
 
 
 ### 2. Create and Configure the Installer Service Account
