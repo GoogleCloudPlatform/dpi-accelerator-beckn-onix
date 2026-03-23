@@ -15,7 +15,7 @@
  */
 
 import {CommonModule} from '@angular/common';
-import {ChangeDetectorRef, Component, OnInit} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {MatButton} from '@angular/material/button';
 import {MatIcon} from '@angular/material/icon';
@@ -44,7 +44,8 @@ interface ConfigFileItem {
   imports:
       [CommonModule, MatButton, MatIcon, MatTooltip, MatSpinner, FormsModule],
   templateUrl: './step_view_config.component.html',
-  styleUrl: './step_view_config.component.css'
+  styleUrl: './step_view_config.component.css',
+  changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class StepViewConfigComponent implements OnInit {
   validationError: string|null = null;
