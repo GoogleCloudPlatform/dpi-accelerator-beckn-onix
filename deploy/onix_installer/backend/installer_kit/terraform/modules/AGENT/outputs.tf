@@ -12,16 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "service_url" {
-  description = "The URL of the deployed Agent service"
-  value       = module.cloud_run.service_url
-}
-
-output "service_name" {
-  description = "The name of the deployed Agent service"
-  value       = module.cloud_run.service_name
-}
-
+# Outputs for the AGENT module
 output "agent_app_service_account_email" {
   description = "The email of the Agent service account"
   value       = module.agent_service_account.service_account_email
@@ -29,32 +20,26 @@ output "agent_app_service_account_email" {
 
 output "db_user" {
   description = "The database user for the Agent"
-  value       = var.agent_db_user
+  value       = var.provision_agent_db ? var.agent_db_user : null
 }
 
 output "db_name" {
   description = "The database name for the Agent"
-  value       = var.agent_db_name
+  value       = var.provision_agent_db ? var.agent_db_name : null
 }
 
 output "db_secret_name" {
   description = "The Secret Manager secret name for the DB password"
-  value       = google_secret_manager_secret.db_password_secret.name
-}
-
-output "reasoning_engine_name" {
-  description = "The Name of the Reasoning Engine"
-  value       = module.vertex_ai.reasoning_engine_name
-}
-
-output "reasoning_engine_id" {
-  description = "The Resource ID of the Reasoning Engine"
-  value       = module.vertex_ai.reasoning_engine_resource_id
+  value       = one(google_secret_manager_secret.db_password_secret[*].name)
 }
 
 output "db_password" {
   description = "The database password for the Agent"
-  value       = random_password.db_password.result
+  value       = one(random_password.db_password[*].result)
   sensitive   = true
 }
 
+output "agent_network_attachment_id" {
+  value       = module.network_attachment.network_attachment_id
+  description = "The ID of the Network Attachment for PSC"
+}

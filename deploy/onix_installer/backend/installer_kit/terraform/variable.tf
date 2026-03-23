@@ -650,18 +650,6 @@ variable "registry_database_name" {
   description = "Name of the registry database"
 }
 
-variable "auto_approver_subscription_name" {
-  description = "The name of subscription that auto approves new and subscription requests for registry."
-  type        = string
-  default     = null
-}
-
-variable "auto_approver_push_url" {
-  description = "The url where the auto approver subcription send hits and approves requests"
-  type        = string
-  default     = ""
-}
-
 #--------------------------------------------- Subscription Service Configuration ---------------------------------------------#
 
 variable "subscription_ksa_name" {
@@ -686,123 +674,25 @@ variable "subscription_gsa_roles" {
   default     = []
 }
 
-variable "on_subscribe_handler_subscription_name" {
-  description = "The name of subscription that that keeps polling registry to see whether the latest subcription is active or not."
-  type        = string
-  default     = null
-}
-
-variable "on_subscribe_handler_push_url" {
-  description = "The url where the on_subcriber_handler polls to know the status."
-  type        = string
-  default     = ""
-}
-
-#--------------------------------------------- HTTPS Configuration ---------------------------------------------#
-
-variable "enable_https" {
+variable "provision_agent_db" {
+  description = "Whether to provision the agent database"
   type        = bool
-  description = "Set to true to enable HTTPS and provision SSL certificate and HTTPS proxy."
-  default     = false
-}
-
-variable "ssl_certificate_name" {
-  type        = string
-  description = "Name of the SSL certificate"
-  default     = "beckn-managed-ssl-cert"
-}
-
-variable "ssl_certificate_description" {
-  type        = string
-  description = "Description for your SSL certificate"
-  default     = "Managed SSL certificate for Beckn Platform"
-}
-
-variable "ssl_certificate_domains" {
-  type        = list(string)
-  description = "List of domains for your SSL certificate"
-  default     = []
-}
-
-variable "https_proxy_name" {
-  type        = string
-  description = "Name of the HTTPS proxy"
-  default     = "beckn-https-proxy"
-}
-
-variable "https_proxy_description" {
-  type        = string
-  description = "Description for your HTTPS proxy"
-  default     = "HTTPS proxy for Beckn Platform"
-}
-
-variable "forwarding_rule_name" {
-  type        = string
-  description = "Name of the forwarding rule"
-  default     = "beckn-https-forwarding-rule"
-}
-
-variable "forwarding_rule_description" {
-  type        = string
-  description = "Description for your forwarding rule"
-  default     = "Global forwarding rule for HTTPS traffic to Beckn Platform"
-}
-
-variable "forwarding_rule_port_range" {
-  type        = string
-  description = "Port range for the forwarding rule"
-  default     = "443"
-}
-
-#--------------------------------------------- Agent Configuration ---------------------------------------------#
-
-variable "agent_image_url" {
-  description = "The URL of the pre-built Agent Docker image (e.g., us-central1-docker.pkg.dev/.../agent:latest)"
-  type        = string
-  default     = "us-docker.pkg.dev/cloudrun/container/hello"
+  default     = true
 }
 
 variable "agent_db_name" {
-  description = "The name of the Agent's dedicated database"
+  description = "The name of the agent database"
   type        = string
-  default     = "agent_sessions"
 }
 
 variable "agent_db_user" {
-  description = "The database user for the Agent"
+  description = "The database user for the agent database"
   type        = string
-  default     = "agent_app_db_user"
 }
 
-# Agent Cloud Run Configuration
-variable "agent_cpu" {
-  description = "CPU limit for the Agent Cloud Run container"
+variable "agent_network_attachment_name" {
+  description = "The name of the network attachment for the agent"
   type        = string
-  default     = "4000m"
-}
-
-variable "agent_memory" {
-  description = "Memory limit for the Agent Cloud Run container"
-  type        = string
-  default     = "4Gi"
-}
-
-variable "agent_ingress" {
-  description = "Ingress traffic configuration for the Agent Cloud Run service"
-  type        = string
-  default     = "INGRESS_TRAFFIC_ALL"
-}
-
-variable "agent_vpc_egress" {
-  description = "VPC egress traffic configuration for the Agent Cloud Run service"
-  type        = string
-  default     = "ALL_TRAFFIC"
-}
-
-variable "agent_allow_unauthenticated" {
-  description = "Whether to allow unauthenticated access to the Agent service"
-  type        = bool
-  default     = true
 }
 
 #--------------------------------------------- Agent IAM Configuration ---------------------------------------------#

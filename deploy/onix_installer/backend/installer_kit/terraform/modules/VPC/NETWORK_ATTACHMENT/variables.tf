@@ -12,8 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_vertex_ai_reasoning_engine" "agent_engine" {
-  region       = var.region
-  display_name = "${var.app_name}-reasoning-engine"
-  description  = "Reasoning Engine for ${var.app_name}"
+variable "network_attachment_name" {
+  description = "The name of the network attachment"
+  type        = string
+}
+
+variable "region" {
+  description = "Region for the network attachment"
+  type        = string
+}
+
+variable "subnetworks" {
+  description = "List of subnetworks (self-links) for the network attachment"
+  type        = list(string)
 }

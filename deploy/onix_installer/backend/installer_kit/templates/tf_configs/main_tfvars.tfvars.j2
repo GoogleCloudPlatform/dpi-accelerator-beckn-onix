@@ -251,26 +251,24 @@ rate_limit_count   = {{ rate_limit_count }}
 
 #--------------------------------------------- Agent Configuration ---------------------------------------------#
 
+provision_agent_db = {{ "true" if provision_agent_db else "false" }}
 agent_db_name = "agent_sessions"
 agent_db_user = "agent_app_db_user"
+
+# Agent Network Attachment
+agent_network_attachment_name = "dpi-{{ app_name }}-agent-psc"
 
 # Agent Service Account
 agent_sa_account_id   = "dpi-{{ app_name }}-agent-sa"
 agent_sa_display_name = "Beckn Agent Service Account"
 agent_sa_description  = "Service Account for Beckn Agent Application"
 agent_sa_roles = [
-  "roles/run.invoker",
   "roles/aiplatform.user",
   "roles/cloudsql.client",
   "roles/cloudsql.instanceUser",
   "roles/logging.logWriter",
   "roles/monitoring.metricWriter",
   "roles/cloudtrace.agent",
+  "roles/storage.objectViewer",
+  "roles/serviceusage.serviceUsageConsumer",
 ]
-
-# Agent Cloud Run Configuration
-agent_cpu = "4000m"
-agent_memory = "4Gi"
-agent_ingress = "INGRESS_TRAFFIC_ALL"
-agent_vpc_egress = "ALL_TRAFFIC"
-agent_allow_unauthenticated = true
