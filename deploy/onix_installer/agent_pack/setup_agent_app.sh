@@ -113,20 +113,20 @@ fi
 
 echo ">> Extracting core variables for gcloud auth and deployment..."
 # Extract the required core variables safely
-export PROJECT_ID=$(extract_env "PROJECT_ID" "$ENV_FILE")
+export GOOGLE_CLOUD_PROJECT=$(extract_env "GOOGLE_CLOUD_PROJECT" "$ENV_FILE")
 export REGION=$(extract_env "REGION" "$ENV_FILE")
 export APP_NAME=$(extract_env "APP_NAME" "$ENV_FILE")
 export STAGING_BUCKET=$(extract_env "STAGING_BUCKET" "$ENV_FILE")
 
-if [ -z "$PROJECT_ID" ] || [ -z "$REGION" ] || [ -z "$APP_NAME" ]; then
+if [ -z "$GOOGLE_CLOUD_PROJECT" ] || [ -z "$REGION" ] || [ -z "$APP_NAME" ]; then
     echo "❌ Error: Missing required variables in agent_config.env."
-    echo "Please ensure PROJECT_ID, REGION, and APP_NAME are defined."
+    echo "Please ensure GOOGLE_CLOUD_PROJECT, REGION, and APP_NAME are defined."
     exit 1
 fi
 
 # Derive STAGING_BUCKET if not provided
 if [ -z "$STAGING_BUCKET" ]; then
-    STAGING_BUCKET="gs://${PROJECT_ID}-dpi-${APP_NAME}-bucket"
+    STAGING_BUCKET="gs://${GOOGLE_CLOUD_PROJECT}-dpi-${APP_NAME}-bucket"
     echo ">> STAGING_BUCKET not found in config, auto-deriving: $STAGING_BUCKET"
 fi
 echo "✅ Configuration loaded."
@@ -168,7 +168,7 @@ fi
 # 3. Authentication
 echo ">> Authenticating with Google Cloud..."
 gcloud auth login
-gcloud config set project "$PROJECT_ID"
+gcloud config set project "$GOOGLE_CLOUD_PROJECT"
 echo "✅ Authenticated."
 
 # 4. Service Account Configuration
@@ -239,7 +239,7 @@ echo ">> Navigating to Terraform directory: $TF_DIR"
 cd "$TF_DIR"
 
 # --- Remote Backend Configuration ---
-BUCKET_NAME="${PROJECT_ID}-dpi-${APP_NAME}-bucket"
+BUCKET_NAME="${GOOGLE_CLOUD_PROJECT}-dpi-${APP_NAME}-bucket"
 TARGET_REGION="${REGION:-asia-south1}"
 
 echo ">> Configuring Remote Terraform State in GCS..."
@@ -249,7 +249,7 @@ if gsutil ls -b "gs://${BUCKET_NAME}" >/dev/null 2>&1; then
     echo "✅ Bucket gs://${BUCKET_NAME} already exists."
 else
     echo "Bucket does not exist. Creating gs://${BUCKET_NAME} in ${TARGET_REGION}..."
-    if gsutil mb -p "$PROJECT_ID" -l "$TARGET_REGION" "gs://${BUCKET_NAME}"; then
+    if gsutil mb -p "$GOOGLE_CLOUD_PROJECT" -l "$TARGET_REGION" "gs://${BUCKET_NAME}"; then
         echo "✅ Bucket created successfully."
     else
         echo "❌ Error: Failed to create GCS bucket gs://${BUCKET_NAME}."
@@ -341,7 +341,7 @@ DATASTORE_IMPORTS="${DATASTORE_IMPORTS%\"}"
 
 if [ "$AGENT_DATASTORE_IDS" != "{}" ] && [ "$DATASTORE_IMPORTS" != "{}" ]; then
     echo ">> Triggering Document Ingestion..."
-    if ! python3 -u "$SCRIPT_DIR/ingest_datastore.py" "$PROJECT_ID" "$AGENT_DATASTORE_IDS" "$DATASTORE_IMPORTS"; then
+    if ! python3 -u "$SCRIPT_DIR/ingest_datastore.py" "$GOOGLE_CLOUD_PROJECT" "$AGENT_DATASTORE_IDS" "$DATASTORE_IMPORTS"; then
         echo "❌ Error: Datastore ingestion failed. Halting installation."
         exit 1
     fi
@@ -368,6 +368,7 @@ if [ "$SESSION_DB_TYPE" == "database" ]; then
 fi
 echo "NETWORK_ATTACHMENT_ID=$NETWORK_ATTACHMENT_ID" >> "$CONSOLIDATED_ENV"
 echo "AGENT_SA_EMAIL=$AGENT_SA_EMAIL" >> "$CONSOLIDATED_ENV"
+echo "AGENT_ENGINE_LOCATION=$REGION" >> "$CONSOLIDATED_ENV"
 echo "OTEL_OBSERVABILITY_LOG_NAME=dpi-${APP_NAME}-agent-traces" >> "$CONSOLIDATED_ENV"
 
 echo ">> Injecting Datastore IDs into environment variables..."
