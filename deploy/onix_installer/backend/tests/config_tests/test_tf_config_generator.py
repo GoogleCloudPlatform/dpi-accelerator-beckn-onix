@@ -167,6 +167,7 @@ class TestTerraformConfigGenerator(unittest.TestCase):
             "enable_agent": False,
             "provision_agent_db": False,
             "agent_engine_id": "",
+            "datastore_imports": {},
         }
 
         # Expected paths for mocking os.path.join (relative to patched constants)
@@ -230,6 +231,7 @@ class TestTerraformConfigGenerator(unittest.TestCase):
             "enable_agent": False,
             "provision_agent_db": False,
             "agent_engine_id": "",
+            "datastore_imports": {},
         }
 
         mock_render_template.assert_called_once_with(

@@ -272,3 +272,11 @@ agent_sa_roles = [
   "roles/storage.objectViewer",
   "roles/serviceusage.serviceUsageConsumer",
 ]
+
+#--------------------------------------------- Datastore Configuration ---------------------------------------------#
+
+datastore_imports = {
+{% for key, uri in datastore_imports.items() %}
+  "{{ key }}" = "{{ uri }}"
+{% endfor %}
+}

@@ -13,6 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import json
 import os
 import sys
@@ -85,6 +87,43 @@ def validate_config(
   return project_id, region, app_name, staging_bucket
 
 
+def check_required_datastores(
+    env_vars: dict[str, str], datastore_imports: dict[str, str]
+) -> None:
+  """Validates that necessary datastores are provided for enabled agents."""
+
+  # Agents that strictly require a datastore
+  # to be provisioned (using their exact agent name)
+  agents_requiring_datastore = [
+      "agri.biochar_advice",
+      # Add other agents here that MUST have a datastore
+  ]
+
+  sub_agents = env_vars.get("SUB_AGENTS_OF_ROOT_AGENT", "")
+  tools_agents = env_vars.get("SUB_AGENTS_AS_TOOLS_OF_ROOT_AGENT", "")
+
+  all_enabled_agents = [
+      a.strip() for a in sub_agents.split(",") if a.strip()
+  ] + [a.strip() for a in tools_agents.split(",") if a.strip()]
+
+  missing_datastores = []
+  for agent in all_enabled_agents:
+    if agent in agents_requiring_datastore:
+      # The user must provide the exact agent name as the key
+      if agent not in datastore_imports:
+        missing_datastores.append(agent)
+
+  if missing_datastores:
+    print("❌ Error: Missing required Datastore mappings in DATASTORE_IMPORTS:")
+    for missing in missing_datastores:
+      print(f"   -> Agent '{missing}' requires datastore key '{missing}'")
+    print(
+        "   Please update the DATASTORE_IMPORTS JSON in agent_config.env to"
+        f' include these keys (e.g. {{"{missing_datastores[0]}": "gs://..."}}).'
+    )
+    sys.exit(1)
+
+
 def render_config(installer_root: str) -> None:
   """Renders the agent configuration and updates the installer state.
 
@@ -123,6 +162,22 @@ def render_config(installer_root: str) -> None:
   )
   session_db_type = env_vars.get("SESSION_DB_TYPE", "database")
   provision_agent_db = (session_db_type == "database")
+
+  # Extract and validate DATASTORE_IMPORTS
+  datastore_imports_str = env_vars.get("DATASTORE_IMPORTS", "{}")
+  try:
+    datastore_imports = json.loads(datastore_imports_str)
+    if not isinstance(datastore_imports, dict):
+      raise ValueError("DATASTORE_IMPORTS must be a JSON dictionary.")
+  except json.JSONDecodeError as e:
+    print(f"❌ Error: Invalid JSON in DATASTORE_IMPORTS: {e}")
+    sys.exit(1)
+  except ValueError as e:
+    print(f"❌ Error: {e}")
+    sys.exit(1)
+
+  # Check if the enabled agents have their required datastore mappings provided
+  check_required_datastores(env_vars, datastore_imports)
 
   # 5. Set paths for Jinja template
   templates_dir = os.path.join(
@@ -168,6 +223,7 @@ def render_config(installer_root: str) -> None:
       "rate_limit_count": state_data.get("rate_limit_count", 100),
       "provision_agent_db": provision_agent_db,
       "agent_engine_id": state_data.get("agent_engine_id", ""),
+      "datastore_imports": datastore_imports,
   }
 
   # 6. Persist the updated state back to disk
