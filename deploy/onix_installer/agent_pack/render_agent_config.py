@@ -16,10 +16,22 @@
 import json
 import os
 import sys
+from typing import Any
+
+import dotenv
 from jinja2 import Environment, FileSystemLoader
 
 
-def print_conflict_error(field_name, new_val, existing_val):
+def print_conflict_error(
+    field_name: str, new_val: Any, existing_val: Any
+) -> None:
+  """Prints a conflict error message and exits the script.
+
+  Args:
+    field_name: The name of the configuration field with a conflict.
+    new_val: The new value attempted to be set.
+    existing_val: The existing value in the deployment state.
+  """
   print(f"❌ Error: Conflict in '{field_name}'.")
   print(f"   The file 'agent_config.env' specifies {field_name.upper()}='{new_val}',")
   print(f"   but this directory has an existing deployment for {field_name.upper()}='{existing_val}'.")
@@ -28,43 +40,68 @@ def print_conflict_error(field_name, new_val, existing_val):
   sys.exit(1)
 
 
-def parse_env_file(env_file_path):
-  """Parses environment variables from a .env file."""
-  if not os.path.exists(env_file_path):
-    print(f"Error: Configuration file '{env_file_path}' not found.")
-    sys.exit(1)
+def validate_config(
+    env_vars: dict[str, str], state_data: dict[str, Any]
+) -> tuple[str, str, str, str | None]:
+  """Validates the extracted environment variables against the state file.
 
-  env_vars = {}
-  with open(env_file_path, "r") as f:
-    for line in f:
-      line = line.strip()
-      if not line or line.startswith("#"):
-        continue
-      if "=" in line:
-        key, val = line.split("=", 1)
-        key = key.strip()
-        # Strip optional quotes and whitespace
-        val = val.strip("\"' ")
-        env_vars[key.strip()] = val
-  return env_vars
+  Args:
+    env_vars: A dictionary of environment variables.
+    state_data: A dictionary containing existing deployment state.
 
-
-def render_config(installer_root):
-  """Renders the agent configuration and updates the installer state."""
-  # 1. Capture specific environment variables from agent_config.env directly
-  env_file_path = os.path.join(installer_root, "agent_pack", "agent_config.env")
-  env_vars = parse_env_file(env_file_path)
-
+  Returns:
+    A tuple containing (project_id, region, app_name, staging_bucket).
+  """
   project_id = env_vars.get("PROJECT_ID")
   region = env_vars.get("REGION")
   app_name = env_vars.get("APP_NAME")
-  agent_image_url = env_vars.get("AGENT_IMAGE_URL")
+  staging_bucket = env_vars.get("STAGING_BUCKET")
 
-  if not all([project_id, region, app_name, agent_image_url]):
+  # Staging bucket is now optional as it is auto-derived in the shell script
+  if not (project_id and region and app_name):
     print(
         "Error: Missing required environment variables (PROJECT_ID, REGION,"
-        " APP_NAME, AGENT_IMAGE_URL) in agent_config.env."
+        " APP_NAME) in agent_config.env."
     )
+    sys.exit(1)
+
+  if state_data:
+    # CLI Lock Validation
+    existing_project = state_data.get("project_id")
+    existing_region = state_data.get("region")
+    existing_app_name = state_data.get("app_name")
+
+    if existing_project and existing_project != project_id:
+      print_conflict_error("project_id", project_id, existing_project)
+
+    if existing_region and existing_region != region:
+      print_conflict_error("region", region, existing_region)
+
+    if existing_app_name and existing_app_name != app_name:
+      print_conflict_error("app_name", app_name, existing_app_name)
+
+    print("✅ Verified agent config against existing deployment state.")
+
+  return project_id, region, app_name, staging_bucket
+
+
+def render_config(installer_root: str) -> None:
+  """Renders the agent configuration and updates the installer state.
+
+  Args:
+    installer_root: The root directory of the installer.
+  """
+  # 1. Capture specific environment variables from agent_config.env directly
+  env_file_path = os.path.join(installer_root, "agent_pack", "agent_config.env")
+
+  try:
+    raw_env_vars = dotenv.dotenv_values(dotenv_path=env_file_path)
+    if not raw_env_vars:
+      raise FileNotFoundError(f"Configuration file '{env_file_path}' empty.")
+    # Normalize values to ensure all are strings (mapping None -> "")
+    env_vars = {k: v or "" for k, v in raw_env_vars.items()}
+  except FileNotFoundError:
+    print(f"Error: Configuration file '{env_file_path}' not found.")
     sys.exit(1)
 
   # 3. Handle Dedicated State Store (Locking & Additive Logic)
@@ -76,27 +113,18 @@ def render_config(installer_root):
     try:
       with open(state_file_path, "r") as f:
         state_data = json.load(f)
-
-      # CLI Lock Validation
-      existing_project = state_data.get("project_id")
-      existing_region = state_data.get("region")
-      existing_app_name = state_data.get("app_name")
-
-      if existing_project and existing_project != project_id:
-        print_conflict_error("project_id", project_id, existing_project)
-
-      if existing_region and existing_region != region:
-        print_conflict_error("region", region, existing_region)
-
-      if existing_app_name and existing_app_name != app_name:
-        print_conflict_error("app_name", app_name, existing_app_name)
-
-      print("✅ Verified agent config against existing deployment state.")
     except Exception as e:
       print(f"Failed to read existing installer state: {e}")
       sys.exit(1)
 
-  # 4. Set paths for Jinja template
+  # 4. Extract and Validate
+  project_id, region, app_name, staging_bucket = validate_config(
+      env_vars, state_data
+  )
+  session_db_type = env_vars.get("SESSION_DB_TYPE", "database")
+  provision_agent_db = (session_db_type == "database")
+
+  # 5. Set paths for Jinja template
   templates_dir = os.path.join(
       installer_root, "backend", "installer_kit", "templates", "tf_configs"
   )
@@ -137,8 +165,9 @@ def render_config(installer_root):
           "provision_registry_infra", False
       ),
       "enable_cloud_armor": state_data.get("enable_cloud_armor", False),
-      "allowed_regions": state_data.get("allowed_regions", []),
       "rate_limit_count": state_data.get("rate_limit_count", 100),
+      "provision_agent_db": provision_agent_db,
+      "agent_engine_id": state_data.get("agent_engine_id", ""),
   }
 
   # 6. Persist the updated state back to disk

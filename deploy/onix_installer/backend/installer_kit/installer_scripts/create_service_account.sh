@@ -14,30 +14,37 @@
 # limitations under the License.
 
 
-# Check if gcloud is installed
-# if ! command -v gcloud &> /dev/null; then
-#     echo "Error: gcloud CLI is not installed. Please install it and try again." >&2
-#     exit 1
-# fi
+# Detect active GCP project
+PROJECT_ID=$(gcloud config get-value project 2>/dev/null)
+if [ -z "$PROJECT_ID" ]; then
+    echo "❌ Error: No active GCP project found. Please run 'gcloud config set project [PROJECT_ID]'." >&2
+    exit 1
+fi
 
-# Authenticate with Google Cloud
-# echo -e "\nGoogle Cloud Authentication Required\n" >&2
-# gcloud auth login
-# echo -e "\nAuthentication successful.\n" >&2
-
-# Prompt for required details
-read -p "Enter your GCP Project ID: " PROJECT_ID
+# Prompt for Service Account name
 read -p "Enter desired Service Account name (e.g., dpi-installer-sa): " SA_NAME
 
-# Create the service account
-echo "Creating service account $SA_NAME in project $PROJECT_ID..." >&2
-gcloud iam service-accounts create "$SA_NAME" \
-    --project "$PROJECT_ID" \
-    --display-name "DPI Installer Service Account"
+if [ -z "$SA_NAME" ]; then
+    echo "❌ Error: Service Account name cannot be empty." >&2
+    exit 1
+fi
 
-# Construct the service account email
 SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
-echo "Service Account created: $SA_EMAIL" >&2
+
+# Check if the service account already exists (Idempotency)
+if gcloud iam service-accounts describe "$SA_EMAIL" --project "$PROJECT_ID" &>/dev/null; then
+    echo "✅ Service account $SA_EMAIL already exists. Proceeding to role check..." >&2
+else
+    # Create the service account
+    echo ">> Creating service account $SA_NAME in project $PROJECT_ID..." >&2
+    if ! gcloud iam service-accounts create "$SA_NAME" \
+        --project "$PROJECT_ID" \
+        --display-name "DPI Installer Service Account"; then
+        echo "❌ Error: Failed to create service account." >&2
+        exit 1
+    fi
+    echo "✅ Service account created: $SA_EMAIL" >&2
+fi
 
 # Define the list of roles to assign
 ROLES=(
@@ -58,6 +65,7 @@ ROLES=(
   "roles/aiplatform.admin"
   "roles/run.admin"
   "roles/iam.workloadIdentityPoolAdmin"
+  "roles/serviceusage.serviceUsageAdmin"
 )
 
 # Assign each role to the service account

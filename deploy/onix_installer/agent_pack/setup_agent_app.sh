@@ -103,14 +103,54 @@ echo ">> Extracting core variables for gcloud auth and deployment..."
 export PROJECT_ID=$(grep -v '^#' "$ENV_FILE" | grep "^PROJECT_ID=" | cut -d '=' -f2 | tr -d '"'\'' ')
 export REGION=$(grep -v '^#' "$ENV_FILE" | grep "^REGION=" | cut -d '=' -f2 | tr -d '"'\'' ')
 export APP_NAME=$(grep -v '^#' "$ENV_FILE" | grep "^APP_NAME=" | cut -d '=' -f2 | tr -d '"'\'' ')
-export AGENT_IMAGE_URL=$(grep -v '^#' "$ENV_FILE" | grep "^AGENT_IMAGE_URL=" | cut -d '=' -f2 | tr -d '"'\'' ')
+export STAGING_BUCKET=$(grep -v '^#' "$ENV_FILE" | grep "^STAGING_BUCKET=" | cut -d '=' -f2 | tr -d '"'\'' ')
 
-if [ -z "$PROJECT_ID" ] || [ -z "$REGION" ] || [ -z "$APP_NAME" ] || [ -z "$AGENT_IMAGE_URL" ]; then
+if [ -z "$PROJECT_ID" ] || [ -z "$REGION" ] || [ -z "$APP_NAME" ]; then
     echo "❌ Error: Missing required variables in agent_config.env."
-    echo "Please ensure PROJECT_ID, REGION, APP_NAME, and AGENT_IMAGE_URL are defined."
+    echo "Please ensure PROJECT_ID, REGION, and APP_NAME are defined."
     exit 1
 fi
+
+# Derive STAGING_BUCKET if not provided
+if [ -z "$STAGING_BUCKET" ]; then
+    STAGING_BUCKET="${PROJECT_ID}-dpi-${APP_NAME}-bucket"
+    echo ">> STAGING_BUCKET not found in config, auto-deriving: $STAGING_BUCKET"
+fi
 echo "✅ Configuration loaded."
+
+# 2.5 Verify Blueprint Repository
+echo ">> Verifying Agent Blueprint Repository..."
+
+# Check if environment variables for cloning are set
+AGENT_BLUEPRINT_REPO=$(grep -v '^#' "$ENV_FILE" | grep "^AGENT_BLUEPRINT_REPO=" | cut -d '=' -f2 | tr -d '"'\'' ')
+AGENT_BLUEPRINT_TAG=$(grep -v '^#' "$ENV_FILE" | grep "^AGENT_BLUEPRINT_TAG=" | cut -d '=' -f2 | tr -d '"'\'' ')
+
+if [ ! -d "$SCRIPT_DIR/dpi_agent_blueprint" ]; then
+    if [ -n "$AGENT_BLUEPRINT_REPO" ]; then
+        echo ">> 'dpi_agent_blueprint' not found locally. Cloning from $AGENT_BLUEPRINT_REPO..."
+        
+        CLONE_CMD="git clone"
+        if [ -n "$AGENT_BLUEPRINT_TAG" ]; then
+            CLONE_CMD="$CLONE_CMD --branch $AGENT_BLUEPRINT_TAG"
+        fi
+        CLONE_CMD="$CLONE_CMD $AGENT_BLUEPRINT_REPO $SCRIPT_DIR/dpi_agent_blueprint"
+        
+        if $CLONE_CMD; then
+            echo "✅ Successfully cloned blueprint repository."
+        else
+            echo "❌ Error: Failed to clone blueprint repository."
+            exit 1
+        fi
+    else
+        echo "❌ Error: 'dpi_agent_blueprint' directory not found in agent_pack."
+        echo "Please ensure you have cloned the 'dpi_agent_blueprint' repository into:"
+        echo "$SCRIPT_DIR/dpi_agent_blueprint"
+        echo "Or provide AGENT_BLUEPRINT_REPO in your agent_config.env."
+        exit 1
+    fi
+else
+    echo "✅ Blueprint Repository found locally."
+fi
 
 # 3. Python Environment & Rendering
 echo ">> Setting up Python environment..."
@@ -118,7 +158,7 @@ if [ ! -d "$SCRIPT_DIR/venv" ]; then
     python3 -m venv "$SCRIPT_DIR/venv"
 fi
 source "$SCRIPT_DIR/venv/bin/activate"
-pip install -q jinja2
+pip install -r "$SCRIPT_DIR/dpi_agent_blueprint/requirements.txt" jinja2
 
 if [ ! -f "$RENDER_SCRIPT" ]; then
     echo "❌ Error: Rendering script not found at $RENDER_SCRIPT."
@@ -126,13 +166,14 @@ if [ ! -f "$RENDER_SCRIPT" ]; then
 fi
 
 echo ">> Generating Terraform .tfvars..."
-python3 "$RENDER_SCRIPT"
+python3 -u "$RENDER_SCRIPT" || exit 1
 
 if [ ! -f "$OUT_FILE" ]; then
     echo "❌ Error: Failed to generate $OUT_FILE."
     exit 1
 fi
 echo "✅ Terraform configuration generated."
+
 
 # 4. Authentication
 echo ">> Authenticating with Google Cloud..."
@@ -145,7 +186,7 @@ echo "========================================================="
 echo "        Service Account Configuration                    "
 echo "========================================================="
 SA_EMAIL=""
-read -p "Do you already have a service account with the required permissions? (y/N) " -n 1 -r
+read -p "Do you already have a service account with the required permissions? (Y/n) " -n 1 -r
 echo
 
 if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -185,7 +226,7 @@ echo ">> Navigating to Terraform directory: $TF_DIR"
 cd "$TF_DIR"
 
 # --- Remote Backend Configuration ---
-BUCKET_NAME="dpi-${APP_NAME}-bucket"
+BUCKET_NAME="${PROJECT_ID}-dpi-${APP_NAME}-bucket"
 TARGET_REGION="${REGION:-asia-south1}"
 
 echo ">> Configuring Remote Terraform State in GCS..."
@@ -248,51 +289,70 @@ echo ">> Generating JSON Output Trace..."
 terraform output -json > outputs.json
 echo "✅ Outputs saved to outputs.json"
 
-echo ">> Extracting Infrastructure Details..."
+# Read SESSION_DB_TYPE from agent_config.env
+SESSION_DB_TYPE=$(grep "^SESSION_DB_TYPE=" "$ENV_FILE" | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+SESSION_DB_TYPE=${SESSION_DB_TYPE:-agent-engine}
+
+echo ">> Extracting Infrastructure Details (Mode: $SESSION_DB_TYPE)..."
 
 # Define all required outputs
 REDIS_HOST=$(extract_output "redis_instance_ip") || exit 1
-AGENT_ENGINE_ID=$(extract_output "agent_reasoning_engine_id") || exit 1
-DB_HOST=$(extract_output "db_instance_private_ip_address") || exit 1
-DB_USER=$(extract_output "agent_db_user") || exit 1
-DB_PASS=$(extract_output "agent_db_password") || exit 1
-DB_NAME=$(extract_output "agent_db_name") || exit 1
-AGENT_APP_NAME=$(extract_output "agent_service_name") || exit 1
+NETWORK_ATTACHMENT_ID=$(extract_output "agent_network_attachment_id") || exit 1
+AGENT_SA_EMAIL=$(extract_output "agent_app_service_account_email") || exit 1
 
-echo "✅ All infrastructure outputs retrieved successfully."
+if [ "$SESSION_DB_TYPE" == "database" ]; then
+    DB_HOST=$(extract_output "db_instance_private_ip_address") || exit 1
+    DB_USER=$(extract_output "agent_db_user") || exit 1
+    DB_PASS=$(extract_output "agent_db_password") || exit 1
+    DB_NAME=$(extract_output "agent_db_name") || exit 1
+    SESSION_DB_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}"
+else
+    echo ">> SESSION_DB_TYPE is '$SESSION_DB_TYPE', skipping database output extraction."
+    DB_HOST=""
+    DB_USER=""
+    DB_PASS=""
+    DB_NAME=""
+    SESSION_DB_URL=""
+fi
 
-# Construct the SQLAlchemy connection URL
-SESSION_DB_URL="postgresql+asyncpg://${DB_USER}:${DB_PASS}@${DB_HOST}:5432/${DB_NAME}"
+echo "✅ All required infrastructure outputs retrieved successfully."
 
-export REDIS_HOST SESSION_DB_URL AGENT_ENGINE_ID DB_HOST DB_USER DB_PASS DB_NAME
+export REDIS_HOST SESSION_DB_TYPE SESSION_DB_URL DB_HOST DB_USER DB_PASS DB_NAME NETWORK_ATTACHMENT_ID AGENT_SA_EMAIL
 
 ABS_BLUEPRINT_ENV="$ENV_FILE"
 
-echo ">> Generating Cloud Run env-vars Override..."
-CLOUD_RUN_ENV="cloud_run_env.env"
-> "$CLOUD_RUN_ENV"
+echo ">> Generating Consolidated env-vars Override..."
+CONSOLIDATED_ENV="$SCRIPT_DIR/consolidated.env"
+> "$CONSOLIDATED_ENV"
 
 # 1. Parse the blueprint env file
-grep -v '^#' "$ABS_BLUEPRINT_ENV" | grep -v '^[[:space:]]*$' >> "$CLOUD_RUN_ENV"
-echo "REDIS_HOST=$REDIS_HOST" >> "$CLOUD_RUN_ENV"
-echo "SESSION_DB_TYPE=database" >> "$CLOUD_RUN_ENV"
-echo "SESSION_DB_URL=$SESSION_DB_URL" >> "$CLOUD_RUN_ENV"
-echo "DB_HOST=$DB_HOST" >> "$CLOUD_RUN_ENV"
-echo "DB_USER=$DB_USER" >> "$CLOUD_RUN_ENV"
-echo "DB_NAME=$DB_NAME" >> "$CLOUD_RUN_ENV"
-echo "AGENT_ENGINE_ID=$AGENT_ENGINE_ID" >> "$CLOUD_RUN_ENV"
-echo "OTEL_OBSERVABILITY_LOG_NAME=$APP_NAME" >> "$CLOUD_RUN_ENV"
-echo "GOOGLE_CLOUD_PROJECT=$PROJECT_ID" >> "$CLOUD_RUN_ENV"
-echo "GOOGLE_CLOUD_MEMORY_SERVICE_LOCATION=$REGION" >> "$CLOUD_RUN_ENV"
+grep -v '^#' "$ABS_BLUEPRINT_ENV" | grep -v '^[[:space:]]*$' >> "$CONSOLIDATED_ENV"
+echo "STAGING_BUCKET=$STAGING_BUCKET" >> "$CONSOLIDATED_ENV"
+echo "REDIS_HOST=$REDIS_HOST" >> "$CONSOLIDATED_ENV"
+if [ "$SESSION_DB_TYPE" == "database" ]; then
+    echo "SESSION_DB_URL=$SESSION_DB_URL" >> "$CONSOLIDATED_ENV"
+fi
+echo "NETWORK_ATTACHMENT_ID=$NETWORK_ATTACHMENT_ID" >> "$CONSOLIDATED_ENV"
+echo "AGENT_SA_EMAIL=$AGENT_SA_EMAIL" >> "$CONSOLIDATED_ENV"
+echo "OTEL_OBSERVABILITY_LOG_NAME=dpi-${APP_NAME}-agent-traces" >> "$CONSOLIDATED_ENV"
 
-echo "✅ Generated $CLOUD_RUN_ENV successfully."
-echo ">> Deploying Application via gcloud..."
+echo "✅ Generated $CONSOLIDATED_ENV successfully."
+echo ">> Deploying Application via Agent Engine..."
 
-gcloud run deploy "$AGENT_APP_NAME" \
-    --image="$AGENT_IMAGE_URL" \
-    --env-vars-file="$CLOUD_RUN_ENV" \
-    --region="$REGION" \
-    --project="$PROJECT_ID"
+cd "$SCRIPT_DIR"
+
+STATE_FILE="$INSTALLER_ROOT/backend/installer_kit/installer_state.json"
+EXISTING_AGENT_ID=$(jq -r '.agent_engine_id // empty' "$STATE_FILE" 2>/dev/null || echo "")
+
+if [ -z "$EXISTING_AGENT_ID" ]; then
+    echo ">> No existing Agent Engine ID found. Initiating --create flow."
+    python3 -u app_sdk.py --create --env-vars-file="$CONSOLIDATED_ENV" || exit 1
+else
+    echo ">> Found existing Agent Engine ID: $EXISTING_AGENT_ID. Initiating --update flow."
+    # Inject it into env so app_sdk picks it up (optional, but good for local debugging)
+    echo "AGENT_ENGINE_ID=$EXISTING_AGENT_ID" >> "$CONSOLIDATED_ENV"
+    python3 -u app_sdk.py --update --agent-engine="$EXISTING_AGENT_ID" --env-vars-file="$CONSOLIDATED_ENV" || exit 1
+fi
 
 echo "========================================================="
 echo "✅ Agent App Deployment Complete!"

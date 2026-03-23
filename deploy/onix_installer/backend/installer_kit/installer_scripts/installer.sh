@@ -165,7 +165,7 @@ echo
 # 3. Service Account Configuration
 echo "--- Step 2: Service Account Configuration ---"
 SA_EMAIL=""
-read -p "Do you already have a service account with the required permissions? (y/N) " -n 1 -r
+read -p "Do you already have a service account with the required permissions? (Y/n) " -n 1 -r
 echo # Move to a new line
 
 if [[ $REPLY =~ ^[Yy]$ ]]; then
