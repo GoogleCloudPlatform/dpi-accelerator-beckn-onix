@@ -142,4 +142,7 @@ output "gcs_bucket" {
   value       = "${var.project_id}-dpi-${var.app_name}-bucket"
 }
 
-
+output "agent_datastore_ids" {
+  description = "A mapping of keys to Datastore IDs for the agent"
+  value       = var.enable_agent ? module.agent[0].datastore_ids : {}
+}

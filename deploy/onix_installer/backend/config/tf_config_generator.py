@@ -115,6 +115,7 @@ def generate_config(deploy_infra_req: InfraDeploymentRequest) -> None:
       "enable_agent": state_data.get("enable_agent", False),
       "provision_agent_db": state_data.get("enable_agent", False),
       "agent_engine_id": state_data.get("agent_engine_id", ""),
+      "datastore_imports": state_data.get("datastore_imports", {}),
   }
   logger.debug("Jinja2 context for Terraform: %s", jinja_context)
 

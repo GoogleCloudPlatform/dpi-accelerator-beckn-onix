@@ -66,6 +66,7 @@ ROLES=(
   "roles/run.admin"
   "roles/iam.workloadIdentityPoolAdmin"
   "roles/serviceusage.serviceUsageAdmin"
+  "roles/discoveryengine.admin"
 )
 
 # Assign each role to the service account

@@ -100,3 +100,14 @@ module "network_attachment" {
   region                  = var.region
   subnetworks             = [var.subnetwork_id]
 }
+
+#--------------------------------------------- Datastore Configuration ---------------------------------------------#
+
+module "discovery_engine" {
+  source   = "../DISCOVERY_ENGINE"
+  for_each = var.datastore_imports != null ? var.datastore_imports : {}
+
+  # Replace dots with hyphens for the data_store_id (e.g., "agri.biochar_advice" -> "agri-biochar_advice")
+  data_store_id = "${var.app_name}-${replace(lower(each.key), ".", "-")}-ds"
+  display_name  = "${each.key} Knowledge Base - ${var.app_name}"
+}

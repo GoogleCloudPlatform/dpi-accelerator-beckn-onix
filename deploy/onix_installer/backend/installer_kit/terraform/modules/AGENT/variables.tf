@@ -91,4 +91,8 @@ variable "agent_sa_roles" {
   type        = list(string)
 }
 
-
+variable "datastore_imports" {
+  description = "A map of datastore keys to their GCS URI for importing."
+  type        = map(string)
+  default     = {}
+}

@@ -79,6 +79,19 @@ extract_output() {
     echo "$value"
 }
 
+# Safely extracts a value from the .env file.
+# Handles trailing comments and trims leading/trailing whitespace.
+extract_env() {
+    local key="$1"
+    local file="$2"
+    # 1. grep the line starting with key=
+    # 2. sed to remove the key= prefix
+    # 3. sed to remove inline comments (# ...) but only if they are not inside quotes.
+    #    This regex removes everything from the last unquoted # to the end of the line.
+    # 4. xargs to trim leading/trailing whitespace
+    grep "^${key}=" "$file" | sed -e "s/^${key}=//" -e 's/[[:space:]]*#.*$//' | xargs
+}
+
 
 trap cleanup EXIT
 
@@ -100,10 +113,10 @@ fi
 
 echo ">> Extracting core variables for gcloud auth and deployment..."
 # Extract the required core variables safely
-export PROJECT_ID=$(grep -v '^#' "$ENV_FILE" | grep "^PROJECT_ID=" | cut -d '=' -f2 | tr -d '"'\'' ')
-export REGION=$(grep -v '^#' "$ENV_FILE" | grep "^REGION=" | cut -d '=' -f2 | tr -d '"'\'' ')
-export APP_NAME=$(grep -v '^#' "$ENV_FILE" | grep "^APP_NAME=" | cut -d '=' -f2 | tr -d '"'\'' ')
-export STAGING_BUCKET=$(grep -v '^#' "$ENV_FILE" | grep "^STAGING_BUCKET=" | cut -d '=' -f2 | tr -d '"'\'' ')
+export PROJECT_ID=$(extract_env "PROJECT_ID" "$ENV_FILE")
+export REGION=$(extract_env "REGION" "$ENV_FILE")
+export APP_NAME=$(extract_env "APP_NAME" "$ENV_FILE")
+export STAGING_BUCKET=$(extract_env "STAGING_BUCKET" "$ENV_FILE")
 
 if [ -z "$PROJECT_ID" ] || [ -z "$REGION" ] || [ -z "$APP_NAME" ]; then
     echo "❌ Error: Missing required variables in agent_config.env."
@@ -113,7 +126,7 @@ fi
 
 # Derive STAGING_BUCKET if not provided
 if [ -z "$STAGING_BUCKET" ]; then
-    STAGING_BUCKET="${PROJECT_ID}-dpi-${APP_NAME}-bucket"
+    STAGING_BUCKET="gs://${PROJECT_ID}-dpi-${APP_NAME}-bucket"
     echo ">> STAGING_BUCKET not found in config, auto-deriving: $STAGING_BUCKET"
 fi
 echo "✅ Configuration loaded."
@@ -122,8 +135,8 @@ echo "✅ Configuration loaded."
 echo ">> Verifying Agent Blueprint Repository..."
 
 # Check if environment variables for cloning are set
-AGENT_BLUEPRINT_REPO=$(grep -v '^#' "$ENV_FILE" | grep "^AGENT_BLUEPRINT_REPO=" | cut -d '=' -f2 | tr -d '"'\'' ')
-AGENT_BLUEPRINT_TAG=$(grep -v '^#' "$ENV_FILE" | grep "^AGENT_BLUEPRINT_TAG=" | cut -d '=' -f2 | tr -d '"'\'' ')
+AGENT_BLUEPRINT_REPO=$(extract_env "AGENT_BLUEPRINT_REPO" "$ENV_FILE")
+AGENT_BLUEPRINT_TAG=$(extract_env "AGENT_BLUEPRINT_TAG" "$ENV_FILE")
 
 if [ ! -d "$SCRIPT_DIR/dpi_agent_blueprint" ]; then
     if [ -n "$AGENT_BLUEPRINT_REPO" ]; then
@@ -152,36 +165,13 @@ else
     echo "✅ Blueprint Repository found locally."
 fi
 
-# 3. Python Environment & Rendering
-echo ">> Setting up Python environment..."
-if [ ! -d "$SCRIPT_DIR/venv" ]; then
-    python3 -m venv "$SCRIPT_DIR/venv"
-fi
-source "$SCRIPT_DIR/venv/bin/activate"
-pip install -r "$SCRIPT_DIR/dpi_agent_blueprint/requirements.txt" jinja2
-
-if [ ! -f "$RENDER_SCRIPT" ]; then
-    echo "❌ Error: Rendering script not found at $RENDER_SCRIPT."
-    exit 1
-fi
-
-echo ">> Generating Terraform .tfvars..."
-python3 -u "$RENDER_SCRIPT" || exit 1
-
-if [ ! -f "$OUT_FILE" ]; then
-    echo "❌ Error: Failed to generate $OUT_FILE."
-    exit 1
-fi
-echo "✅ Terraform configuration generated."
-
-
-# 4. Authentication
+# 3. Authentication
 echo ">> Authenticating with Google Cloud..."
 gcloud auth login
 gcloud config set project "$PROJECT_ID"
 echo "✅ Authenticated."
 
-# 5. Service Account Configuration
+# 4. Service Account Configuration
 echo "========================================================="
 echo "        Service Account Configuration                    "
 echo "========================================================="
@@ -219,6 +209,29 @@ echo "---------------------------------------------------------"
 echo ">> Setting up Service Account Impersonation..."
 gcloud auth application-default login --impersonate-service-account="$SA_EMAIL"
 echo "✅ Impersonation configured successfully."
+
+
+# 5. Python Environment & Rendering
+echo ">> Setting up Python environment..."
+if [ ! -d "$SCRIPT_DIR/venv" ]; then
+    python3 -m venv "$SCRIPT_DIR/venv"
+fi
+source "$SCRIPT_DIR/venv/bin/activate"
+pip install -r "$SCRIPT_DIR/dpi_agent_blueprint/requirements.txt" jinja2 google-cloud-discoveryengine
+
+if [ ! -f "$RENDER_SCRIPT" ]; then
+    echo "❌ Error: Rendering script not found at $RENDER_SCRIPT."
+    exit 1
+fi
+
+echo ">> Generating Terraform .tfvars..."
+python3 -u "$RENDER_SCRIPT" || exit 1
+
+if [ ! -f "$OUT_FILE" ]; then
+    echo "❌ Error: Failed to generate $OUT_FILE."
+    exit 1
+fi
+echo "✅ Terraform configuration generated."
 
 
 # 6. Terraform Execution (with retry logic)
@@ -290,7 +303,7 @@ terraform output -json > outputs.json
 echo "✅ Outputs saved to outputs.json"
 
 # Read SESSION_DB_TYPE from agent_config.env
-SESSION_DB_TYPE=$(grep "^SESSION_DB_TYPE=" "$ENV_FILE" | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+SESSION_DB_TYPE=$(extract_env "SESSION_DB_TYPE" "$ENV_FILE")
 SESSION_DB_TYPE=${SESSION_DB_TYPE:-agent-engine}
 
 echo ">> Extracting Infrastructure Details (Mode: $SESSION_DB_TYPE)..."
@@ -315,6 +328,27 @@ else
     SESSION_DB_URL=""
 fi
 
+echo ">> Extracting Datastore IDs for ingestion..."
+AGENT_DATASTORE_IDS=$(extract_output "agent_datastore_ids") || echo "{}"
+
+# We extract the DATASTORE_IMPORTS value directly.
+DATASTORE_IMPORTS=$(extract_env "DATASTORE_IMPORTS" "$ENV_FILE")
+# Strip single and double quotes at the ends (only the outer wrapper)
+DATASTORE_IMPORTS="${DATASTORE_IMPORTS#\'}"
+DATASTORE_IMPORTS="${DATASTORE_IMPORTS%\'}"
+DATASTORE_IMPORTS="${DATASTORE_IMPORTS#\"}"
+DATASTORE_IMPORTS="${DATASTORE_IMPORTS%\"}"
+
+if [ "$AGENT_DATASTORE_IDS" != "{}" ] && [ "$DATASTORE_IMPORTS" != "{}" ]; then
+    echo ">> Triggering Document Ingestion..."
+    if ! python3 -u "$SCRIPT_DIR/ingest_datastore.py" "$PROJECT_ID" "$AGENT_DATASTORE_IDS" "$DATASTORE_IMPORTS"; then
+        echo "❌ Error: Datastore ingestion failed. Halting installation."
+        exit 1
+    fi
+else
+    echo ">> No datastores to ingest."
+fi
+
 echo "✅ All required infrastructure outputs retrieved successfully."
 
 export REDIS_HOST SESSION_DB_TYPE SESSION_DB_URL DB_HOST DB_USER DB_PASS DB_NAME NETWORK_ATTACHMENT_ID AGENT_SA_EMAIL
@@ -336,10 +370,22 @@ echo "NETWORK_ATTACHMENT_ID=$NETWORK_ATTACHMENT_ID" >> "$CONSOLIDATED_ENV"
 echo "AGENT_SA_EMAIL=$AGENT_SA_EMAIL" >> "$CONSOLIDATED_ENV"
 echo "OTEL_OBSERVABILITY_LOG_NAME=dpi-${APP_NAME}-agent-traces" >> "$CONSOLIDATED_ENV"
 
+echo ">> Injecting Datastore IDs into environment variables..."
+if [ "$AGENT_DATASTORE_IDS" != "{}" ]; then
+    # Use jq to iterate over the keys and values.
+    # We replace dots (agri.biochar_advice) with underscores (agri_biochar_advice) and uppercase them (AGRI_BIOCHAR_ADVICE_DATASTORE_ID)
+    echo "$AGENT_DATASTORE_IDS" | jq -r 'to_entries | .[] | "\(.key | gsub("\\."; "_") | ascii_upcase)_DATASTORE_ID=\(.value)"' >> "$CONSOLIDATED_ENV"
+    echo "✅ Injected $(echo "$AGENT_DATASTORE_IDS" | jq 'length') Datastore IDs."
+fi
+
 echo "✅ Generated $CONSOLIDATED_ENV successfully."
 echo ">> Deploying Application via Agent Engine..."
 
 cd "$SCRIPT_DIR"
+
+echo ">> Copying consolidated.env to dpi_agent_blueprint/.env ..."
+cp "$CONSOLIDATED_ENV" "$SCRIPT_DIR/dpi_agent_blueprint/.env"
+
 
 STATE_FILE="$INSTALLER_ROOT/backend/installer_kit/installer_state.json"
 EXISTING_AGENT_ID=$(jq -r '.agent_engine_id // empty' "$STATE_FILE" 2>/dev/null || echo "")
