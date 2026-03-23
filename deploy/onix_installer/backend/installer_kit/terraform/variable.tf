@@ -716,3 +716,9 @@ variable "agent_sa_roles" {
   description = "List of IAM roles to assign to the Agent Service Account"
   type        = list(string)
 }
+
+variable "datastore_imports" {
+  description = "A map of datastore keys to their GCS URI for importing."
+  type        = map(string)
+  default     = {}
+}

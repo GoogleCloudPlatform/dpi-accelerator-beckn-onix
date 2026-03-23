@@ -21,6 +21,11 @@ provider "google" {
   region  = var.region
 }
 
+provider "google-beta" {
+  project = var.project_id
+  region  = var.region
+}
+
 #--------------------------------------------- Data Configuration for project ID ---------------------------------------------#
 
 # The below block holds project_id as data
@@ -43,7 +48,8 @@ locals {
     "compute.googleapis.com",
     "sqladmin.googleapis.com",
     "redis.googleapis.com",
-    "servicenetworking.googleapis.com"
+    "servicenetworking.googleapis.com",
+    "telemetry.googleapis.com"
   ]
 }
 
@@ -319,6 +325,9 @@ module "agent" {
   subnet_name                   = module.network.subnet_name
   subnetwork_id                 = module.network.subnetwork_id
   agent_network_attachment_name = var.agent_network_attachment_name
+
+  # Datastores
+  datastore_imports = var.datastore_imports
 
   # Data
   provision_agent_db = var.provision_agent_db

@@ -43,3 +43,8 @@ output "agent_network_attachment_id" {
   value       = module.network_attachment.network_attachment_id
   description = "The ID of the Network Attachment for PSC"
 }
+
+output "datastore_ids" {
+  value       = { for k, v in module.discovery_engine : k => v.datastore_id }
+  description = "A mapping of keys to Datastore IDs for the agent"
+}

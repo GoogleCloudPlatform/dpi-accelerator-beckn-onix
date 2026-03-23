@@ -12,15 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
+import builtins
 import json
 import os
 import unittest
+from typing import Any
 from unittest import mock
 
-from typing import Any
 from google3.third_party.dpi_becknonix.deploy.onix_installer.agent_pack import render_agent_config
-
-_RENDER_AGENT_CONFIG_PATH = "google3.third_party.dpi_becknonix.deploy.onix_installer.agent_pack.render_agent_config"
 
 
 class TestRenderAgentConfig(unittest.TestCase):
@@ -50,10 +51,10 @@ class TestRenderAgentConfig(unittest.TestCase):
         "generated-terraform.tfvars",
     )
 
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.dotenv.dotenv_values")
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.Environment")
-  @mock.patch("os.path.exists")
-  @mock.patch("builtins.open", new_callable=mock.mock_open)
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
+  @mock.patch.object(render_agent_config, "Environment")
+  @mock.patch.object(os.path, "exists")
+  @mock.patch.object(builtins, "open", new_callable=mock.mock_open)
   def test_render_config_success_no_state(
       self,
       mock_open: mock.Mock,
@@ -72,7 +73,7 @@ class TestRenderAgentConfig(unittest.TestCase):
         "APP_NAME": "a",
         "SESSION_DB_TYPE": "database",
     }
-    
+
     # Mock for template rendering
     mock_template = mock.Mock()
     mock_template.render.return_value = "rendered content"
@@ -98,13 +99,14 @@ class TestRenderAgentConfig(unittest.TestCase):
         "rate_limit_count": 100,
         "provision_agent_db": True,
         "agent_engine_id": "",
+        "datastore_imports": {},
     }
     mock_template.render.assert_called_once_with(expected_context)
 
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.dotenv.dotenv_values")
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.Environment")
-  @mock.patch("os.path.exists")
-  @mock.patch("builtins.open", new_callable=mock.mock_open)
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
+  @mock.patch.object(render_agent_config, "Environment")
+  @mock.patch.object(os.path, "exists")
+  @mock.patch.object(builtins, "open", new_callable=mock.mock_open)
   def test_render_config_with_existing_state_success(
       self,
       mock_open: mock.Mock,
@@ -156,12 +158,13 @@ class TestRenderAgentConfig(unittest.TestCase):
         "rate_limit_count": 100,
         "provision_agent_db": False,
         "agent_engine_id": "",
+        "datastore_imports": {},
     }
     mock_template.render.assert_called_once_with(expected_context)
 
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.dotenv.dotenv_values")
-  @mock.patch("os.path.exists")
-  @mock.patch("builtins.open", new_callable=mock.mock_open)
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
+  @mock.patch.object(os.path, "exists")
+  @mock.patch.object(builtins, "open", new_callable=mock.mock_open)
   def test_render_config_conflict_error(
       self,
       mock_open: mock.Mock,
@@ -184,14 +187,14 @@ class TestRenderAgentConfig(unittest.TestCase):
         mock.mock_open(read_data=state_content).return_value,  # read state
     ]
 
-    with mock.patch("builtins.print") as mock_print:
+    with mock.patch.object(builtins, "print") as mock_print:
       with self.assertRaises(SystemExit):
         render_agent_config.render_config(self.installer_root)
       mock_print.assert_any_call("❌ Error: Conflict in 'project_id'.")
 
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.dotenv.dotenv_values")
-  @mock.patch("os.path.exists")
-  @mock.patch("builtins.open", new_callable=mock.mock_open)
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
+  @mock.patch.object(os.path, "exists")
+  @mock.patch.object(builtins, "open", new_callable=mock.mock_open)
   def test_render_config_region_conflict(
       self,
       mock_open: mock.Mock,
@@ -211,14 +214,14 @@ class TestRenderAgentConfig(unittest.TestCase):
     mock_open.side_effect = [
         mock.mock_open(read_data=state_content).return_value,
     ]
-    with mock.patch("builtins.print") as mock_print:
+    with mock.patch.object(builtins, "print") as mock_print:
       with self.assertRaises(SystemExit):
         render_agent_config.render_config(self.installer_root)
       mock_print.assert_any_call("❌ Error: Conflict in 'region'.")
 
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.dotenv.dotenv_values")
-  @mock.patch("os.path.exists")
-  @mock.patch("builtins.open", new_callable=mock.mock_open)
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
+  @mock.patch.object(os.path, "exists")
+  @mock.patch.object(builtins, "open", new_callable=mock.mock_open)
   def test_render_config_app_name_conflict(
       self,
       mock_open: mock.Mock,
@@ -238,14 +241,14 @@ class TestRenderAgentConfig(unittest.TestCase):
     mock_open.side_effect = [
         mock.mock_open(read_data=state_content).return_value,
     ]
-    with mock.patch("builtins.print") as mock_print:
+    with mock.patch.object(builtins, "print") as mock_print:
       with self.assertRaises(SystemExit):
         render_agent_config.render_config(self.installer_root)
       mock_print.assert_any_call("❌ Error: Conflict in 'app_name'.")
 
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.dotenv.dotenv_values")
-  @mock.patch("os.path.exists")
-  @mock.patch("builtins.open", new_callable=mock.mock_open)
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
+  @mock.patch.object(os.path, "exists")
+  @mock.patch.object(builtins, "open", new_callable=mock.mock_open)
   def test_render_config_state_read_error(
       self,
       mock_open: mock.Mock,
@@ -260,8 +263,8 @@ class TestRenderAgentConfig(unittest.TestCase):
     with self.assertRaises(SystemExit):
       render_agent_config.render_config(self.installer_root)
 
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.dotenv.dotenv_values")
-  @mock.patch("os.path.exists")
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
+  @mock.patch.object(os.path, "exists")
   def test_render_config_template_missing(
       self, mock_exists: mock.Mock, mock_dotenv: mock.Mock
   ) -> None:
@@ -272,10 +275,10 @@ class TestRenderAgentConfig(unittest.TestCase):
     with self.assertRaises(SystemExit):
       render_agent_config.render_config(self.installer_root)
 
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.dotenv.dotenv_values")
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.Environment")
-  @mock.patch("os.path.exists")
-  @mock.patch("builtins.open", new_callable=mock.mock_open)
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
+  @mock.patch.object(render_agent_config, "Environment")
+  @mock.patch.object(os.path, "exists")
+  @mock.patch.object(builtins, "open", new_callable=mock.mock_open)
   def test_render_config_write_state_error(
       self,
       mock_open: mock.Mock,
@@ -294,9 +297,9 @@ class TestRenderAgentConfig(unittest.TestCase):
     with self.assertRaises(SystemExit):
       render_agent_config.render_config(self.installer_root)
 
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.render_config")
-  @mock.patch("os.path.abspath")
-  @mock.patch("os.path.dirname")
+  @mock.patch.object(render_agent_config, "render_config")
+  @mock.patch.object(os.path, "abspath")
+  @mock.patch.object(os.path, "dirname")
   def test_main(
       self,
       mock_dirname: mock.Mock,
@@ -309,9 +312,9 @@ class TestRenderAgentConfig(unittest.TestCase):
     render_agent_config.main()
     mock_render.assert_called_once_with("/mock/installer")
 
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.dotenv.dotenv_values")
-  @mock.patch("os.path.exists")
-  @mock.patch("builtins.open", new_callable=mock.mock_open)
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
+  @mock.patch.object(os.path, "exists")
+  @mock.patch.object(builtins, "open", new_callable=mock.mock_open)
   def test_render_config_missing_project_id(
       self,
       mock_open: mock.Mock,
@@ -324,9 +327,9 @@ class TestRenderAgentConfig(unittest.TestCase):
     with self.assertRaises(SystemExit):
       render_agent_config.render_config(self.installer_root)
 
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.dotenv.dotenv_values")
-  @mock.patch("os.path.exists")
-  @mock.patch("builtins.open", new_callable=mock.mock_open)
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
+  @mock.patch.object(os.path, "exists")
+  @mock.patch.object(builtins, "open", new_callable=mock.mock_open)
   def test_render_config_missing_region(
       self,
       mock_open: mock.Mock,
@@ -339,9 +342,9 @@ class TestRenderAgentConfig(unittest.TestCase):
     with self.assertRaises(SystemExit):
       render_agent_config.render_config(self.installer_root)
 
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.dotenv.dotenv_values")
-  @mock.patch("os.path.exists")
-  @mock.patch("builtins.open", new_callable=mock.mock_open)
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
+  @mock.patch.object(os.path, "exists")
+  @mock.patch.object(builtins, "open", new_callable=mock.mock_open)
   def test_render_config_missing_app_name(
       self,
       mock_open: mock.Mock,
@@ -354,7 +357,7 @@ class TestRenderAgentConfig(unittest.TestCase):
     with self.assertRaises(SystemExit):
       render_agent_config.render_config(self.installer_root)
 
-  @mock.patch(f"{_RENDER_AGENT_CONFIG_PATH}.dotenv.dotenv_values")
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
   def test_render_config_env_file_missing(self, mock_dotenv: mock.Mock) -> None:
     """Tests that a missing configuration file causes exit."""
     mock_dotenv.side_effect = FileNotFoundError()
@@ -379,7 +382,7 @@ class TestRenderAgentConfig(unittest.TestCase):
   def test_validate_config_project_id_conflict(self) -> None:
     env_vars = {"PROJECT_ID": "new-p", "REGION": "r", "APP_NAME": "a"}
     state_data = {"project_id": "old-p", "region": "r", "app_name": "a"}
-    with mock.patch("builtins.print") as mock_print:
+    with mock.patch.object(builtins, "print") as mock_print:
       with self.assertRaises(SystemExit):
         render_agent_config.validate_config(env_vars, state_data)
       mock_print.assert_any_call("❌ Error: Conflict in 'project_id'.")
@@ -387,7 +390,7 @@ class TestRenderAgentConfig(unittest.TestCase):
   def test_validate_config_region_conflict(self) -> None:
     env_vars = {"PROJECT_ID": "p", "REGION": "new-r", "APP_NAME": "a"}
     state_data = {"project_id": "p", "region": "old-r", "app_name": "a"}
-    with mock.patch("builtins.print") as mock_print:
+    with mock.patch.object(builtins, "print") as mock_print:
       with self.assertRaises(SystemExit):
         render_agent_config.validate_config(env_vars, state_data)
       mock_print.assert_any_call("❌ Error: Conflict in 'region'.")
@@ -395,7 +398,7 @@ class TestRenderAgentConfig(unittest.TestCase):
   def test_validate_config_app_name_conflict(self) -> None:
     env_vars = {"PROJECT_ID": "p", "REGION": "r", "APP_NAME": "new-a"}
     state_data = {"project_id": "p", "region": "r", "app_name": "old-a"}
-    with mock.patch("builtins.print") as mock_print:
+    with mock.patch.object(builtins, "print") as mock_print:
       with self.assertRaises(SystemExit):
         render_agent_config.validate_config(env_vars, state_data)
       mock_print.assert_any_call("❌ Error: Conflict in 'app_name'.")
@@ -405,6 +408,131 @@ class TestRenderAgentConfig(unittest.TestCase):
     state_data: dict[str, Any] = {"project_id": "p", "region": "r", "app_name": "a"}
     # No exception means success
     render_agent_config.validate_config(env_vars, state_data)
+
+  def test_check_required_datastores_success(self) -> None:
+    env_vars = {
+        "SUB_AGENTS_OF_ROOT_AGENT": "agri.biochar_advice, another_agent",
+        "SUB_AGENTS_AS_TOOLS_OF_ROOT_AGENT": "",
+    }
+    datastore_imports = {"agri.biochar_advice": "gs://some-bucket"}
+    # Should not raise any exception
+    render_agent_config.check_required_datastores(env_vars, datastore_imports)
+
+  def test_check_required_datastores_missing(self) -> None:
+    env_vars = {
+        "SUB_AGENTS_OF_ROOT_AGENT": "agri.biochar_advice, another_agent",
+        "SUB_AGENTS_AS_TOOLS_OF_ROOT_AGENT": "",
+    }
+    datastore_imports = {"another_agent": "gs://some-bucket"} # Missing agri.biochar_advice
+    with mock.patch.object(builtins, "print") as mock_print:
+      with self.assertRaises(SystemExit):
+        render_agent_config.check_required_datastores(env_vars, datastore_imports)
+      mock_print.assert_any_call("❌ Error: Missing required Datastore mappings in DATASTORE_IMPORTS:")
+      mock_print.assert_any_call("   -> Agent 'agri.biochar_advice' requires datastore key 'agri.biochar_advice'")
+
+  def test_check_required_datastores_empty(self) -> None:
+    env_vars = {
+        "SUB_AGENTS_OF_ROOT_AGENT": "",
+        "SUB_AGENTS_AS_TOOLS_OF_ROOT_AGENT": "",
+    }
+    datastore_imports = {}
+    # Should not raise any exception when no agents are enabled
+    render_agent_config.check_required_datastores(env_vars, datastore_imports)
+
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
+  @mock.patch.object(render_agent_config, "Environment")
+  @mock.patch.object(os.path, "exists")
+  @mock.patch.object(builtins, "open", new_callable=mock.mock_open)
+  def test_render_config_invalid_datastore_imports_json(
+      self,
+      mock_open: mock.Mock,
+      mock_exists: mock.Mock,
+      mock_env: mock.Mock,
+      mock_dotenv: mock.Mock,
+  ) -> None:
+    """Tests that invalid JSON in DATASTORE_IMPORTS causes exit."""
+    mock_exists.return_value = True
+    mock_dotenv.return_value = {
+        "PROJECT_ID": "p",
+        "REGION": "r",
+        "APP_NAME": "a",
+        "DATASTORE_IMPORTS": "{invalid json}",
+    }
+    mock_open.side_effect = [
+        mock.mock_open(read_data="{}").return_value,
+    ]
+
+    with mock.patch.object(builtins, "print") as mock_print:
+      with self.assertRaises(SystemExit):
+        render_agent_config.render_config(self.installer_root)
+      mock_print.assert_called_with("❌ Error: Invalid JSON in DATASTORE_IMPORTS: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)")
+
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
+  @mock.patch.object(render_agent_config, "Environment")
+  @mock.patch.object(os.path, "exists")
+  @mock.patch.object(builtins, "open", new_callable=mock.mock_open)
+  def test_render_config_datastore_imports_not_dict(
+      self,
+      mock_open: mock.Mock,
+      mock_exists: mock.Mock,
+      mock_env: mock.Mock,
+      mock_dotenv: mock.Mock,
+  ) -> None:
+    """Tests that non-dictionary JSON in DATASTORE_IMPORTS causes exit."""
+    mock_exists.return_value = True
+    mock_dotenv.return_value = {
+        "PROJECT_ID": "p",
+        "REGION": "r",
+        "APP_NAME": "a",
+        "DATASTORE_IMPORTS": '["not", "a", "dict"]',
+    }
+    mock_open.side_effect = [
+        mock.mock_open(read_data="{}").return_value,
+    ]
+
+    with mock.patch.object(builtins, "print") as mock_print:
+      with self.assertRaises(SystemExit):
+        render_agent_config.render_config(self.installer_root)
+      mock_print.assert_called_with("❌ Error: DATASTORE_IMPORTS must be a JSON dictionary.")
+
+  @mock.patch.object(render_agent_config.dotenv, "dotenv_values")
+  @mock.patch.object(os.path, "exists")
+  @mock.patch.object(builtins, "open", new_callable=mock.mock_open)
+  def test_render_config_fails_when_missing_required_datastores(
+      self,
+      mock_open: mock.Mock,
+      mock_exists: mock.Mock,
+      mock_dotenv: mock.Mock,
+  ) -> None:
+    """Tests that render_config fails when a required agent datastore is missing."""
+    mock_exists.return_value = True
+
+    # We enable 'agri.biochar_advice' which requires a datastore, but provide None
+    mock_dotenv.return_value = {
+        "PROJECT_ID": "p",
+        "REGION": "r",
+        "APP_NAME": "a",
+        "SUB_AGENTS_OF_ROOT_AGENT": "agri.biochar_advice",
+        "DATASTORE_IMPORTS": "{}",
+    }
+
+    mock_open.side_effect = [
+        mock.mock_open(read_data="{}").return_value,  # state read
+    ]
+
+    with mock.patch.object(builtins, "print") as mock_print:
+      # We expect the whole render_config flow to exit
+      with self.assertRaises(SystemExit):
+        render_agent_config.render_config(self.installer_root)
+
+      # Verify the specific inner validation error was properly bubbled up
+      mock_print.assert_any_call(
+          "❌ Error: Missing required Datastore mappings in DATASTORE_IMPORTS:"
+      )
+      mock_print.assert_any_call(
+          "   -> Agent 'agri.biochar_advice' requires datastore key"
+          " 'agri.biochar_advice'"
+      )
 
 
 if __name__ == "__main__":

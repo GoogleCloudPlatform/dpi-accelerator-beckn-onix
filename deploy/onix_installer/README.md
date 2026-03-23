@@ -136,6 +136,7 @@ If you prefer creating a service account manually, create a service account in t
 -   Compute Security Admin
 -   Workload Identity Pool Admin
 -   Service Usage Admin
+-   Discovery Engine Admin
 
 
 ### 3. Configuration
