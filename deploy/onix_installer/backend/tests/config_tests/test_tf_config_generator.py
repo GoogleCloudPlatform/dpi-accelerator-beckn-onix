@@ -165,6 +165,8 @@ class TestTerraformConfigGenerator(unittest.TestCase):
             "rate_limit_count": 100,
             "enable_onix": True,
             "enable_agent": False,
+            "provision_agent_db": False,
+            "agent_engine_id": "",
         }
 
         # Expected paths for mocking os.path.join (relative to patched constants)
@@ -226,6 +228,8 @@ class TestTerraformConfigGenerator(unittest.TestCase):
             "rate_limit_count": 100,
             "enable_onix": True,
             "enable_agent": False,
+            "provision_agent_db": False,
+            "agent_engine_id": "",
         }
 
         mock_render_template.assert_called_once_with(
@@ -312,7 +316,7 @@ class TestTerraformConfigGenerator(unittest.TestCase):
         Test generate_config when a valid installer_state.json already exists.
         """
         # Mock reading state
-        read_state = '{"project_id": "test-proj", "region": "us-west1", "app_name": "my-app", "enable_agent": true}'
+        read_state = '{"project_id": "test-proj", "region": "us-west1", "app_name": "my-app", "enable_agent": true, "agent_engine_id": "test-id"}'
         
         mock_read_handle = unittest.mock.mock_open(read_data=read_state).return_value
         mock_write_handle = unittest.mock.mock_open().return_value
@@ -337,6 +341,8 @@ class TestTerraformConfigGenerator(unittest.TestCase):
         # Assert `enable_agent` was correctly carried over from the mock read_data
         context_args = mock_render_template.call_args[1]['context']
         self.assertEqual(context_args['enable_agent'], True)
+        self.assertEqual(context_args['provision_agent_db'], True)
+        self.assertEqual(context_args['agent_engine_id'], "test-id")
 
     @patch('config.tf_config_generator.os.path.exists', return_value=True)
     @patch('builtins.open', side_effect=Exception("Read Permission Denied"))
