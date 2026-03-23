@@ -42,7 +42,9 @@ ROLES=(
   "roles/artifactregistry.admin"            # Artifact Registry Administrator
   "roles/container.admin"                   # Kubernetes Engine Admin
   "roles/storage.admin"                     # Storage Admin
-  "roles/iam.workloadIdentityPoolAdmin"      # Workload Identity Pool Admin
+  "roles/iam.workloadIdentityPoolAdmin"     # Workload Identity Pool Admin
+  "roles/serviceusage.serviceUsageAdmin"    # Service Usage Admin
+  "roles/aiplatform.admin"                  # Vertex AI Administrator
 )
 
 # Assign each role to the user account

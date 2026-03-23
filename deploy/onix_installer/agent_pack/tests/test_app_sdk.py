@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import importlib
 import json
 import os
@@ -61,7 +62,7 @@ class TestAppSdk(unittest.TestCase):
     
     # Re-apply necessary default return values
     mock_dotenv_global.dotenv_values.return_value = {
-        "PROJECT_ID": "p", "REGION": "r", "STAGING_BUCKET": "s", "MIN_INSTANCES": "1"
+        "GOOGLE_CLOUD_PROJECT": "p", "REGION": "r", "STAGING_BUCKET": "s", "MIN_INSTANCES": "1"
     }
 
     # Ensure app_sdk is using these global mocks
@@ -125,9 +126,9 @@ class TestAppSdk(unittest.TestCase):
     self.assertTrue(found, "Import blueprint failure error message not printed.")
 
   def test_build_agent_config_success_basic(self):
-    args = mock.Mock(delete=False, python_version="3.11")
+    args = argparse.Namespace(delete=False, python_version="3.13")
     env_vars = {
-        "PROJECT_ID": "p",
+        "GOOGLE_CLOUD_PROJECT": "p",
         "REGION": "r",
         "STAGING_BUCKET": "s",
         "APP_NAME": "a",
@@ -138,19 +139,18 @@ class TestAppSdk(unittest.TestCase):
     self.assertEqual(location, "r")
     self.assertEqual(staging_bucket, "s")
     self.assertEqual(config["display_name"], "dpi-a-agent-engine")
-    self.assertEqual(config["python_version"], "3.11")
+    self.assertEqual(config["python_version"], "3.13")
 
   def test_build_agent_config_missing_region(self):
-    args = mock.Mock(delete=False)
-    env_vars = {"PROJECT_ID": "p", "STAGING_BUCKET": "s"}
-    with self.assertRaises(ValueError) as cm:
+    args = argparse.Namespace(delete=False)
+    env_vars = {"GOOGLE_CLOUD_PROJECT": "p", "STAGING_BUCKET": "s"}
+    with self.assertRaisesRegex(ValueError, "REGION must be set in the env file."):
       app_sdk.build_agent_config(args, env_vars)
-    self.assertIn("REGION", str(cm.exception))
 
   def test_build_agent_config_psc(self):
-    args = mock.Mock(delete=False, python_version="3.11")
+    args = argparse.Namespace(delete=False, python_version="3.13")
     env_vars = {
-        "PROJECT_ID": "p",
+        "GOOGLE_CLOUD_PROJECT": "p",
         "REGION": "r",
         "STAGING_BUCKET": "s",
         "REDIS_HOST": "1.2.3.4",
@@ -161,9 +161,9 @@ class TestAppSdk(unittest.TestCase):
     self.assertEqual(config["psc_interface_config"]["network_attachment"], "projects/p/regions/r/networkAttachments/na1")
 
   def test_build_agent_config_psc_session_db_url(self):
-    args = mock.Mock(delete=False, python_version="3.11")
+    args = argparse.Namespace(delete=False, python_version="3.13")
     env_vars = {
-        "PROJECT_ID": "p",
+        "GOOGLE_CLOUD_PROJECT": "p",
         "REGION": "r",
         "STAGING_BUCKET": "s",
         "SESSION_DB_URL": "postgres://abc",
@@ -174,13 +174,14 @@ class TestAppSdk(unittest.TestCase):
     self.assertEqual(config["psc_interface_config"]["network_attachment"], "projects/p/regions/r/networkAttachments/na2")
 
   def test_build_agent_config_long_term_memory(self):
-    args = mock.Mock(delete=False, python_version="3.11")
+    args = argparse.Namespace(delete=False, python_version="3.13")
     env_vars: dict[str, str] = {
-        "PROJECT_ID": "p",
+        "GOOGLE_CLOUD_PROJECT": "p",
         "REGION": "r",
         "STAGING_BUCKET": "s",
         "ENABLE_LONG_TERM_MEMORY": "true",
         "MIN_INSTANCES": "1",
+        "GOOGLE_CLOUD_LOCATION": "test-location-1",
     }
     mock_memory_global.get_memory_bank_config.return_value = {"mock": "config"}
 
@@ -189,34 +190,44 @@ class TestAppSdk(unittest.TestCase):
     self.assertIn("context_spec", config)
     self.assertEqual(config["context_spec"]["memory_bank_config"], {"mock": "config"})
     mock_memory_global.get_memory_bank_config.assert_called_once_with(
-        project="p", location="r"
+        project="p", location="test-location-1"
     )
 
-  def test_build_agent_config_missing_network_attachment(self):
-    args = mock.Mock(delete=False, python_version="3.11")
+  def test_build_agent_config_long_term_memory_missing_location(self):
+    args = argparse.Namespace(delete=False, python_version="3.13")
     env_vars: dict[str, str] = {
-        "PROJECT_ID": "p",
+        "GOOGLE_CLOUD_PROJECT": "p",
+        "REGION": "r",
+        "STAGING_BUCKET": "s",
+        "ENABLE_LONG_TERM_MEMORY": "true",
+        "MIN_INSTANCES": "1",
+    }
+    with self.assertRaisesRegex(ValueError, "GOOGLE_CLOUD_LOCATION must be set in the env file."):
+      app_sdk.build_agent_config(args, env_vars)
+
+  def test_build_agent_config_missing_network_attachment(self):
+    args = argparse.Namespace(delete=False, python_version="3.13")
+    env_vars: dict[str, str] = {
+        "GOOGLE_CLOUD_PROJECT": "p",
         "REGION": "r",
         "STAGING_BUCKET": "s",
         "REDIS_HOST": "1.2.3.4",
         "MIN_INSTANCES": "1",
     }
-    with self.assertRaises(ValueError) as cm:
+    with self.assertRaisesRegex(ValueError, "NETWORK_ATTACHMENT_ID must be set if using private integrations."):
       app_sdk.build_agent_config(args, env_vars)
-    self.assertIn("NETWORK_ATTACHMENT_ID", str(cm.exception))
 
   def test_build_agent_config_missing_network_attachment_session_db_url(self):
-    args = mock.Mock(delete=False, python_version="3.11")
+    args = argparse.Namespace(delete=False, python_version="3.13")
     env_vars: dict[str, str] = {
-        "PROJECT_ID": "p",
+        "GOOGLE_CLOUD_PROJECT": "p",
         "REGION": "r",
         "STAGING_BUCKET": "s",
         "SESSION_DB_URL": "postgres://abc",
         "MIN_INSTANCES": "1",
     }
-    with self.assertRaises(ValueError) as cm:
+    with self.assertRaisesRegex(ValueError, "NETWORK_ATTACHMENT_ID must be set if using private integrations."):
       app_sdk.build_agent_config(args, env_vars)
-    self.assertIn("NETWORK_ATTACHMENT_ID", str(cm.exception))
 
 
   @mock.patch("os.path.exists", return_value=True)
@@ -298,7 +309,8 @@ class TestAppSdk(unittest.TestCase):
   @mock.patch("builtins.print")
   @mock.patch("sys.exit")
   def test_main_config_error_exit(self, mock_exit, mock_print):
-    mock_dotenv_global.dotenv_values.return_value = {} # Missing PROJECT_ID
+    # Missing GOOGLE_CLOUD_PROJECT
+    mock_dotenv_global.dotenv_values.return_value = {}
     with mock.patch("sys.argv", ["prog", "--create", "--env-vars-file", "mock.env"]):
       app_sdk.main()
       # Configuration Error: print is called then sys.exit(1)

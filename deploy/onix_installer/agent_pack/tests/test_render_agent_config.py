@@ -68,7 +68,7 @@ class TestRenderAgentConfig(unittest.TestCase):
     ]
 
     mock_dotenv.return_value = {
-        "PROJECT_ID": "p",
+        "GOOGLE_CLOUD_PROJECT": "p",
         "REGION": "r",
         "APP_NAME": "a",
         "SESSION_DB_TYPE": "database",
@@ -118,7 +118,7 @@ class TestRenderAgentConfig(unittest.TestCase):
     mock_exists.return_value = True
 
     mock_dotenv.return_value = {
-        "PROJECT_ID": "p",
+        "GOOGLE_CLOUD_PROJECT": "p",
         "REGION": "r",
         "APP_NAME": "a",
         "SESSION_DB_TYPE": "none",
@@ -175,7 +175,7 @@ class TestRenderAgentConfig(unittest.TestCase):
     mock_exists.return_value = True
 
     mock_dotenv.return_value = {
-        "PROJECT_ID": "new-p",
+        "GOOGLE_CLOUD_PROJECT": "new-p",
         "REGION": "r",
         "APP_NAME": "a",
     }
@@ -204,7 +204,7 @@ class TestRenderAgentConfig(unittest.TestCase):
     """Tests that a conflict in region between env and state causes exit."""
     mock_exists.return_value = True
     mock_dotenv.return_value = {
-        "PROJECT_ID": "p",
+        "GOOGLE_CLOUD_PROJECT": "p",
         "REGION": "new-r",
         "APP_NAME": "a",
     }
@@ -231,7 +231,7 @@ class TestRenderAgentConfig(unittest.TestCase):
     """Tests that a conflict in app_name between env and state causes exit."""
     mock_exists.return_value = True
     mock_dotenv.return_value = {
-        "PROJECT_ID": "p",
+        "GOOGLE_CLOUD_PROJECT": "p",
         "REGION": "r",
         "APP_NAME": "new-a",
     }
@@ -257,7 +257,7 @@ class TestRenderAgentConfig(unittest.TestCase):
   ) -> None:
     """Tests that an error during state file reading causes exit."""
     mock_exists.return_value = True
-    mock_dotenv.return_value = {"PROJECT_ID": "p", "REGION": "r", "APP_NAME": "a"}
+    mock_dotenv.return_value = {"GOOGLE_CLOUD_PROJECT": "p", "REGION": "r", "APP_NAME": "a"}
 
     mock_open.side_effect = Exception("Read error")
     with self.assertRaises(SystemExit):
@@ -271,7 +271,7 @@ class TestRenderAgentConfig(unittest.TestCase):
     """Tests that a missing Jinja2 template causes exit."""
     # Env file exists, but template doesn't
     mock_exists.side_effect = lambda p: p == self.env_file_path
-    mock_dotenv.return_value = {"PROJECT_ID": "p", "REGION": "r", "APP_NAME": "a"}
+    mock_dotenv.return_value = {"GOOGLE_CLOUD_PROJECT": "p", "REGION": "r", "APP_NAME": "a"}
     with self.assertRaises(SystemExit):
       render_agent_config.render_config(self.installer_root)
 
@@ -288,7 +288,7 @@ class TestRenderAgentConfig(unittest.TestCase):
   ) -> None:
     """Tests that an error during state file writing causes exit."""
     mock_exists.return_value = True
-    mock_dotenv.return_value = {"PROJECT_ID": "p", "REGION": "r", "APP_NAME": "a"}
+    mock_dotenv.return_value = {"GOOGLE_CLOUD_PROJECT": "p", "REGION": "r", "APP_NAME": "a"}
 
     mock_open.side_effect = [
         mock.mock_open(read_data="{}").return_value,  # read empty state
@@ -321,7 +321,7 @@ class TestRenderAgentConfig(unittest.TestCase):
       mock_exists: mock.Mock,
       mock_dotenv: mock.Mock,
   ) -> None:
-    """Tests that missing PROJECT_ID in env causes exit."""
+    """Tests that missing GOOGLE_CLOUD_PROJECT in env causes exit."""
     mock_exists.return_value = True
     mock_dotenv.return_value = {"REGION": "r", "APP_NAME": "a"}
     with self.assertRaises(SystemExit):
@@ -338,7 +338,7 @@ class TestRenderAgentConfig(unittest.TestCase):
   ) -> None:
     """Tests that missing REGION in env causes exit."""
     mock_exists.return_value = True
-    mock_dotenv.return_value = {"PROJECT_ID": "p", "APP_NAME": "a"}
+    mock_dotenv.return_value = {"GOOGLE_CLOUD_PROJECT": "p", "APP_NAME": "a"}
     with self.assertRaises(SystemExit):
       render_agent_config.render_config(self.installer_root)
 
@@ -353,7 +353,7 @@ class TestRenderAgentConfig(unittest.TestCase):
   ) -> None:
     """Tests that missing APP_NAME in env causes exit."""
     mock_exists.return_value = True
-    mock_dotenv.return_value = {"PROJECT_ID": "p", "REGION": "r"}
+    mock_dotenv.return_value = {"GOOGLE_CLOUD_PROJECT": "p", "REGION": "r"}
     with self.assertRaises(SystemExit):
       render_agent_config.render_config(self.installer_root)
 
@@ -370,17 +370,17 @@ class TestRenderAgentConfig(unittest.TestCase):
       render_agent_config.validate_config(env_vars, {})
 
   def test_validate_config_missing_region(self) -> None:
-    env_vars: dict[str, str] = {"PROJECT_ID": "p", "APP_NAME": "a"}
+    env_vars: dict[str, str] = {"GOOGLE_CLOUD_PROJECT": "p", "APP_NAME": "a"}
     with self.assertRaises(SystemExit):
       render_agent_config.validate_config(env_vars, {})
 
   def test_validate_config_missing_app_name(self) -> None:
-    env_vars: dict[str, str] = {"PROJECT_ID": "p", "REGION": "r"}
+    env_vars: dict[str, str] = {"GOOGLE_CLOUD_PROJECT": "p", "REGION": "r"}
     with self.assertRaises(SystemExit):
       render_agent_config.validate_config(env_vars, {})
 
   def test_validate_config_project_id_conflict(self) -> None:
-    env_vars = {"PROJECT_ID": "new-p", "REGION": "r", "APP_NAME": "a"}
+    env_vars = {"GOOGLE_CLOUD_PROJECT": "new-p", "REGION": "r", "APP_NAME": "a"}
     state_data = {"project_id": "old-p", "region": "r", "app_name": "a"}
     with mock.patch.object(builtins, "print") as mock_print:
       with self.assertRaises(SystemExit):
@@ -388,7 +388,7 @@ class TestRenderAgentConfig(unittest.TestCase):
       mock_print.assert_any_call("❌ Error: Conflict in 'project_id'.")
 
   def test_validate_config_region_conflict(self) -> None:
-    env_vars = {"PROJECT_ID": "p", "REGION": "new-r", "APP_NAME": "a"}
+    env_vars = {"GOOGLE_CLOUD_PROJECT": "p", "REGION": "new-r", "APP_NAME": "a"}
     state_data = {"project_id": "p", "region": "old-r", "app_name": "a"}
     with mock.patch.object(builtins, "print") as mock_print:
       with self.assertRaises(SystemExit):
@@ -396,7 +396,7 @@ class TestRenderAgentConfig(unittest.TestCase):
       mock_print.assert_any_call("❌ Error: Conflict in 'region'.")
 
   def test_validate_config_app_name_conflict(self) -> None:
-    env_vars = {"PROJECT_ID": "p", "REGION": "r", "APP_NAME": "new-a"}
+    env_vars = {"GOOGLE_CLOUD_PROJECT": "p", "REGION": "r", "APP_NAME": "new-a"}
     state_data = {"project_id": "p", "region": "r", "app_name": "old-a"}
     with mock.patch.object(builtins, "print") as mock_print:
       with self.assertRaises(SystemExit):
@@ -404,7 +404,7 @@ class TestRenderAgentConfig(unittest.TestCase):
       mock_print.assert_any_call("❌ Error: Conflict in 'app_name'.")
 
   def test_validate_config_success_with_state(self) -> None:
-    env_vars: dict[str, str] = {"PROJECT_ID": "p", "REGION": "r", "APP_NAME": "a"}
+    env_vars: dict[str, str] = {"GOOGLE_CLOUD_PROJECT": "p", "REGION": "r", "APP_NAME": "a"}
     state_data: dict[str, Any] = {"project_id": "p", "region": "r", "app_name": "a"}
     # No exception means success
     render_agent_config.validate_config(env_vars, state_data)
@@ -453,7 +453,7 @@ class TestRenderAgentConfig(unittest.TestCase):
     """Tests that invalid JSON in DATASTORE_IMPORTS causes exit."""
     mock_exists.return_value = True
     mock_dotenv.return_value = {
-        "PROJECT_ID": "p",
+        "GOOGLE_CLOUD_PROJECT": "p",
         "REGION": "r",
         "APP_NAME": "a",
         "DATASTORE_IMPORTS": "{invalid json}",
@@ -481,7 +481,7 @@ class TestRenderAgentConfig(unittest.TestCase):
     """Tests that non-dictionary JSON in DATASTORE_IMPORTS causes exit."""
     mock_exists.return_value = True
     mock_dotenv.return_value = {
-        "PROJECT_ID": "p",
+        "GOOGLE_CLOUD_PROJECT": "p",
         "REGION": "r",
         "APP_NAME": "a",
         "DATASTORE_IMPORTS": '["not", "a", "dict"]',
@@ -509,7 +509,7 @@ class TestRenderAgentConfig(unittest.TestCase):
 
     # We enable 'agri.biochar_advice' which requires a datastore, but provide None
     mock_dotenv.return_value = {
-        "PROJECT_ID": "p",
+        "GOOGLE_CLOUD_PROJECT": "p",
         "REGION": "r",
         "APP_NAME": "a",
         "SUB_AGENTS_OF_ROOT_AGENT": "agri.biochar_advice",
