@@ -15,7 +15,8 @@
  */
 
 import {HttpClient} from '@angular/common/http';
-import {beforeEach, bootstrap, describe, expect, it, setupModule,} from 'google3/javascript/angular2/testing/catalyst/fake_async';
+import {ComponentFixture, getTestBed, TestBed} from '@angular/core/testing';
+import {BrowserDynamicTestingModule, platformBrowserDynamicTesting} from '@angular/platform-browser-dynamic/testing';
 import {of} from 'rxjs';
 
 import {InstallerStateService} from '../../../core/services/installer-state.service';
@@ -26,8 +27,10 @@ import {StepViewConfigComponent} from './step_view_config.component';
 describe('StepViewConfigComponent', () => {
   let httpClientSpy: jasmine.SpyObj<HttpClient>;
   let installerStateServiceSpy: jasmine.SpyObj<InstallerStateService>;
+  let component: StepViewConfigComponent;
+  let fixture: ComponentFixture<StepViewConfigComponent>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     httpClientSpy = jasmine.createSpyObj('HttpClient', ['get', 'post']);
     installerStateServiceSpy = jasmine.createSpyObj(
       'InstallerStateService',
@@ -67,17 +70,24 @@ describe('StepViewConfigComponent', () => {
       },
     } as InstallerState);
 
-    setupModule({
-      imports: [StepViewConfigComponent],
-      providers: [
-        {provide: HttpClient, useValue: httpClientSpy},
-        {provide: InstallerStateService, useValue: installerStateServiceSpy},
-      ],
-    });
+    await TestBed
+        .configureTestingModule({
+          imports: [StepViewConfigComponent],
+          providers: [
+            {provide: HttpClient, useValue: httpClientSpy},
+            {
+              provide: InstallerStateService,
+              useValue: installerStateServiceSpy
+            },
+          ],
+        })
+        .compileComponents();
+
+    fixture = TestBed.createComponent(StepViewConfigComponent);
+    component = fixture.componentInstance;
   });
 
   it('should create', () => {
-    const component = bootstrap(StepViewConfigComponent);
     expect(component).toBeTruthy();
   });
 });
