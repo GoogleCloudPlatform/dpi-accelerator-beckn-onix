@@ -101,13 +101,17 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
         this.scrollToBottom();
       });
 
-    this.deployInfraForm.valueChanges.pipe(
-      takeUntil(this.unsubscribe$),
-      debounceTime(300),
-      distinctUntilChanged((prev: DeployInfraFormValue, curr: DeployInfraFormValue) => JSON.stringify(prev) === JSON.stringify(curr))
-    ).subscribe((value: DeployInfraFormValue) => {
-      this.installerStateService.updateAppNameAndSize(value.appName, value.deploymentSize);
-    });
+    this.deployInfraForm.valueChanges
+        .pipe(
+            takeUntil(this.unsubscribe$), debounceTime(300),
+            distinctUntilChanged(
+                (prev: DeployInfraFormValue, curr: DeployInfraFormValue) =>
+                    JSON.stringify(prev) === JSON.stringify(curr)))
+        .subscribe(() => {
+          const rawValue = this.deployInfraForm.getRawValue();
+          this.installerStateService.updateAppNameAndSize(
+              rawValue.appName, rawValue.deploymentSize);
+        });
   }
 
   ngOnDestroy(): void {

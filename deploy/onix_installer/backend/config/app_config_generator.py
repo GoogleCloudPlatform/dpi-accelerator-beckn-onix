@@ -98,6 +98,7 @@ def _prepare_app_template_context(request: ConfigGenerationRequest, infra_output
 
         "suffix": request.app_name,
         "registry_url": str(request.registry_url),
+        "domains": request.domain_names,
 
         "adapter": request.adapter_config.model_dump() if request.adapter_config else {},
         "registry": request.registry_config.model_dump(),
