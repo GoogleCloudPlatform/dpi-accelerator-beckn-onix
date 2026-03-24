@@ -244,6 +244,7 @@ def main():
   # Remove reserved deployment-time variables from the
   # agent's runtime environment
   for reserved_env_var in [
+      "GOOGLE_CLOUD_PROJECT",
       "REGION",
       "STAGING_BUCKET",
       "AGENT_SA_EMAIL",
