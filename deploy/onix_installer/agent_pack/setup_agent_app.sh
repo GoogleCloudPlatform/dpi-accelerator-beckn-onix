@@ -124,6 +124,13 @@ if [ -z "$GOOGLE_CLOUD_PROJECT" ] || [ -z "$REGION" ] || [ -z "$APP_NAME" ]; the
     exit 1
 fi
 
+# Ensure APP_NAME length is at most 6 characters
+if [ "${#APP_NAME}" -gt 6 ]; then
+    echo "❌ Error: APP_NAME ($APP_NAME) exceeds the maximum length of 6 characters."
+    echo "Please update APP_NAME in agent_config.env to be 6 characters or fewer."
+    exit 1
+fi
+
 # Derive STAGING_BUCKET if not provided
 if [ -z "$STAGING_BUCKET" ]; then
     STAGING_BUCKET="gs://${GOOGLE_CLOUD_PROJECT}-dpi-${APP_NAME}-bucket"
@@ -141,13 +148,13 @@ AGENT_BLUEPRINT_TAG=$(extract_env "AGENT_BLUEPRINT_TAG" "$ENV_FILE")
 if [ ! -d "$SCRIPT_DIR/dpi_agent_blueprint" ]; then
     if [ -n "$AGENT_BLUEPRINT_REPO" ]; then
         echo ">> 'dpi_agent_blueprint' not found locally. Cloning from $AGENT_BLUEPRINT_REPO..."
-        
+
         CLONE_CMD="git clone"
         if [ -n "$AGENT_BLUEPRINT_TAG" ]; then
             CLONE_CMD="$CLONE_CMD --branch $AGENT_BLUEPRINT_TAG"
         fi
         CLONE_CMD="$CLONE_CMD $AGENT_BLUEPRINT_REPO $SCRIPT_DIR/dpi_agent_blueprint"
-        
+
         if $CLONE_CMD; then
             echo "✅ Successfully cloned blueprint repository."
         else
