@@ -27,13 +27,30 @@ import (
 // MockCommandRunner is a mock for testing that captures the command.
 type MockCommandRunner struct {
 	CommandsRun [][]string
+	FailOnArgs  []string
 	ShouldError error
 }
 
 // Run captures the command arguments instead of executing them.
 func (m *MockCommandRunner) Run(cmd *exec.Cmd) error {
 	m.CommandsRun = append(m.CommandsRun, cmd.Args)
-	return m.ShouldError
+
+	// If FailOnArgs is set, check for matching arguments
+	if len(m.FailOnArgs) > 0 {
+		match := true
+		for i, arg := range m.FailOnArgs {
+			if i >= len(cmd.Args) || cmd.Args[i] != arg {
+				match = false
+				break
+			}
+		}
+		if match {
+			return m.ShouldError
+		}
+		return nil // Success if args don't match
+	}
+
+	return m.ShouldError // Default behavior (return error if provided)
 }
 
 func TestZipAndCopyPlugins(t *testing.T) {

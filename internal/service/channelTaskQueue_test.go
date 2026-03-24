@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/google/dpi-accelerator-beckn-onix/pkg/model"
-
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -126,7 +125,8 @@ func TestNewChannelTaskQueue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			q, err := NewChannelTaskQueue(tt.numWorkers, tt.parentCtx, tt.proxyP, tt.lookupP, tt.bufferSize)
+			// Updated call: ctx as first parameter
+			q, err := NewChannelTaskQueue(tt.parentCtx, tt.numWorkers, tt.proxyP, tt.lookupP, tt.bufferSize)
 
 			if tt.wantErrMsg != "" {
 				if err == nil || err.Error() != tt.wantErrMsg {
@@ -152,7 +152,8 @@ func TestNewChannelTaskQueue(t *testing.T) {
 }
 
 func TestChannelTaskQueue_SetLookupProcessor(t *testing.T) {
-	q, err := NewChannelTaskQueue(1, context.Background(), &mockTaskProcessor{}, nil, 10)
+	// Updated call: ctx as first parameter
+	q, err := NewChannelTaskQueue(context.Background(), 1, &mockTaskProcessor{}, nil, 10)
 	if err != nil {
 		t.Fatalf("Failed to create task queue: %v", err)
 	}
@@ -177,7 +178,8 @@ func TestChannelTaskQueue_SetLookupProcessor(t *testing.T) {
 
 func TestChannelTaskQueue_QueueTxn(t *testing.T) {
 	ctx := context.Background()
-	q, err := NewChannelTaskQueue(1, ctx, &mockTaskProcessor{}, &mockTaskProcessor{}, 10)
+	// Updated call: ctx as first parameter
+	q, err := NewChannelTaskQueue(ctx, 1, &mockTaskProcessor{}, &mockTaskProcessor{}, 10)
 	if err != nil {
 		t.Fatalf("Failed to create task queue: %v", err)
 	}
@@ -292,9 +294,9 @@ func TestChannelTaskQueue_QueueTxn(t *testing.T) {
 			}
 
 			// Read from channel to verify
+			// Compare the task from the channel with the one returned and the expected one
 			select {
 			case item := <-q.taskChannel:
-				// Compare the task from the channel with the one returned and the expected one
 				if diff := cmp.Diff(tt.wantTask, item.task, cmp.AllowUnexported(url.URL{})); diff != "" {
 					t.Errorf("Task in channel mismatch (-want +got):\n%s", diff)
 				}
@@ -312,10 +314,18 @@ func TestChannelTaskQueue_WorkerProcessingAndShutdown(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	mockProxyP := &mockTaskProcessor{}
-	mockLookupP := &mockTaskProcessor{}
+	// Use a channel to synchronize with background workers deterministically.
+	done := make(chan struct{}, 2)
+	signalFunc := func(ctx context.Context, task *model.AsyncTask) error {
+		done <- struct{}{}
+		return nil
+	}
 
-	q, err := NewChannelTaskQueue(2, ctx, mockProxyP, mockLookupP, 10)
+	mockProxyP := &mockTaskProcessor{processFunc: signalFunc}
+	mockLookupP := &mockTaskProcessor{processFunc: signalFunc}
+
+	// Updated call: ctx as first parameter
+	q, err := NewChannelTaskQueue(ctx, 2, mockProxyP, mockLookupP, 10)
 	if err != nil {
 		t.Fatalf("Failed to create task queue: %v", err)
 	}
@@ -333,7 +343,14 @@ func TestChannelTaskQueue_WorkerProcessingAndShutdown(t *testing.T) {
 	}
 
 	// Give workers time to process.
-	time.Sleep(100 * time.Millisecond)
+	// We wait for the signal on the channel for deterministic results under coverage.
+	for i := 0; i < 2; i++ {
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatalf("Timed out waiting for task %d to process", i)
+		}
+	}
 
 	// Assert that tasks were processed before stopping.
 	if mockProxyP.getCallCount() != 1 {
@@ -346,29 +363,37 @@ func TestChannelTaskQueue_WorkerProcessingAndShutdown(t *testing.T) {
 	// Stop workers and wait for them to finish.
 	q.StopWorkers()
 
-	// Todo: this test case gives panic: send on closed channel error, will fix this
-	// Verify that queuing a task after stopping fails.
-	// _, err = q.QueueTxn(ctx, &model.Context{Action: "search"}, nil, nil)
-	// if err == nil {
-	// 	t.Error("QueueTxn() expected an error after StopWorkers, but got nil")
-	// } else if !strings.Contains(err.Error(), "worker is shutting down") {
-	// 	t.Errorf("QueueTxn() after stop error = %v, want error containing 'worker is shutting down'", err)
-	// }
+	// Verify that queuing a task after stopping fails gracefully.
+	// Fixed: This previously caused a panic: send on closed channel.
+	_, err = q.QueueTxn(ctx, &model.Context{Action: "search"}, nil, nil)
+	if err == nil {
+		t.Error("QueueTxn() expected an error after StopWorkers, but got nil")
+	} else if !strings.Contains(err.Error(), "worker is shutting down") {
+		t.Errorf("QueueTxn() after stop error = %v, want error containing 'worker is shutting down'", err)
+	}
 }
 
 func TestChannelTaskQueue_ProcessorErrorHandling(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Use a WaitGroup to ensure deterministic processing.
+	var wg sync.WaitGroup
+	wg.Add(2)
 	processErr := errors.New("processing failed")
-	mockProxyP := &mockTaskProcessor{
-		processFunc: func(ctx context.Context, task *model.AsyncTask) error {
+	processor := func(ctx context.Context, task *model.AsyncTask) error {
+		defer wg.Done()
+		if task.Type == model.AsyncTaskTypeProxy {
 			return processErr
-		},
+		}
+		return nil
 	}
-	mockLookupP := &mockTaskProcessor{} // Succeeds
 
-	q, err := NewChannelTaskQueue(1, ctx, mockProxyP, mockLookupP, 10)
+	mockProxyP := &mockTaskProcessor{processFunc: processor}
+	mockLookupP := &mockTaskProcessor{processFunc: processor}
+
+	// Updated call: ctx as first parameter
+	q, err := NewChannelTaskQueue(ctx, 1, mockProxyP, mockLookupP, 10)
 	if err != nil {
 		t.Fatalf("Failed to create task queue: %v", err)
 	}
@@ -387,8 +412,7 @@ func TestChannelTaskQueue_ProcessorErrorHandling(t *testing.T) {
 	}
 
 	// Give worker time to process both
-	time.Sleep(100 * time.Millisecond)
-
+	wg.Wait()
 	q.StopWorkers()
 
 	// Assert that both tasks were attempted
@@ -419,7 +443,7 @@ func TestChannelTaskQueue_WorkerErrorPaths(t *testing.T) {
 
 	// Test 1: Lookup task when lookupProcessor is nil
 	// Create a queue where lookupProcessor is initially nil.
-	qNilLookup, err := NewChannelTaskQueue(1, ctx, mockProxyP, nil, 10)
+	qNilLookup, err := NewChannelTaskQueue(ctx, 1, mockProxyP, nil, 10)
 	if err != nil {
 		t.Fatalf("Failed to create task queue with nil lookup processor: %v", err)
 	}
@@ -433,7 +457,7 @@ func TestChannelTaskQueue_WorkerErrorPaths(t *testing.T) {
 
 	// Test 2: Unknown task type
 	// Use the same queue or a new one. Let's use a new one for clarity.
-	qUnknownType, err := NewChannelTaskQueue(1, ctx, mockProxyP, mockLookupP, 10)
+	qUnknownType, err := NewChannelTaskQueue(ctx, 1, mockProxyP, mockLookupP, 10)
 	if err != nil {
 		t.Fatalf("Failed to create task queue for unknown type test: %v", err)
 	}
@@ -455,6 +479,7 @@ func TestChannelTaskQueue_WorkerErrorPaths(t *testing.T) {
 	}
 
 	// Give workers time to process both scenarios
+	// We use a short sleep here as these are internal error paths that return immediately.
 	time.Sleep(100 * time.Millisecond)
 
 	qNilLookup.StopWorkers()

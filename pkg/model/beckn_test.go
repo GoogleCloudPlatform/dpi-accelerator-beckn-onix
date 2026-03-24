@@ -16,6 +16,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -191,5 +192,99 @@ func TestRole_UnmarshalYAML_Error(t *testing.T) {
 				t.Errorf("UnmarshalYAML(%q) returned error %q, want error %q", tc.yamlData, err.Error(), tc.expectedError)
 			}
 		})
+	}
+}
+
+func TestLocation_Scan(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   any
+		want    Location
+		wantErr bool
+	}{
+		{
+			name:  "ValidJSON",
+			input: []byte(`{"id": "loc1", "address": "123 Main St"}`),
+			want:  Location{ID: "loc1", Address: "123 Main St"},
+		},
+		{
+			name:  "NullValue",
+			input: nil,
+			want:  Location{},
+		},
+		{
+			name:    "InvalidType",
+			input:   123,
+			wantErr: true,
+		},
+		{
+			name:    "InvalidJSON",
+			input:   []byte(`{invalid}`),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var l Location
+			err := l.Scan(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Scan() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && !cmp.Equal(l, tt.want) {
+				t.Errorf("Scan() got = %+v, want %+v", l, tt.want)
+			}
+		})
+	}
+}
+
+func TestRole_UnmarshalYAML_DirectError(t *testing.T) {
+	// Tests the path where the unmarshal function itself returns an error
+	var r Role
+	mockErr := fmt.Errorf("unmarshal error")
+	err := r.UnmarshalYAML(func(unmarshal any) error {
+		return mockErr
+	})
+	if err != mockErr {
+		t.Errorf("UnmarshalYAML() error = %v, want %v", err, mockErr)
+	}
+}
+
+func TestLocation_Value_FieldCombinations(t *testing.T) {
+	// Tests that setting ANY single field makes Value() return a non-nil result
+	tests := []struct {
+		name     string
+		location Location
+	}{
+		{"ID", Location{ID: "1"}},
+		{"Descriptor", Location{Descriptor: &LocationDescriptor{Name: "n"}}},
+		{"MapURL", Location{MapURL: "http://map"}},
+		{"Gps", Location{Gps: "1,2"}},
+		{"City", Location{City: &City{Name: "C"}}},
+		{"State", Location{State: &State{Name: "S"}}},
+		{"Country", Location{Country: &Country{Name: "CO"}}},
+		{"Circle", Location{Circle: &Circle{Gps: "1,1"}}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.location.Value()
+			if err != nil {
+				t.Fatalf("Value() error = %v", err)
+			}
+			if got == nil {
+				t.Errorf("Value() for field %s got nil, want []byte", tt.name)
+			}
+		})
+	}
+}
+
+func TestLocation_Scan_JsonError(t *testing.T) {
+	// Specifically targets the error return from json.Unmarshal
+	var l Location
+	err := l.Scan([]byte(`{"id": invalid}`))
+	if err == nil {
+		t.Error("Scan() got nil error, want error for invalid JSON")
 	}
 }

@@ -54,8 +54,8 @@ type ChannelTaskQueue struct {
 // proxyP and lookupP are the processors for different task types.
 // bufferSize determines the capacity of the task channel.
 func NewChannelTaskQueue(
-	numWorkers int,
 	parentCtx context.Context,
+	numWorkers int,
 	proxyP taskProcessor,
 	lookupP taskProcessor,
 	bufferSize int,
@@ -145,6 +145,13 @@ func (ctq *ChannelTaskQueue) QueueTxn(ctx context.Context, reqCtx *model.Context
 		task:        task,
 	}
 	slog.DebugContext(ctx, "Queuing task", "action", reqCtx.Action, "type", task.Type, "target", task.Target)
+
+	// Check if workerCtx is already canceled.
+	// This check is needed to provide an immediate error if the queue is shutting down,
+	// preventing new tasks from entering the select block and potentially hanging.
+	if ctq.workerCtx.Err() != nil {
+		return nil, fmt.Errorf("worker is shutting down, cannot queue task")
+	}
 
 	select {
 	case ctq.taskChannel <- item:

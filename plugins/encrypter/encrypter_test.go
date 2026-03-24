@@ -195,3 +195,56 @@ func TestNew(t *testing.T) {
 		})
 	}
 }
+
+func TestEncrypt_ErrorPaths(t *testing.T) {
+	_, privateKey := generateTestKeyPair(t)
+	peerPublicKey, _ := generateTestKeyPair(t)
+
+	tests := []struct {
+		name    string
+		privKey string
+		pubKey  string
+	}{
+		{"invalid private key base64", "!!!", peerPublicKey},
+		{"invalid public key base64", privateKey, "!!!"},
+		{"short private key", base64.StdEncoding.EncodeToString([]byte("short")), peerPublicKey},
+		{"short public key", privateKey, base64.StdEncoding.EncodeToString([]byte("short"))},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &encrypter{}
+			_, err := e.Encrypt(context.Background(), "data", tt.privKey, tt.pubKey)
+			if err == nil {
+				t.Errorf("%s: Encrypt() expected error, got nil", tt.name)
+			}
+		})
+	}
+}
+
+func TestEncrypt_ValidationErrors(t *testing.T) {
+	_, validPriv := generateTestKeyPair(t)
+	validPub, _ := generateTestKeyPair(t)
+
+	tests := []struct {
+		name    string
+		privKey string
+		pubKey  string
+		wantErr string
+	}{
+		{"invalid private base64", "not-base64!", validPub, "invalid private key"},
+		{"invalid public base64", validPriv, "not-base64!", "invalid public key"},
+		{"short private key", base64.StdEncoding.EncodeToString([]byte("short")), validPub, "failed to create private key"},
+		{"short public key", validPriv, base64.StdEncoding.EncodeToString([]byte("short")), "failed to create public key"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := &encrypter{}
+			_, err := e.Encrypt(context.Background(), "test-data", tt.privKey, tt.pubKey)
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("Encrypt() error = %v, want error containing %q", err, tt.wantErr)
+			}
+		})
+	}
+}
