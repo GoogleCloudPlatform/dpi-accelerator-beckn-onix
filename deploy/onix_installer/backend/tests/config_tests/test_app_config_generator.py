@@ -204,6 +204,7 @@ class TestAppConfigGenerator(googletest.TestCase):
         app_req = models.ConfigGenerationRequest(
             app_name="test-app",
             components={"bap": True, "bpp": False, "gateway": True, "registry": False}, # Using string keys
+            domain_names={},
             registry_url="http://reg.example.com",
             adapter_config=models.AdapterConfig(enable_schema_validation=True),
             registry_config=models.RegistryConfig(subscriber_id="test_sub", key_id="test_key", enable_auto_approver=True),
@@ -256,6 +257,7 @@ class TestAppConfigGenerator(googletest.TestCase):
         app_req = models.ConfigGenerationRequest(
             app_name="test-app",
             components={},
+            domain_names={},
             registry_url="http://reg.example.com",
             registry_config=models.RegistryConfig(subscriber_id="test_sub", key_id="test_key", enable_auto_approver=True),
         )
@@ -501,6 +503,7 @@ class TestAppConfigGenerator(googletest.TestCase):
         req = models.ConfigGenerationRequest(
             app_name="test-app",
             components={"bap": True},
+            domain_names={},
             registry_url="http://mock-reg.com",
             registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id")
         )
@@ -531,6 +534,7 @@ class TestAppConfigGenerator(googletest.TestCase):
         req = models.ConfigGenerationRequest(
             app_name="test-app",
             components={"gateway": True},
+            domain_names={},
             registry_url="http://mock-reg.com",
             registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id")
         )
@@ -562,6 +566,7 @@ class TestAppConfigGenerator(googletest.TestCase):
         req = models.ConfigGenerationRequest(
             app_name="test-app",
             components={"bap": True},
+            domain_names={},
             registry_url="http://mock-reg.com",
             registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id")
         )
@@ -592,6 +597,7 @@ class TestAppConfigGenerator(googletest.TestCase):
         req = models.ConfigGenerationRequest(
             app_name="test-app",
             components={"gateway": True},
+            domain_names={},
             registry_url="http://mock-reg.com",
             registry_config=models.RegistryConfig(subscriber_id="sub_id", key_id="key_id")
         )
