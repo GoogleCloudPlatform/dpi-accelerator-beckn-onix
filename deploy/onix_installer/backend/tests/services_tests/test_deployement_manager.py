@@ -20,6 +20,8 @@ import logging
 import re
 from unittest.mock import MagicMock, AsyncMock, patch, call
 
+from absl.testing import absltest as googletest
+
 from core import models
 
 from config import app_config_generator
@@ -492,4 +494,4 @@ class TestDeploymentManager(unittest.IsolatedAsyncioTestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    googletest.main()

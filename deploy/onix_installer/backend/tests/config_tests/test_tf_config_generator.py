@@ -17,10 +17,9 @@ import os
 import logging
 from unittest.mock import patch
 
+from absl.testing import absltest as googletest
 from core import models
 from config import tf_config_generator
-
-# Added comment to force refresh
 
 class TestTerraformConfigGenerator(unittest.TestCase):
 
@@ -390,4 +389,4 @@ class TestTerraformConfigGenerator(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    googletest.main()
