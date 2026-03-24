@@ -279,3 +279,55 @@ func TestNewDecrypter(t *testing.T) {
 		})
 	}
 }
+
+func TestDecrypt_ErrorPaths(t *testing.T) {
+	receiverPrivateKeyB64, _ := generateTestKeys(t)
+	_, senderPublicKeyB64 := generateTestKeys(t)
+
+	tests := []struct {
+		name string
+		data string
+	}{
+		{"InvalidCiphertextBase64", "!!!"},
+		{"CiphertextTooShort", base64.StdEncoding.EncodeToString([]byte("tiny"))},
+		{"DecryptionFailureCorrupted", base64.StdEncoding.EncodeToString(make([]byte, 32))},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := &decrypter{}
+			_, err := d.Decrypt(context.Background(), tt.data, receiverPrivateKeyB64, senderPublicKeyB64)
+			if err == nil {
+				t.Errorf("%s: Decrypt() expected error, got nil", tt.name)
+			}
+		})
+	}
+}
+
+func TestDecrypt_ValidationErrors(t *testing.T) {
+	priv, _ := generateTestKeys(t)
+	_, pub := generateTestKeys(t)
+
+	tests := []struct {
+		name    string
+		data    string
+		privKey string
+		pubKey  string
+		wantErr string
+	}{
+		{"invalid data base64", "not-base64!", priv, pub, "failed to decode encrypted data"},
+		{"ciphertext too short", base64.StdEncoding.EncodeToString([]byte("short")), priv, pub, "encrypted data is too short"},
+		{"decryption failure", base64.StdEncoding.EncodeToString(make([]byte, 64)), priv, pub, "failed to decrypt data"},
+		{"invalid keys", "YmFzZTY0", "invalid", "invalid", "invalid private key"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := &decrypter{}
+			_, err := d.Decrypt(context.Background(), tt.data, tt.privKey, tt.pubKey)
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("Decrypt() error = %v, want error containing %q", err, tt.wantErr)
+			}
+		})
+	}
+}

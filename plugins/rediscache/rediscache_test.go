@@ -513,3 +513,22 @@ func TestCloseError(t *testing.T) {
 		})
 	}
 }
+
+func TestNew_ConfigErrors(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("MissingAddr", func(t *testing.T) {
+		_, _, err := New(ctx, map[string]string{"password": "pw"})
+		if err == nil || !strings.Contains(err.Error(), "missing required config 'addr'") {
+			t.Errorf("New() expected 'addr' error, got %v", err)
+		}
+	})
+
+	t.Run("PingFailure", func(t *testing.T) {
+		// Provide an unreachable address to trigger the Ping error path
+		_, _, err := New(ctx, map[string]string{"addr": "localhost:1"})
+		if err == nil || !strings.Contains(err.Error(), "failed to connect to redis") {
+			t.Errorf("New() expected connection error, got %v", err)
+		}
+	})
+}

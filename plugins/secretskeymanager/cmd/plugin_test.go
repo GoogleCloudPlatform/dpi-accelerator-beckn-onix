@@ -17,6 +17,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -172,6 +173,23 @@ func TestKeyMgrProviderNewErrors(t *testing.T) {
 				t.Errorf("expected error containing '%s', got '%v'", tt.errContains, err)
 			}
 		})
+	}
+}
+
+func TestKeyMgrProviderNew_ErrorPath(t *testing.T) {
+	config := map[string]string{"projectID": "test"}
+	originalNewKeyManager := newKeyManager
+	defer func() { newKeyManager = originalNewKeyManager }()
+
+	mockErr := fmt.Errorf("mock initialization error")
+	newKeyManager = func(ctx context.Context, cache plugin.Cache, registry plugin.RegistryLookup, cfg *keymgr.Config) (plugin.KeyManager, func() error, error) {
+		return nil, nil, mockErr
+	}
+
+	provider := keyMgrProvider{}
+	_, _, err := provider.New(context.Background(), &mockCache{}, &mockRegistry{}, config)
+	if !strings.Contains(err.Error(), mockErr.Error()) {
+		t.Errorf("New() error = %v, want error containing %v", err, mockErr)
 	}
 }
 

@@ -15,6 +15,7 @@
 package main
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -323,5 +324,113 @@ func TestConfig_Valid_Error(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestRun_InitializationErrors(t *testing.T) {
+	// Save the original configPath and restore it after the test
+	oldPath := configPath
+	defer func() { configPath = oldPath }()
+
+	ctx := context.Background()
+
+	tests := []struct {
+		name    string
+		path    string
+		wantErr string
+	}{
+		{
+			name:    "run fails on missing config file",
+			path:    "testdata/non_existent.yaml",
+			wantErr: "failed to read config file",
+		},
+		{
+			name:    "run fails on validation error",
+			path:    "testdata/invalid_config_missing_server.yaml",
+			wantErr: "missing required config section: server",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			configPath = tt.path
+			err := run(ctx)
+			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("run() error = %v, want error containing %q", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestConfig_Valid_Comprehensive(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     *config
+		wantErr string
+	}{
+		{
+			name: "missing registry baseURL",
+			cfg: &config{
+				Log:       &log.Config{Level: "INFO"},
+				Server:    &serverConfig{Port: 8080},
+				Timeouts:  &timeoutConfig{Read: 1 * time.Second},
+				Registry:  &client.RegistryClientConfig{BaseURL: ""},
+				ProjectID: "test", RedisAddr: "redis", SubscriberID: "sub",
+			},
+			wantErr: "missing registry base URL",
+		},
+		{
+			name: "invalid port high",
+			cfg: &config{
+				Log:       &log.Config{Level: "INFO"},
+				Server:    &serverConfig{Port: 70000},
+				Timeouts:  &timeoutConfig{Read: 1 * time.Second},
+				Registry:  &client.RegistryClientConfig{BaseURL: "http://test"},
+				ProjectID: "test", RedisAddr: "redis", SubscriberID: "sub",
+			},
+			wantErr: "invalid server port: 70000",
+		},
+		{
+			name: "apply defaults successfully",
+			cfg: &config{
+				Log:       &log.Config{Level: "INFO"},
+				Server:    &serverConfig{Port: 8080},
+				Timeouts:  &timeoutConfig{Read: 1 * time.Second},
+				Registry:  &client.RegistryClientConfig{BaseURL: "http://test"},
+				ProjectID: "test", RedisAddr: "redis", SubscriberID: "sub",
+				// HTTPClientRetry and KeyManagerCacheTTL are nil
+			},
+			wantErr: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.cfg.valid()
+			if tt.wantErr != "" {
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Errorf("valid() error = %v, want error containing %q", err, tt.wantErr)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("valid() unexpectedly failed: %v", err)
+				}
+				// Verify defaults were actually applied
+				if tt.cfg.HTTPClientRetry == nil || tt.cfg.HTTPClientRetry.RetryMax != 1 {
+					t.Errorf("HTTPClientRetry defaults not applied")
+				}
+			}
+		})
+	}
+}
+
+func TestInitConfig_UnmarshalFailure(t *testing.T) {
+	path := "testdata/invalid_yaml.yaml"
+	cfg, err := initConfig(path)
+	if cfg != nil || err == nil {
+		t.Fatal("initConfig() should have failed on invalid YAML")
+	}
+	if !strings.Contains(err.Error(), "failed to unmarshal config data") {
+		t.Errorf("initConfig(%q) = %v, want error containing %q", path, err, "failed to unmarshal config data")
 	}
 }

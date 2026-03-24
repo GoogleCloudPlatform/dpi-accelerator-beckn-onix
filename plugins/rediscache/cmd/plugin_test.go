@@ -247,3 +247,13 @@ func TestNewCloseError(t *testing.T) {
 		t.Errorf("expected error: close failed, got: %v", err)
 	}
 }
+
+func TestCacheProviderNew_MissingAddr(t *testing.T) {
+	ctx := context.Background()
+	provider := cacheProvider{}
+	// rediscache.New returns an error if "addr" is missing
+	_, _, err := provider.New(ctx, map[string]string{"password": "pass"})
+	if err == nil {
+		t.Error("New() with missing 'addr' expected error, got nil")
+	}
+}
