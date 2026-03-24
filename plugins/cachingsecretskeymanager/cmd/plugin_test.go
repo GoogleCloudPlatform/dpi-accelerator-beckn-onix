@@ -218,6 +218,66 @@ func TestKeyMgrProviderNewErrors(t *testing.T) {
 	}
 }
 
+func TestKeyMgrProviderNew_NilCacheDisablesFlags(t *testing.T) {
+	config := map[string]string{
+		"projectID":             "test-project",
+		"cachingSubscriberKeys": "true",
+		"cachingNetworkKeys":    "true",
+	}
+
+	originalNewKeyManager := newKeyManager
+	defer func() { newKeyManager = originalNewKeyManager }()
+
+	var capturedCfg *keymgr.Config
+	newKeyManager = func(ctx context.Context, cache plugin.Cache, registry plugin.RegistryLookup, cfg *keymgr.Config) (plugin.KeyManager, func() error, error) {
+		capturedCfg = cfg
+		return &mockKeyManager{}, func() error { return nil }, nil
+	}
+
+	provider := keyMgrProvider{}
+	_, _, err := provider.New(context.Background(), nil, &mockRegistry{}, config)
+	if err != nil {
+		t.Fatalf("New() failed unexpectedly: %v", err)
+	}
+	if capturedCfg == nil {
+		t.Fatal("capturedCfg is nil, expected it to be populated by newKeyManager")
+	}
+
+	if capturedCfg.SubscriberKeysCache || capturedCfg.NetworkKeysCache {
+		t.Error("New() with nil cache expected caching flags to be false, but they were true")
+	}
+}
+
+func TestKeyMgrProviderNew_EdgeCases(t *testing.T) {
+	provider := keyMgrProvider{}
+	ctx := context.Background()
+
+	t.Run("invalid boolean in config", func(t *testing.T) {
+		cfg := map[string]string{"projectID": "p", "cachingSubscriberKeys": "not-a-bool"}
+		_, _, err := provider.New(ctx, &mockCache{}, &mockRegistry{}, cfg)
+		if err == nil || !strings.Contains(err.Error(), "invalid value for cachingSubscriberKeys") {
+			t.Errorf("New() with bad bool expected error, got %v", err)
+		}
+	})
+
+	t.Run("nil cache disables flags", func(t *testing.T) {
+		original := newKeyManager
+		defer func() { newKeyManager = original }()
+
+		var captured *keymgr.Config
+		newKeyManager = func(ctx context.Context, c plugin.Cache, r plugin.RegistryLookup, cfg *keymgr.Config) (plugin.KeyManager, func() error, error) {
+			captured = cfg
+			return &mockKeyManager{}, func() error { return nil }, nil
+		}
+
+		config := map[string]string{"projectID": "p", "cachingSubscriberKeys": "true"}
+		_, _, _ = provider.New(ctx, nil, &mockRegistry{}, config)
+		if captured.SubscriberKeysCache {
+			t.Error("Expected SubscriberKeysCache to be disabled when cache is nil")
+		}
+	})
+}
+
 // mockCache implements the Cache interface for testing.
 type mockCache struct {
 	get    func(ctx context.Context, key string) (string, error)
