@@ -49,7 +49,8 @@ locals {
     "sqladmin.googleapis.com",
     "redis.googleapis.com",
     "servicenetworking.googleapis.com",
-    "telemetry.googleapis.com"
+    "telemetry.googleapis.com",
+    "secretmanager.googleapis.com"
   ]
 }
 
