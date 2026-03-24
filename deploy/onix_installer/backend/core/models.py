@@ -51,7 +51,7 @@ class InfraDeploymentRequest(BaseModel):
     region: NonEmptyStr
     app_name: NonEmptyStr
     type: DeploymentType
-    components: Dict[str, bool]
+    components: dict[str, bool]
     # Expected keys for components: "gateway", "registry", "bap", "bpp"
     enable_cloud_armor: bool | None = False
     rate_limit_count: int | None = 100
@@ -60,7 +60,7 @@ class AdapterConfig(BaseModel):
     """
     Configuration specific to the Adapter service.
     """
-    enable_schema_validation: Optional[bool] = False
+    enable_schema_validation: bool | None = False
 
 class RegistryConfig(BaseModel):
     """
@@ -68,7 +68,7 @@ class RegistryConfig(BaseModel):
     """
     subscriber_id: NonEmptyStr
     key_id: NonEmptyStr
-    enable_auto_approver: Optional[bool] = False
+    enable_auto_approver: bool | None = False
 
 class GatewayConfig(BaseModel):
     """
@@ -80,13 +80,13 @@ class SecurityConfig(BaseModel):
     """
     Configuration specific to security policies.
     """
-    enable_inbound_auth: Optional[bool] = False
-    issuer_url: Optional[str] = None
-    idclaim: Optional[str] = None
-    allowed_values: Optional[list[str]] = None
-    jwks_content: Optional[str] = None
-    enable_outbound_auth: Optional[bool] = False
-    aud_overrides: Optional[str] = None
+    enable_inbound_auth: bool | None = False
+    issuer_url: str | None = None
+    idclaim: str | None = None
+    allowed_values: list[str] | None = None
+    jwks_content: str | None = None
+    enable_outbound_auth: bool | None = False
+    aud_overrides: str | None = None
 
     @model_validator(mode='after')
     def validate_inbound_auth_requirements(self) -> 'SecurityConfig':

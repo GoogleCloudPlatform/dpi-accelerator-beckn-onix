@@ -23,6 +23,7 @@ from unittest.mock import MagicMock, AsyncMock, patch, call
 
 import fastapi
 from google.auth.exceptions import GoogleAuthError
+from absl.testing import absltest as googletest
 
 # Import the module under test
 from services import gcp_resource_manager
@@ -203,4 +204,4 @@ class TestGcpUtils(unittest.IsolatedAsyncioTestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    googletest.main()

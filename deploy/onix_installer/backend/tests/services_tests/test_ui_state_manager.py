@@ -16,6 +16,7 @@ import json
 import unittest
 from unittest.mock import patch, mock_open, MagicMock
 import os
+from absl.testing import absltest as googletest
 
 # Import the functions and logger to be tested
 from services import ui_state_manager
@@ -48,11 +49,11 @@ class TestUIStateManager(unittest.TestCase):
         """
         mock_json_content = '{"key1": "value1", "key2": 42}'
         m = mock_open(read_data=mock_json_content)
-        
+
         with patch('os.path.exists', return_value=True), \
              patch('os.path.getsize', return_value=len(mock_json_content)), \
              patch('builtins.open', m):
-            
+
             result = ui_state_manager.load_all_data()
             expected = {"key1": "value1", "key2": 42}
             self.assertEqual(result, expected)
@@ -66,12 +67,12 @@ class TestUIStateManager(unittest.TestCase):
         """
         mock_corrupted_content = '{"key1": "value1", "key2":}' # Invalid JSON
         m = mock_open(read_data=mock_corrupted_content)
-        
+
         with patch('os.path.exists', return_value=True), \
              patch('os.path.getsize', return_value=len(mock_corrupted_content)), \
              patch('builtins.open', m), \
              self.assertLogs(ui_state_manager.logger, level='WARNING') as cm: # Capture log output
-            
+
             result = ui_state_manager.load_all_data()
             self.assertEqual(result, {})
             # Check if the correct warning was logged
@@ -89,7 +90,7 @@ class TestUIStateManager(unittest.TestCase):
              patch('os.path.getsize', return_value=100), \
              patch('builtins.open', m), \
              self.assertLogs(ui_state_manager.logger, level='ERROR') as cm:
-            
+
             result = ui_state_manager.load_all_data()
             self.assertEqual(result, {})
             self.assertIn("Error reading UI state file", cm.output[0])
@@ -101,13 +102,13 @@ class TestUIStateManager(unittest.TestCase):
         """
         m = mock_open()
         data_to_save = {"user": "test", "is_active": True}
-        
+
         with patch('builtins.open', m):
             ui_state_manager._save_data(data_to_save)
-            
+
             # Check that the file was opened in write mode
             m.assert_called_once_with('dummy/path/ui_state.json', 'w')
-            
+
             # json.dump with an indent calls write multiple times.
             # We can get the handle from the mock and check the full content written.
             handle = m()
@@ -140,14 +141,14 @@ class TestUIStateManager(unittest.TestCase):
 
         # The new items to be stored
         items_to_store = {"new_key": "new_value", "existing_key": "updated_value"}
-        
+
         # Act: call the function we are testing
         ui_state_manager.store_bulk_values(items_to_store)
 
         # Assert
         # 1. Ensure load_all_data was called
         mock_load_data.assert_called_once()
-        
+
         # 2. Ensure _save_data was called with the correctly merged dictionary
         expected_data_to_save = {
             "existing_key": "updated_value", 
@@ -163,13 +164,13 @@ class TestUIStateManager(unittest.TestCase):
         # This test is somewhat dependent on the project structure.
         # It assumes the 'backend' directory is one level up from the 'services' directory.
         expected_path_fragment = os.path.join('onix_installer', 'backend', 'ui_state.json')
-        
+
         actual_path = ui_state_manager._get_db_file_path()
-        
+
         # Instead of asserting the full absolute path (which can be brittle),
         # we check if the constructed path ends with the expected structure.
         self.assertTrue(actual_path.endswith(expected_path_fragment))
 
 
 if __name__ == '__main__':
-    unittest.main(argv=['first-arg-is-ignored'], exit=False)
+    googletest.main()
