@@ -19,11 +19,12 @@ from unittest.mock import patch, MagicMock, call
 
 import urllib
 
+from absl.testing import absltest as googletest
 from core import models
 from config import app_config_generator
 
 
-class TestAppConfigGenerator(unittest.TestCase):
+class TestAppConfigGenerator(googletest.TestCase):
 
     def setUp(self):
         self.patcher_tf_dir = patch('config.app_config_generator.TERRAFORM_DIRECTORY', '/mock/tf_output')
@@ -940,4 +941,4 @@ class TestAppConfigGenerator(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    googletest.main()

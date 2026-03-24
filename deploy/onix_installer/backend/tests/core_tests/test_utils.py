@@ -21,10 +21,7 @@ from unittest.mock import patch, mock_open, MagicMock, AsyncMock, call
 from jinja2 import TemplateNotFound
 import logging
 
-# Ensure the project root is in the path for imports
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-sys.path.insert(0, project_root)
-
+from absl.testing import absltest as googletest
 from core import utils
 from core.constants import ANSI_ESCAPE_PATTERN # Import constants to use in test
 
@@ -54,11 +51,11 @@ class TestCoreUtils(unittest.IsolatedAsyncioTestCase): # Changed to IsolatedAsyn
         template_dir = "/tmp/templates"
         template_name = "test.j2"
         context = {"name": "World"}
-        
+
         result = utils.render_jinja_template(template_dir, template_name, context)
-        
+
         MockFileSystemLoader.assert_called_once_with(template_dir)
-        
+
         mock_loader_instance = MockFileSystemLoader.return_value
 
         MockEnvironment.assert_called_once_with(
@@ -66,7 +63,7 @@ class TestCoreUtils(unittest.IsolatedAsyncioTestCase): # Changed to IsolatedAsyn
             trim_blocks=True,
             lstrip_blocks=True
         )
-        
+
         mock_env_instance.get_template.assert_called_once_with(template_name)
         mock_template.render.assert_called_once_with(context)
         self.assertEqual(result, "rendered content")
@@ -87,7 +84,7 @@ class TestCoreUtils(unittest.IsolatedAsyncioTestCase): # Changed to IsolatedAsyn
 
         with self.assertRaisesRegex(FileNotFoundError, "Jinja2 template not found"):
             utils.render_jinja_template(template_dir, template_name, context)
-        
+
         self.mock_logger.error.assert_called_once_with(
             f"Jinja2 template not found: '{os.path.join(template_dir, template_name)}'"
         )
@@ -108,7 +105,7 @@ class TestCoreUtils(unittest.IsolatedAsyncioTestCase): # Changed to IsolatedAsyn
 
         with self.assertRaisesRegex(RuntimeError, "Error rendering template 'error.j2': Rendering error"):
             utils.render_jinja_template(template_dir, template_name, context)
-        
+
         self.mock_logger.exception.assert_called_once()
 
     @patch('builtins.open', new_callable=mock_open, read_data="file content")
@@ -202,7 +199,7 @@ class TestCoreUtils(unittest.IsolatedAsyncioTestCase): # Changed to IsolatedAsyn
         file_path = "/tmp/dir/output.txt"
         content_to_write = "hello world"
         utils.write_file_content(file_path, content_to_write)
-        
+
         mock_dirname.assert_called_once_with(file_path)
         mock_makedirs.assert_called_once_with("/tmp/dir", exist_ok=True)
         mock_file.assert_called_once_with(file_path, 'w')
@@ -222,7 +219,7 @@ class TestCoreUtils(unittest.IsolatedAsyncioTestCase): # Changed to IsolatedAsyn
 
         with self.assertRaisesRegex(IOError, "Disk full"):
             utils.write_file_content(file_path, content_to_write)
-        
+
         mock_dirname.assert_called_once_with(file_path)
         mock_makedirs.assert_called_once_with("/tmp/dir", exist_ok=True)
         mock_file.assert_called_once_with(file_path, 'w')
@@ -376,6 +373,34 @@ class TestCoreUtils(unittest.IsolatedAsyncioTestCase): # Changed to IsolatedAsyn
         self.assertEqual(mock_websocket.send_text.call_count, 1)
         self.mock_logger.info.assert_called_once_with(f"[{stream_name}] Actual content here")
 
+    async def test_stream_subprocess_output_invalid_utf8(self):
+        mock_process = MagicMock(spec=asyncio.subprocess.Process)
+        mock_process.stdout = AsyncMock()
+        # \xff is an invalid UTF-8 byte.
+        # It will be replaced by the Unicode replacement character \ufffd.
+        mock_process.stdout.readline.side_effect = [b"valid", b"invalid \xff byte", b""]
+
+        mock_websocket = AsyncMock()
+        await utils.stream_subprocess_output(mock_process, mock_websocket, "test")
+
+        # Verify that the invalid byte was replaced by the replacement character.
+        # json.dumps escapes non-ASCII characters as \ufffd by default.
+        expected_data = {"type": "log", "action": "test", "message": "invalid \ufffd byte"}
+        expected_json = json.dumps(expected_data)
+
+        mock_websocket.send_text.assert_any_call(expected_json)
+
+        mock_websocket.send_text.assert_any_call(json.dumps({
+            "type": "log", "action": "test", "message": "valid"
+        }))
+
+    @patch('builtins.open', new_callable=mock_open, read_data="- item1\n- item2")
+    def test_read_yaml_file_non_dict(self, mock_file):
+        file_path = "/tmp/list.yaml"
+        # Even though the hint says -> dict, safe_load can return a list
+        content = utils.read_yaml_file(file_path)
+        self.assertEqual(content, ["item1", "item2"])
+
 
 if __name__ == '__main__':
-    unittest.main()
+    googletest.main()

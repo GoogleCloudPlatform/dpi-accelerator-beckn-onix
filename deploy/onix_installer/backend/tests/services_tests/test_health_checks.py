@@ -19,6 +19,7 @@ import logging
 from unittest.mock import MagicMock, AsyncMock, patch, call
 import httpx
 
+from absl.testing import absltest as googletest
 from services import health_checks
 
 class TestHealthChecks(unittest.IsolatedAsyncioTestCase):
@@ -403,4 +404,4 @@ class TestHealthChecks(unittest.IsolatedAsyncioTestCase):
         self.mock_logger.warning.assert_not_called()
 
 if __name__ == '__main__':
-    unittest.main()
+    googletest.main()
