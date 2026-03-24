@@ -26,6 +26,7 @@ import * as yaml from 'js-yaml';
 
 import {ApiService} from '../../../core/services/api.service';
 import {InstallerStateService} from '../../../core/services/installer-state.service';
+import {removeEmptyValues} from '../../../shared/utils';
 
 
 
@@ -78,8 +79,27 @@ export class StepViewConfigComponent implements OnInit {
     const payload = this.installerService.getCurrentState();
     const securityConfig = payload.appDeploySecurityConfig;
 
+    const potentialDomainNames = {
+      registry:
+          payload.subdomainConfigs?.find((c: any) => c.component === 'registry')
+              ?.subdomainName,
+      registry_admin: payload.subdomainConfigs
+                          ?.find((c: any) => c.component === 'registry_admin')
+                          ?.subdomainName,
+      subscriber: payload.subdomainConfigs
+                      ?.find((c: any) => c.component === 'subscriber')
+                      ?.subdomainName,
+      gateway:
+          payload.subdomainConfigs?.find((c: any) => c.component === 'gateway')
+              ?.subdomainName,
+      adapter:
+          payload.subdomainConfigs?.find((c: any) => c.component === 'adapter')
+              ?.subdomainName
+    };
+
     const hardcodedPayload = {
       'app_name': payload.appName,
+      'domain_names': removeEmptyValues(potentialDomainNames),
       'components': {
         'bap': payload.deploymentGoal.bap,
         'bpp': payload.deploymentGoal.bpp,
@@ -112,7 +132,15 @@ export class StepViewConfigComponent implements OnInit {
         'enable_outbound_auth': securityConfig.enableOutBoundAuth || false,
         'aud_overrides': securityConfig.enableOutBoundAuth ?
             (securityConfig.audOverrides || '') :
-            ''
+            '',
+        'idclaim': securityConfig.enableInBoundAuth ?
+            (securityConfig.idclaim || '') :
+            '',
+        'allowed_values': securityConfig.enableInBoundAuth ?
+            (securityConfig.allowedValues ?
+                 securityConfig.allowedValues.split(',').map(s => s.trim()) :
+                 []) :
+            []
       } :
                                           undefined
     };

@@ -128,6 +128,7 @@ class ConfigGenerationRequest(BaseModel):
     adapter_config: AdapterConfig| None = None
     gateway_config: GatewayConfig | None = None
     security_config: SecurityConfig | None = None
+    domain_names: dict[str, NonEmptyStr] = {}
 
 
     
