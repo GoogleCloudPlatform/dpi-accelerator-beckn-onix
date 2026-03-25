@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,7 +34,9 @@ import {Router} from '@angular/router';
 import {Observable, Subject, Subscription} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
+import {ApiService} from '../../../core/services/api.service';
 import {InstallerStateService} from '../../../core/services/installer-state.service';
+import {removeEmptyValues} from '../../../shared/utils';
 import {AppDeployAdapterConfig, AppDeployGatewayConfig, AppDeployImageConfig, AppDeployRegistryConfig, AppDeploySecurityConfig, DeploymentGoal, InstallerState} from '../../types/installer.types';
 
 // Custom async validator for JWKS file content
@@ -94,6 +96,8 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
   @ViewChild('componentConfigTabs') componentConfigTabs!: MatTabGroup;
   @ViewChild('adapterSubTabs') adapterSubTabs!: MatTabGroup;
 
+  @ViewChild('jwkFileInput') jwkFileInput!: ElementRef<HTMLInputElement>;
+
   imageConfigForm!: FormGroup;
   registryConfigForm!: FormGroup;
   gatewayConfigForm!: FormGroup;
@@ -105,7 +109,6 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
   isAppDeploying: boolean = false;
   selectedJwkFileName?: string|' ';
 
-
   installerState!: InstallerState;
   private unsubscribe$ = new Subject<void>();
 
@@ -114,14 +117,15 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
   currentInternalStep: number = 0;
   totalInternalSteps: number = 0;
 
+  isGeneratingConfigs: boolean = false;
+  configGenerationError: string|null = null;
+
   constructor(
       private fb: FormBuilder,
       private installerStateService: InstallerStateService,
-      protected cdr: ChangeDetectorRef,
-      private clipboard: Clipboard,
-      private router: Router,
-      private snackBar: MatSnackBar,
-  ) {}
+      protected cdr: ChangeDetectorRef, private clipboard: Clipboard,
+      private router: Router, private snackBar: MatSnackBar,
+      private apiService: ApiService) {}
 
   ngOnInit(): void {
     this.initializeForms();
@@ -155,7 +159,6 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
             issuerUrlCtrl?.setValidators([Validators.required]);
             idClaimCtrl?.setValidators([Validators.required]);
             allowedValuesCtrl?.setValidators([Validators.required]);
-            // jwksFile is optional
             jwksFileCtrl?.clearValidators();
           } else {
             issuerUrlCtrl?.clearValidators();
@@ -209,7 +212,7 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
       issuerUrl: [''],
       idclaim: [''],
       allowedValues: [''],
-      jwksFile: ['', null, jwksJsonValidator],  // Apply the async validator
+      jwksFile: ['', null, jwksJsonValidator],
       audOverrides: [''],
     });
   }
@@ -219,26 +222,42 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
 
     if (file) {
       this.selectedJwkFileName = file.name;
-
-      // Update your form control. Assuming you kept the name 'jwksUrl' or
-      // renamed it to 'jwkFile'
       this.securityConfigForm.patchValue({jwksFile: file}, {emitEvent: true});
-
-      // Mark as touched so validators trigger and errors are shown.
       this.securityConfigForm.get('jwksFile')?.markAsTouched();
     } else {
-      // If file selection is cancelled or no file is selected, clear the
-      // control.
       this.selectedJwkFileName = undefined;
       this.securityConfigForm.patchValue({jwksFile: ''}, {emitEvent: true});
       this.securityConfigForm.get('jwksFile')?.updateValueAndValidity();
     }
   }
 
+  clearJwkFile(event: Event): void {
+    event.stopPropagation();
+
+    this.selectedJwkFileName = undefined;
+    this.securityConfigForm.patchValue({jwksFile: ''}, {emitEvent: true});
+    this.securityConfigForm.get('jwksFile')?.markAsUntouched();
+    this.securityConfigForm.get('jwksFile')?.setErrors(null);
+    this.securityConfigForm.get('jwksFile')?.updateValueAndValidity();
+
+    if (this.jwkFileInput && this.jwkFileInput.nativeElement) {
+      this.jwkFileInput.nativeElement.value = '';
+    }
+
+    // Immediately wipe the file content from the global state
+    const currentState = this.installerStateService.getCurrentState();
+    if (currentState.appDeploySecurityConfig) {
+      this.installerStateService.updateAppDeploySecurityConfig({
+        ...currentState.appDeploySecurityConfig,
+        jwksFileContent: '',
+        jwksFileName: ''
+      });
+    }
+  }
+
   private updateTabVisibility(goal: DeploymentGoal): void {
     this.showGatewayTab = goal.all || goal.gateway;
-    this.showAdapterTab = goal.all ||
-      goal.bap || goal.bpp;
+    this.showAdapterTab = goal.all || goal.bap || goal.bpp;
   }
 
   private setConditionalImageFormValidators(goal: DeploymentGoal): void {
@@ -285,8 +304,7 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
     if (state.appDeployImageConfig) {
       this.imageConfigForm.patchValue(state.appDeployImageConfig, { emitEvent: false });
     } else {
-      const imagePatchObject: { [key: string]: string |
-        undefined } = {};
+      const imagePatchObject: {[key: string]: string|undefined} = {};
       if (state.deploymentGoal.all || state.deploymentGoal.registry) {
         imagePatchObject['registryImageUrl'] = state.dockerImageConfigs?.find(c => c.component === 'registry')?.imageUrl;
         imagePatchObject['registryAdminImageUrl'] = state.dockerImageConfigs?.find(c => c.component === 'registry_admin')?.imageUrl;
@@ -342,62 +360,46 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
     if (state.appDeploySecurityConfig) {
       this.securityConfigForm.patchValue(
           state.appDeploySecurityConfig, {emitEvent: false});
+
+      // Restore the File object so the UI and validators know it exists
+      if (state.appDeploySecurityConfig.jwksFileContent) {
+        this.selectedJwkFileName =
+            state.appDeploySecurityConfig.jwksFileName || 'uploaded-jwks.json';
+
+        const restoredFile = new File(
+            [state.appDeploySecurityConfig.jwksFileContent],
+            this.selectedJwkFileName, {type: 'application/json'});
+
+        this.securityConfigForm.patchValue(
+            {jwksFile: restoredFile}, {emitEvent: false});
+      }
     }
   }
 
   get isAppConfigValid(): boolean {
-    console.log('--- Checking isAppConfigValid ---');
-
     if (this.imageConfigForm.invalid) {
-      console.log('isAppConfigValid: false (imageConfigForm is invalid)');
-      console.log('Image Form Errors:', this.imageConfigForm.errors);
-      console.log('Image Form Controls status:', this.imageConfigForm.controls);
       return false;
     }
     if (this.registryConfigForm.invalid) {
-      console.log('isAppConfigValid: false (registryConfigForm is invalid)');
-      console.log('Registry Form Errors:', this.registryConfigForm.errors);
-      console.log('Registry Form Controls status:', this.registryConfigForm.controls);
       return false;
     }
 
     const goal = this.installerState.deploymentGoal;
-    console.log('Deployment Goal:', goal);
 
     if ((goal.all || goal.gateway)) {
-      console.log('Gateway deployment enabled. Checking gatewayConfigForm...');
       if (this.gatewayConfigForm.invalid) {
-        console.log('isAppConfigValid: false (gatewayConfigForm is invalid)');
-        console.log('Gateway Form Errors:', this.gatewayConfigForm.errors);
-        console.log('Gateway Form Controls status:', this.gatewayConfigForm.controls);
         return false;
-      } else {
-        console.log('gatewayConfigForm is valid.');
       }
-    } else {
-      console.log('Gateway deployment not enabled. Skipping gatewayConfigForm check.');
     }
 
     if (goal.all || goal.bap || goal.bpp) {
-      console.log('Adapter deployment enabled. Checking adapterConfigForm...');
-      // Mark adapter form as touched here to show errors immediately
       this.adapterConfigForm.markAllAsTouched();
       if (this.adapterConfigForm.invalid) {
-        console.log('isAppConfigValid: false (adapterConfigForm is invalid)');
-        console.log('Adapter Form Errors:', this.adapterConfigForm.errors);
-        console.log('Adapter Form Controls status:', this.adapterConfigForm.controls);
         return false;
-      } else {
-        console.log('adapterConfigForm is valid.');
       }
-
-    } else {
-      console.log('Adapter/BAP/BPP deployment not enabled. Skipping adapterConfigForm and file checks.');
     }
 
     if (this.securityConfigForm.invalid) {
-      console.log('isAppConfigValid: false (securityConfigForm is invalid)');
-      console.log('Security Form Errors:', this.securityConfigForm.errors);
       return false;
     }
 
@@ -425,31 +427,20 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
   }
 
   private updateTotalInternalSteps(): void {
-    let count = 2;
-    // Image Config (0) + Registry Config (1) are always visible
-
-    if (this.showGatewayTab) {
-      count++;
-    }
-    if (this.showAdapterTab) {
-      count++;
-    }
-    // Security Config
-    count++;
+    let count = 2;  // Image Config (0) + Registry Config (1) are always visible
+    if (this.showGatewayTab) count++;
+    if (this.showAdapterTab) count++;
+    count++;  // Security Config
     this.totalInternalSteps = count;
-    console.log('totalInternalSteps:', this.totalInternalSteps);
   }
 
   public isLastConfigTabActive(): boolean {
     if (!this.componentConfigTabs) {
-      console.log('isLastConfigTabActive: componentConfigTabs not ready.');
       return false;
     }
     const currentSelectedMainTabIndex = this.componentConfigTabs.selectedIndex;
     const lastExpectedTabIndex = this.totalInternalSteps - 1;
-    const isLast = currentSelectedMainTabIndex === lastExpectedTabIndex;
-    console.log(`isLastConfigTabActive: current main tab index = ${currentSelectedMainTabIndex}, expected last tab index = ${lastExpectedTabIndex}, is last = ${isLast}`);
-    return isLast;
+    return currentSelectedMainTabIndex === lastExpectedTabIndex;
   }
 
   public isCurrentMainTabValid(): boolean {
@@ -469,7 +460,6 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
     if (this.showAdapterTab) {
       visibleTabs.push({ index: visibleTabs.length, form: this.adapterConfigForm, name: 'Adapter Config' });
     }
-
     visibleTabs.push({
       index: visibleTabs.length,
       form: this.securityConfigForm,
@@ -508,7 +498,6 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
           this.cdr.detectChanges();
         } else {
           this.router.navigate(['installer', 'domain-configuration']);
-          console.log('Emitting goBackToPreviousWizardStep event...');
         }
       }
     }
@@ -532,9 +521,7 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
         this.cdr.detectChanges();
       } else {
         let adapterTabIndex = 2;
-        if (this.showGatewayTab) {
-          adapterTabIndex = 3;
-        }
+        if (this.showGatewayTab) adapterTabIndex = 3;
 
         if (this.componentConfigTabs) {
           this.componentConfigTabs.selectedIndex = adapterTabIndex - 1;
@@ -546,12 +533,9 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
   }
 
   private saveCurrentTabConfigToState(currentTabIndex: number): void {
-    let formToSave: FormGroup |
-      null = null;
+    let formToSave: FormGroup|null = null;
     let formName: string = '';
 
-    // Determine which form is active based on the current tab index
-    // Assuming the order of tabs is consistent: Image (0), Registry (1), Gateway (if visible), Adapter (if visible)
     if (currentTabIndex === 0) {
       formToSave = this.imageConfigForm;
       formName = 'Image Config';
@@ -587,9 +571,6 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
           this.installerStateService.updateAppDeploySecurityConfig(
               formToSave.getRawValue());
         }
-        console.log(`Saved ${formName} config to state.`);
-      } else {
-        console.warn(`Form ${formName} is invalid. Not saving to state.`);
       }
     }
   }
@@ -597,9 +578,7 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
   private readFileContent(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => {
-        resolve(reader.result as string);
-      };
+      reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
       reader.readAsText(file);
     });
@@ -621,10 +600,18 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.installerStateService.updateAppDeployImageConfig(this.imageConfigForm.getRawValue());
+    this.installerStateService.updateAppDeployRegistryConfig(this.registryConfigForm.getRawValue());
+    if (this.showGatewayTab) {
+      this.installerStateService.updateAppDeployGatewayConfig(this.gatewayConfigForm.getRawValue());
+    }
+    if (this.showAdapterTab) {
+      this.installerStateService.updateAppDeployAdapterConfig(this.adapterConfigForm.getRawValue());
+    }
+
     const securityConfigRaw = this.securityConfigForm.getRawValue();
     let jwksContent = '';
 
-    // Process the JWKS file if inbound auth is enabled
     if (securityConfigRaw.enableInBoundAuth) {
       const jwksFileControl = this.securityConfigForm.get('jwksFile');
       if (jwksFileControl && !jwksFileControl.errors &&
@@ -645,25 +632,11 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
                 panelClass: ['error-snackbar'],
               });
           this.cdr.detectChanges();
-          return;  // Stop navigation if file parsing fails
+          return;
         }
       }
     }
 
-    // Update State
-    this.installerStateService.updateAppDeployImageConfig(
-        this.imageConfigForm.getRawValue());
-    this.installerStateService.updateAppDeployRegistryConfig(
-        this.registryConfigForm.getRawValue());
-    if (this.showGatewayTab)
-      this.installerStateService.updateAppDeployGatewayConfig(
-          this.gatewayConfigForm.getRawValue());
-    if (this.showAdapterTab)
-      this.installerStateService.updateAppDeployAdapterConfig(
-          this.adapterConfigForm.getRawValue());
-
-    // Replace the raw File object with the processed string before saving to
-    // state
     const finalSecurityConfigToSave: AppDeploySecurityConfig = {
       enableInBoundAuth: securityConfigRaw.enableInBoundAuth,
       enableOutBoundAuth: securityConfigRaw.enableOutBoundAuth,
@@ -671,15 +644,145 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
       idclaim: securityConfigRaw.idclaim,
       allowedValues: securityConfigRaw.allowedValues,
       audOverrides: securityConfigRaw.audOverrides,
-      jwksFileContent:
-          jwksContent,  // Storing the parsed string instead of the File
+      jwksFileContent: jwksContent,
+      jwksFileName: this.selectedJwkFileName
     };
+
     this.installerStateService.updateAppDeploySecurityConfig(
         finalSecurityConfigToSave);
 
-    this.installerStateService.updateState({isAppConfigValid: true});
+    // --- API CALL LOGIC STARTS HERE ---
+    this.isGeneratingConfigs = true;
+    this.configGenerationError = null;
+    this.cdr.detectChanges();
 
-    // Navigate to the next step
-    void this.router.navigate(['installer', 'view-config']);
+    const payloadState = this.installerStateService.getCurrentState();
+
+    const potentialDomainNames = {
+      registry: payloadState.subdomainConfigs
+                    ?.find((c: any) => c.component === 'registry')
+                    ?.subdomainName,
+      registry_admin: payloadState.subdomainConfigs
+                          ?.find((c: any) => c.component === 'registry_admin')
+                          ?.subdomainName,
+      subscriber: payloadState.subdomainConfigs
+                      ?.find((c: any) => c.component === 'subscriber')
+                      ?.subdomainName,
+      gateway: payloadState.subdomainConfigs
+                   ?.find((c: any) => c.component === 'gateway')
+                   ?.subdomainName,
+      adapter: payloadState.subdomainConfigs
+                   ?.find((c: any) => c.component === 'adapter')
+                   ?.subdomainName
+    };
+
+    const isDeployingGateway = payloadState.deploymentGoal.gateway ||
+        payloadState.deploymentGoal.all || false;
+    const isDeployingAdapter = payloadState.deploymentGoal.bap ||
+        payloadState.deploymentGoal.bpp || payloadState.deploymentGoal.all ||
+        false;
+    const isDeployingRegistry = payloadState.deploymentGoal.registry ||
+        payloadState.deploymentGoal.all || false;
+
+    const fullPayload: any = {
+      'app_name': payloadState.appName,
+      'domain_names': removeEmptyValues(potentialDomainNames),
+      'components': {
+        'bap': payloadState.deploymentGoal.bap || false,
+        'bpp': payloadState.deploymentGoal.bpp || false,
+        'registry': isDeployingRegistry,
+        'gateway': isDeployingGateway,
+        'adapter': isDeployingAdapter
+      },
+      'registry_url': payloadState.appDeployRegistryConfig?.registryUrl,
+      'registry_config': {
+        'subscriber_id':
+            payloadState.appDeployRegistryConfig?.registrySubscriberId || '',
+        'key_id': payloadState.appDeployRegistryConfig?.registryKeyId || '',
+        'enable_auto_approver':
+            payloadState.appDeployRegistryConfig?.enableAutoApprover || false
+      }
+    };
+
+    if (isDeployingGateway) {
+      fullPayload.gateway_config = {
+        'subscriber_id':
+            payloadState.appDeployGatewayConfig?.gatewaySubscriptionId || ''
+      };
+    }
+
+    if (isDeployingAdapter) {
+      fullPayload.adapter_config = {
+        'enable_schema_validation':
+            payloadState.appDeployAdapterConfig?.enableSchemaValidation || false
+      };
+    }
+
+    if (finalSecurityConfigToSave.enableInBoundAuth ||
+        finalSecurityConfigToSave.enableOutBoundAuth) {
+      fullPayload.security_config = {
+        'enable_inbound_auth':
+            finalSecurityConfigToSave.enableInBoundAuth || false,
+        'issuer_url': finalSecurityConfigToSave.enableInBoundAuth ?
+            (finalSecurityConfigToSave.issuerUrl || '') :
+            '',
+        'jwks_content': finalSecurityConfigToSave.enableInBoundAuth ?
+            (finalSecurityConfigToSave.jwksFileContent || '') :
+            '',
+        'enable_outbound_auth':
+            finalSecurityConfigToSave.enableOutBoundAuth || false,
+        'aud_overrides': finalSecurityConfigToSave.enableOutBoundAuth ?
+            (finalSecurityConfigToSave.audOverrides || '') :
+            '',
+        'idclaim': finalSecurityConfigToSave.enableInBoundAuth ?
+            (finalSecurityConfigToSave.idclaim || '') :
+            '',
+        'allowed_values': finalSecurityConfigToSave.enableInBoundAuth ?
+            (finalSecurityConfigToSave.allowedValues ?
+                 finalSecurityConfigToSave.allowedValues.split(',').map(
+                     s => s.trim()) :
+                 []) :
+            []
+      };
+    }
+
+    this.apiService.postConfigs(fullPayload).subscribe({
+      next: () => {
+        this.isGeneratingConfigs = false;
+        this.installerStateService.updateState({isAppConfigValid: true});
+        this.router.navigate(['installer', 'view-config']);
+      },
+      error: (err) => {
+        console.error('Config generation failed:', err);
+        this.isGeneratingConfigs = false;
+
+        let errorMsg =
+            'Failed to generate configurations. Please check your inputs and try again.';
+        if (err.status === 422 && err.error && err.error.detail) {
+          if (Array.isArray(err.error.detail)) {
+            const missingFields =
+                err.error.detail
+                    .map((d: any) => `${d.loc.join('.')} (${d.msg})`)
+                    .join(', ');
+            errorMsg = `Backend Validation Error: ${missingFields}`;
+          } else {
+            errorMsg = `Validation Error: ${JSON.stringify(err.error.detail)}`;
+          }
+        } else if (err.error && err.error.message) {
+          errorMsg = err.error.message;
+        }
+
+        this.configGenerationError = errorMsg;
+
+        // Show fallback toast notification
+        this.snackBar.open(this.configGenerationError, 'Close', {
+          duration: 7000,
+          panelClass: ['error-snackbar'],
+        });
+
+        this.cdr.markForCheck();
+        this.cdr.detectChanges();
+      }
+    });
   }
 }
