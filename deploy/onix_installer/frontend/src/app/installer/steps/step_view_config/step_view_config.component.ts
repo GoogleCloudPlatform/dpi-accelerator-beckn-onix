@@ -70,91 +70,10 @@ export class StepViewConfigComponent implements OnInit {
       private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-    this.generateAndLoadConfigs();
+    this.fetchFilePaths();
   }
 
-  generateAndLoadConfigs() {
-    this.isLoading = true;
-    // Step 1: Generate Configs using data from InstallerService
-    const payload = this.installerService.getCurrentState();
-    const securityConfig = payload.appDeploySecurityConfig;
 
-    const potentialDomainNames = {
-      registry:
-          payload.subdomainConfigs?.find((c: any) => c.component === 'registry')
-              ?.subdomainName,
-      registry_admin: payload.subdomainConfigs
-                          ?.find((c: any) => c.component === 'registry_admin')
-                          ?.subdomainName,
-      subscriber: payload.subdomainConfigs
-                      ?.find((c: any) => c.component === 'subscriber')
-                      ?.subdomainName,
-      gateway:
-          payload.subdomainConfigs?.find((c: any) => c.component === 'gateway')
-              ?.subdomainName,
-      adapter:
-          payload.subdomainConfigs?.find((c: any) => c.component === 'adapter')
-              ?.subdomainName
-    };
-
-    const hardcodedPayload = {
-      'app_name': payload.appName,
-      'domain_names': removeEmptyValues(potentialDomainNames),
-      'components': {
-        'bap': payload.deploymentGoal.bap,
-        'bpp': payload.deploymentGoal.bpp,
-        'registry': payload.deploymentGoal.registry,
-        'gateway': payload.deploymentGoal.gateway
-      },
-      'registry_url': payload.appDeployRegistryConfig?.registryUrl,
-      'registry_config': {
-        'subscriber_id': payload.appDeployRegistryConfig?.registrySubscriberId,
-        'key_id': payload.appDeployRegistryConfig?.registryKeyId,
-        'enable_auto_approver':
-            payload.appDeployRegistryConfig?.enableAutoApprover
-      },
-      'adapter_config': {
-        'enable_schema_validation':
-            payload.appDeployAdapterConfig?.enableSchemaValidation
-      },
-      'gateway_config': {
-        'subscriber_id': payload.appDeployGatewayConfig?.gatewaySubscriptionId
-      },
-
-      'security_config': securityConfig ? {
-        'enable_inbound_auth': securityConfig.enableInBoundAuth || false,
-        'issuer_url': securityConfig.enableInBoundAuth ?
-            (securityConfig.issuerUrl || '') :
-            '',
-        'jwks_content': securityConfig.enableInBoundAuth ?
-            (securityConfig.jwksFileContent || '') :
-            '',
-        'enable_outbound_auth': securityConfig.enableOutBoundAuth || false,
-        'aud_overrides': securityConfig.enableOutBoundAuth ?
-            (securityConfig.audOverrides || '') :
-            '',
-        'idclaim': securityConfig.enableInBoundAuth ?
-            (securityConfig.idclaim || '') :
-            '',
-        'allowed_values': securityConfig.enableInBoundAuth ?
-            (securityConfig.allowedValues ?
-                 securityConfig.allowedValues.split(',').map(s => s.trim()) :
-                 []) :
-            []
-      } :
-                                          undefined
-    };
-
-    // console.log(hardcodedPayload);
-
-    this.apiService.postConfigs(hardcodedPayload).subscribe({
-      next: () => this.fetchFilePaths(),
-      error: (err) => {
-        console.error(err);
-        this.isLoading = false;
-      }
-    });
-  }
 
   fetchFilePaths() {
     this.apiService.getConfigPaths().subscribe(res => {
@@ -224,12 +143,18 @@ export class StepViewConfigComponent implements OnInit {
       next: (res) => {
         this.fileContent = res.content;
 
-            this.originalFileContent = res.content;
-            this.isEditing = true;
-            this.isLoading = false;
-          },
-          error: () => this.isLoading = false
-        });
+        this.originalFileContent = res.content;
+        this.isEditing = true;
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.isLoading = false;
+
+        // Add this line here as well just in case of an error
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   private findMissingValue(data: any, prefix: string = ''): string|null {
@@ -260,52 +185,59 @@ export class StepViewConfigComponent implements OnInit {
   onSave() {
     // 1. Clear previous errors
     this.validationError = null;
-    let parsedData: any;
+    let parsedDocuments: any[] = [];
 
     // 2. Client-Side Validation
     try {
-      // Attempt to load the YAML. If the syntax is invalid, this throws an
-      // error. We don't strictly need the result, just checking if it throws.
-      parsedData = yaml.load(this.fileContent);
+      // Use loadAll to support multi-document YAML files (separated by "---")
+      yaml.loadAll(this.fileContent, (doc) => {
+        parsedDocuments.push(doc);
+      });
     } catch (e: any) {
       // 3. Handle Invalid YAML
       console.error('YAML Validation Error:', e);
-
-      // js-yaml errors are very descriptive (line numbers, reason).
-      // We extract the message to show the user.
       this.validationError = `Invalid YAML: ${e.message}`;
-      return;  // <--- STOP here. Do not call API.
+      this.cdr
+          .detectChanges();  // <--- ADDED: Triggers UI to show the YAML error
+      return;                // Stop execution
     }
 
-    const missingField = this.findMissingValue(parsedData);
-
-    if (missingField) {
-      this.validationError = `Configuration Error: The value for '${
-          missingField}' cannot be empty.`;
-      return;  // <--- STOP here
+    // 4. Check for missing values across all YAML documents in the file
+    for (const doc of parsedDocuments) {
+      const missingField = this.findMissingValue(doc);
+      if (missingField) {
+        this.validationError = `Configuration Error: The value for '${
+            missingField}' cannot be empty.`;
+        this.cdr.detectChanges();  // <--- ADDED: Triggers UI to show missing
+                                   // field error
+        return;                    // Stop execution
+      }
     }
 
-
-    // 3. NEW: Check for changes before saving
+    // 5. Check for changes before saving
     if (this.fileContent !== this.originalFileContent) {
       console.log('File content changed. Marking state as modified.');
       this.installerService.updateState({isConfigChanged: true});
     }
 
-
+    // 6. Proceed to Save
     this.isSaving = true;
+    this.cdr.detectChanges();  // <--- ADDED: Triggers UI to show "Saving..."
+                               // spinner on button
+
     const payload = {path: this.currentFile.path, content: this.fileContent};
 
     this.apiService.updateConfigData(payload).subscribe({
       next: () => {
         this.isSaving = false;
         this.isEditing = false;
-        // Optional: Show a success toast here
         this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
         this.isSaving = false;
-        this.cdr.detectChanges();
+        this.validationError = 'Failed to save changes. Please try again.';
+        this.cdr
+            .detectChanges();  // <--- ADDED: Show API error if backend fails
       }
     });
   }
@@ -315,10 +247,6 @@ export class StepViewConfigComponent implements OnInit {
     this.currentFile = null;
     this.fileContent = '';
   }
-
-  // onDeploy() {
-  //   this.router.navigate(['installer', 'health-checks'])
-  // }
 
   onBack() {
     this.router.navigate(['installer', 'app-config'])

@@ -137,6 +137,7 @@ export interface AppDeploySecurityConfig {
   idclaim: string;
   allowedValues: string;
   jwksFileContent: string;
+  jwksFileName?: string;
   audOverrides: string;
 }
 
