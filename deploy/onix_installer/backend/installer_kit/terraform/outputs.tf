@@ -75,6 +75,10 @@ output "adapter_topic_name" {
   value = var.enable_onix ? module.onix.adapter_topic_name : null
 }
 
+output "adapter_topic_full_id" {
+  value = var.enable_onix ? module.onix.adapter_topic_full_id : null
+}
+
 output "registry_database_name" {
   value = var.enable_onix ? module.onix.registry_database_name : null
 }
@@ -130,6 +134,11 @@ output "agent_db_password" {
 output "agent_app_service_account_email" {
   description = "The email of the Agent service account"
   value       = var.enable_agent ? module.agent[0].agent_app_service_account_email : null
+}
+
+output "agent_invoker_service_account_email" {
+  description = "The email of the Invoker service account"
+  value       = var.enable_agent ? module.agent[0].agent_invoker_service_account_email : null
 }
 
 output "agent_network_attachment_id" {

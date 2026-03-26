@@ -385,6 +385,17 @@ echo -e "\n====================================================="
 echo -e "All services deployed! Now enabling HTTPS Load Balancer and SSL certificate with Terraform...\n"
 
 cd modules/ONIX/phase2
+
+echo -e "\nConfiguring Remote Terraform State for ONIX Phase 2...\n"
+cat <<EOF > backend.tf
+terraform {
+  backend "gcs" {
+    bucket  = "${CONFIG_BUCKET}"
+    prefix  = "terraform/state/onix_phase2"
+  }
+}
+EOF
+
 terraform init
 terraform apply --var-file p2.tfvars -auto-approve
 # terraform plan --var-file p2.tfvars

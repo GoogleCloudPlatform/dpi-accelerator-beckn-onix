@@ -342,6 +342,8 @@ module "agent" {
   agent_sa_description  = var.agent_sa_description
   agent_sa_roles        = var.agent_sa_roles
 
+  agent_invoker_sa_account_id   = var.agent_invoker_sa_account_id
+
   depends_on = [
     module.network,
     module.db_instance,

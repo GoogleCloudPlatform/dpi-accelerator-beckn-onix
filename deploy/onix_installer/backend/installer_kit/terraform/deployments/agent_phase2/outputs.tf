@@ -12,22 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-output "adapter_ksa_name" {
-  value       = module.adapter_ksa.ksa_name
-  description = "Name of the Adapter Kubernetes Service Account."
+output "agent_dlq_topic_name" {
+  description = "The name of the Dead Letter Queue topic for the Agent Push Subscription"
+  value       = length(google_pubsub_topic.agent_dlq_topic) > 0 ? google_pubsub_topic.agent_dlq_topic[0].name : null
 }
 
-output "adapter_gsa_email" {
-  value       = module.adapter_gsa.service_account_email
-  description = "Email of the Adapter GCP Service Account."
-}
-
-output "adapter_topic_name" {
-  value       = var.adapter_topic_name
-  description = "Name of the Adapter Pub/Sub Topic."
-}
-
-output "adapter_topic_full_id" {
-  value       = module.pub_sub_topic_adapter.topic_id
-  description = "Full ID of the Adapter Pub/Sub Topic."
+output "agent_push_subscription_name" {
+  description = "The name of the Push Subscription to the Agent Engine"
+  value       = length(google_pubsub_subscription.agent_push_subscription) > 0 ? google_pubsub_subscription.agent_push_subscription[0].name : null
 }
