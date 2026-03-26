@@ -58,7 +58,7 @@ ROLES=(
   "roles/storage.admin"
   "roles/cloudsql.admin"
   "roles/redis.admin"
-  "roles/pubsub.editor"
+  "roles/pubsub.admin"
   "roles/secretmanager.admin"
   "roles/dns.admin"
   "roles/compute.securityAdmin"
@@ -78,7 +78,6 @@ for ROLE in "${ROLES[@]}"; do
       --role="$ROLE" >/dev/null \
       --condition=None
 done
-
 
 echo "Service Account $SA_EMAIL has been created and all roles have been assigned." >&2
 

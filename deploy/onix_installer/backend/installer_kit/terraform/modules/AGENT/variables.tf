@@ -91,6 +91,11 @@ variable "agent_sa_roles" {
   type        = list(string)
 }
 
+variable "agent_invoker_sa_account_id" {
+  description = "The account ID for the Agent Invoker Service Account"
+  type        = string
+}
+
 variable "datastore_imports" {
   description = "A map of datastore keys to their GCS URI for importing."
   type        = map(string)

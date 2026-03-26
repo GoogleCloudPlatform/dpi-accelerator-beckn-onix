@@ -132,7 +132,7 @@ If you prefer creating a service account manually, create a service account in t
 -   Storage Admin
 -   Cloud SQL Admin
 -   Redis Admin
--   Pub/Sub Editor
+-   Pub/Sub Admin
 -   Secret Manager Admin
 -   DNS Administrator
 -   Compute Security Admin

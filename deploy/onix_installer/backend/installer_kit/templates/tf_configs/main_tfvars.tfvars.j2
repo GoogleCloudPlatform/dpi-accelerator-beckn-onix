@@ -271,7 +271,11 @@ agent_sa_roles = [
   "roles/cloudtrace.agent",
   "roles/storage.objectViewer",
   "roles/serviceusage.serviceUsageConsumer",
+  "roles/iam.serviceAccountTokenCreator"
 ]
+
+# Agent Invoker Service Account
+agent_invoker_sa_account_id   = "agent-invoker-sa-{{ app_name }}"
 
 #--------------------------------------------- Datastore Configuration ---------------------------------------------#
 

@@ -19,8 +19,9 @@ set -e
 
 # Configuration
 TERRAFORM_FOLDERS=(
-    "./backend/installer_kit/terraform/modules/ONIX/phase2" # Destroy this first
-    "./backend/installer_kit/terraform"        # Destroy this second
+    "./backend/installer_kit/terraform/deployments/agent_phase2" # Destroy Agent Phase 2
+    "./backend/installer_kit/terraform/modules/ONIX/phase2" # Destroy ONIX Phase 2
+    "./backend/installer_kit/terraform"        # Destroy Root last
 )
 
 # Array to track only the folders that have existing state and will be destroyed.
@@ -44,6 +45,9 @@ confirm_action() {
 get_tfvars_file() {
     local folder_path="$1"
     case "$folder_path" in
+        "./backend/installer_kit/terraform/deployments/agent_phase2")
+            echo "agent_p2.tfvars"
+            ;;
         "./backend/installer_kit/terraform/modules/ONIX/phase2")
             echo "p2.tfvars"
             ;;

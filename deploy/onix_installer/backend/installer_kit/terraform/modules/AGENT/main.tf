@@ -53,6 +53,21 @@ module "agent_iam_binding" {
   depends_on  = [module.agent_service_account]
 }
 
+module "agent_invoker_service_account" {
+  source       = "../IAM_ADMIN/SERVICE_ACCOUNT"
+  account_id   = var.agent_invoker_sa_account_id
+  display_name = "Agent Invoker SA - ${var.app_name}"
+  description  = "Service Account for invoking the Vertex AI Agent Engine for app ${var.app_name}"
+}
+
+module "agent_invoker_iam_binding" {
+  source      = "../IAM_ADMIN/IAM"
+  project_id  = var.project_id
+  member_role = "roles/aiplatform.user"
+  member      = "serviceAccount:${module.agent_invoker_service_account.service_account_email}"
+  depends_on  = [module.agent_invoker_service_account]
+}
+
 # Grant the agent service account access to the secret
 resource "google_secret_manager_secret_iam_member" "agent_secret_access" {
   count     = var.provision_agent_db ? 1 : 0
