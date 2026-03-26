@@ -32,6 +32,11 @@ variable "app_name" {
   type        = string
 }
 
+variable "network_id" {
+  description = "The id of the network"
+  type        = string
+}
+
 variable "subnet_name" {
   description = "The name of the subnetwork"
   type        = string

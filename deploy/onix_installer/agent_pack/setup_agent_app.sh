@@ -319,6 +319,7 @@ echo ">> Extracting Infrastructure Details (Mode: $SESSION_DB_TYPE)..."
 REDIS_HOST=$(extract_output "redis_instance_ip") || exit 1
 NETWORK_ATTACHMENT_ID=$(extract_output "agent_network_attachment_id") || exit 1
 AGENT_SA_EMAIL=$(extract_output "agent_app_service_account_email") || exit 1
+AGENT_PROXY_IP=$(extract_output "agent_proxy_internal_ip") || exit 1
 AGENT_INVOKER_SA_EMAIL=$(extract_output "agent_invoker_service_account_email") || exit 1
 
 if [ "$SESSION_DB_TYPE" == "database" ]; then
@@ -378,6 +379,13 @@ echo "NETWORK_ATTACHMENT_ID=$NETWORK_ATTACHMENT_ID" >> "$CONSOLIDATED_ENV"
 echo "AGENT_SA_EMAIL=$AGENT_SA_EMAIL" >> "$CONSOLIDATED_ENV"
 echo "AGENT_ENGINE_LOCATION=$REGION" >> "$CONSOLIDATED_ENV"
 echo "OTEL_OBSERVABILITY_LOG_NAME=dpi-${APP_NAME}-agent-traces" >> "$CONSOLIDATED_ENV"
+
+if [ -n "$AGENT_PROXY_IP" ]; then
+    echo ">> Injecting explicit proxy configuration into env vars..."
+    echo "HTTP_PROXY=http://$AGENT_PROXY_IP:8888" >> "$CONSOLIDATED_ENV"
+    echo "HTTPS_PROXY=http://$AGENT_PROXY_IP:8888" >> "$CONSOLIDATED_ENV"
+    echo "NO_PROXY=169.254.169.254,metadata.google.internal,localhost,127.0.0.1,googleapis.com,*.googleapis.com,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16" >> "$CONSOLIDATED_ENV"
+fi
 
 echo ">> Injecting Datastore IDs into environment variables..."
 if [ "$AGENT_DATASTORE_IDS" != "{}" ]; then

@@ -323,6 +323,7 @@ module "agent" {
   app_name     = var.app_name
 
   # Networking
+  network_id                    = module.network.network_id
   subnet_name                   = module.network.subnet_name
   subnetwork_id                 = module.network.subnetwork_id
   agent_network_attachment_name = var.agent_network_attachment_name
