@@ -40,6 +40,10 @@ output "adapter_topic_name" {
   value = var.enable_onix && var.provision_adapter_infra ? module.adapter_service[0].adapter_topic_name : null
 }
 
+output "adapter_topic_full_id" {
+  value = var.enable_onix && var.provision_adapter_infra ? module.adapter_service[0].adapter_topic_full_id : null
+}
+
 output "registry_database_name" {
   value = var.enable_onix && var.provision_registry_infra ? var.registry_database_name : null
 }

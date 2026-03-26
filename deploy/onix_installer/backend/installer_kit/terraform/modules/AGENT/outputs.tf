@@ -18,6 +18,11 @@ output "agent_app_service_account_email" {
   value       = module.agent_service_account.service_account_email
 }
 
+output "agent_invoker_service_account_email" {
+  description = "The email of the Invoker service account"
+  value       = module.agent_invoker_service_account.service_account_email
+}
+
 output "db_user" {
   description = "The database user for the Agent"
   value       = var.provision_agent_db ? var.agent_db_user : null

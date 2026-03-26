@@ -319,6 +319,7 @@ echo ">> Extracting Infrastructure Details (Mode: $SESSION_DB_TYPE)..."
 REDIS_HOST=$(extract_output "redis_instance_ip") || exit 1
 NETWORK_ATTACHMENT_ID=$(extract_output "agent_network_attachment_id") || exit 1
 AGENT_SA_EMAIL=$(extract_output "agent_app_service_account_email") || exit 1
+AGENT_INVOKER_SA_EMAIL=$(extract_output "agent_invoker_service_account_email") || exit 1
 
 if [ "$SESSION_DB_TYPE" == "database" ]; then
     DB_HOST=$(extract_output "db_instance_private_ip_address") || exit 1
@@ -358,7 +359,7 @@ fi
 
 echo "✅ All required infrastructure outputs retrieved successfully."
 
-export REDIS_HOST SESSION_DB_TYPE SESSION_DB_URL DB_HOST DB_USER DB_PASS DB_NAME NETWORK_ATTACHMENT_ID AGENT_SA_EMAIL
+export REDIS_HOST SESSION_DB_TYPE SESSION_DB_URL DB_HOST DB_USER DB_PASS DB_NAME NETWORK_ATTACHMENT_ID AGENT_SA_EMAIL AGENT_INVOKER_SA_EMAIL
 
 ABS_BLUEPRINT_ENV="$ENV_FILE"
 
@@ -411,3 +412,84 @@ fi
 echo "========================================================="
 echo "✅ Agent App Deployment Complete!"
 echo "========================================================="
+
+echo "========================================================="
+echo "        Starting Phase 2 Deployment"
+echo "========================================================="
+
+POST_DEPLOY_AGENT_ID=$(jq -r '.agent_engine_id // empty' "$STATE_FILE" 2>/dev/null || echo "")
+
+if [ -z "$POST_DEPLOY_AGENT_ID" ]; then
+    echo "❌ Error: Could not determine final Agent Engine ID. Skipping Phase 2."
+else
+    echo ">> Agent Engine ID: $POST_DEPLOY_AGENT_ID"
+    # Agent Engine endpoints are namespaced differently than just the resource ID alone.
+    AGENT_ENGINE_ENDPOINT="https://${REGION}-aiplatform.googleapis.com/v1/${POST_DEPLOY_AGENT_ID}:query"
+
+    # Identify the correct Adapter Topic
+    ADAPTER_TOPIC=$(extract_env "ADAPTER_TOPIC_ID" "$ENV_FILE" || echo "")
+
+    if [ -z "$ADAPTER_TOPIC" ]; then
+        echo ">> No ADAPTER_TOPIC_ID provided in env, resolving from Phase 1 Outputs..."
+        # Extract output handles missing gracefully if wrapped properly.
+        RAW_TOPIC_OUTPUT=$(jq -r '.adapter_topic_full_id.value // empty' "$TF_DIR/outputs.json" 2>/dev/null || echo "")
+
+        if [ -n "$RAW_TOPIC_OUTPUT" ] && [ "$RAW_TOPIC_OUTPUT" != "null" ]; then
+             ADAPTER_TOPIC="$RAW_TOPIC_OUTPUT"
+        fi
+    fi
+
+    cd "$TF_DIR/deployments/agent_phase2"
+
+    ENABLE_ADAPTER_INTEGRATION="false"
+    if [ -z "$ADAPTER_TOPIC" ]; then
+         echo ">> couldn't resolve ADAPTER_TOPIC_ID. Skipping Adapter Pub/Sub Integration in Phase 2..."
+    else
+         ENABLE_ADAPTER_INTEGRATION="true"
+         echo ">> Deploying Phase 2 Subscription connecting $ADAPTER_TOPIC to $AGENT_ENGINE_ENDPOINT ..."
+    fi
+
+    if [ "$ENABLE_ADAPTER_INTEGRATION" = "true" ]; then
+         cat <<EOF > agent_p2.tfvars
+project_id                 = "${GOOGLE_CLOUD_PROJECT}"
+app_name                   = "${APP_NAME}"
+agent_invoker_sa_email     = "${AGENT_INVOKER_SA_EMAIL}"
+enable_adapter_integration = ${ENABLE_ADAPTER_INTEGRATION}
+adapter_topic_id           = "${ADAPTER_TOPIC}"
+agent_engine_endpoint_url  = "${AGENT_ENGINE_ENDPOINT}"
+EOF
+
+         echo ">> Configuring Remote Terraform State for Phase 2..."
+         cat <<EOF > backend.tf
+terraform {
+  backend "gcs" {
+    bucket  = "${BUCKET_NAME}"
+    prefix  = "terraform/state/agent_phase2"
+  }
+}
+EOF
+
+         echo ">> Initializing Phase 2 Terraform..."
+         terraform init
+
+         echo ">> Applying Phase 2 Terraform..."
+         terraform apply -var-file="agent_p2.tfvars" -auto-approve
+
+         terraform output -json > phase2_outputs.json
+         DLQ_TOPIC=$(jq -r '.agent_dlq_topic_name.value // empty' phase2_outputs.json 2>/dev/null || echo "")
+
+         echo "✅ Phase 2 Deployment Complete!"
+    fi
+fi
+
+echo ""
+echo "========================================================="
+echo "✅ Agent App Deployment Script Finished!"
+echo "========================================================="
+if [ -n "$POST_DEPLOY_AGENT_ID" ]; then
+    echo "Agent Engine ID: $POST_DEPLOY_AGENT_ID"
+    echo "Agent Engine URL: $AGENT_ENGINE_ENDPOINT"
+    echo "Agent Invoker SA: $AGENT_INVOKER_SA_EMAIL"
+    echo "Dead Letter Topic: $DLQ_TOPIC"
+echo "========================================================="
+fi
