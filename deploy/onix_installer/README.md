@@ -125,6 +125,7 @@ If you prefer creating a service account manually, create a service account in t
 
 -   Compute Network Admin
 -   Compute Load Balancer Admin
+-   Compute Instance Admin (v1)
 -   Kubernetes Engine Admin
 -   Service Account Admin
 -   Project IAM Admin

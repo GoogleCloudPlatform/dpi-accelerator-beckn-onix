@@ -116,6 +116,16 @@ module "network_attachment" {
   subnetworks             = [var.subnetwork_id]
 }
 
+# Proxy VM for outbound internet access
+module "proxy_vm" {
+  source        = "../COMPUTE_ENGINE/PROXY_VM"
+  project_id    = var.project_id
+  region        = var.region
+  subnetwork_id = var.subnetwork_id
+  app_name      = var.app_name
+  network_id    = var.network_id
+}
+
 #--------------------------------------------- Datastore Configuration ---------------------------------------------#
 
 module "discovery_engine" {

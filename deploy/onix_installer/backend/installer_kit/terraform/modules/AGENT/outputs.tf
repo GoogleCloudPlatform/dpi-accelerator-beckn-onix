@@ -53,3 +53,8 @@ output "datastore_ids" {
   value       = { for k, v in module.discovery_engine : k => v.datastore_id }
   description = "A mapping of keys to Datastore IDs for the agent"
 }
+
+output "agent_proxy_internal_ip" {
+  value       = module.proxy_vm.network_ip
+  description = "The internal IP address of the Proxy VM"
+}

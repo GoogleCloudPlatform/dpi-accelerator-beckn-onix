@@ -155,3 +155,8 @@ output "agent_datastore_ids" {
   description = "A mapping of keys to Datastore IDs for the agent"
   value       = var.enable_agent ? module.agent[0].datastore_ids : {}
 }
+
+output "agent_proxy_internal_ip" {
+  description = "The internal IP address of the Proxy VM"
+  value       = var.enable_agent ? module.agent[0].agent_proxy_internal_ip : null
+}

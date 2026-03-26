@@ -50,6 +50,7 @@ fi
 ROLES=(
   "roles/compute.networkAdmin"
   "roles/compute.loadBalancerAdmin"
+  "roles/compute.instanceAdmin.v1"
   "roles/container.admin"
   "roles/iam.serviceAccountAdmin"
   "roles/iam.serviceAccountTokenCreator"
