@@ -172,7 +172,6 @@ describe('StepSubscribe', () => {
     it('should call the API with the correct payload when form is valid',
        () => {
          mockApiService.subscribeToNetwork.and.returnValue(of('12345'));
-         component.onSubscriptionSubmit();
          mockInstallerStateService.getCurrentState.and.returnValue({
            deploymentGoal: {all: false, bap: true, bpp: true, gateway: true},
            deployedServiceUrls: {
@@ -185,6 +184,9 @@ describe('StepSubscribe', () => {
            gcpConfiguration: {projectId: 'test-project'},
            appDeploySecurityConfig: {enableInBoundAuth: false}
          } as any);
+
+         component.onSubscriptionSubmit();
+
          const expectedPayload = {
            target_url: 'https://subscriber.beckn.org/subscribe',
            payload: {
