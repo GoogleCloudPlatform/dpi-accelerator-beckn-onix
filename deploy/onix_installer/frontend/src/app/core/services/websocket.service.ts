@@ -29,15 +29,9 @@ export class WebSocketService {
 
   constructor() {}
 
-  /**
-   * Connects to a WebSocket URL and returns an Observable for incoming messages.
-   * If a connection already exists to the same URL, it returns the existing observable.
-   * @param url The WebSocket URL to connect to.
-   * @returns An Observable of messages received from the WebSocket.
-   */
   connect(url: string): Observable<any> {
     if (!this.socket$ || this.socket$.closed) {
-      this.socket$ = webSocket({
+      this.socket$ = this.getWebSocket({
         url: url,
         openObserver: {
           next: () => {
@@ -55,6 +49,11 @@ export class WebSocketService {
       return this.socket$.pipe(shareReplay(1));
     }
     return this.socket$;
+  }
+
+  // Visible for testing
+  getWebSocket(config: any): WebSocketSubject<any> {
+    return webSocket(config);
   }
 
   /**

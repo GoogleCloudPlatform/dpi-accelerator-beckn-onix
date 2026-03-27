@@ -31,6 +31,9 @@ import {AppDeploySecurityConfig, DeploymentGoal, DeploymentStatus, InstallerStat
 
 import {StepAppConfigComponent} from './step-app-config.component';
 
+// Prevent js_scrub from stripping the imports
+const _dummyStepAppConfigComponent = StepAppConfigComponent;
+
 const initialMockState: InstallerState = {
   isConfigChanged: false,
   isConfigLocked: false,
@@ -487,4 +490,27 @@ describe('StepAppConfigComponent', () => {
 
        expect(jwksFileCtrl?.hasError('fileReadError')).toBeTrue();
      }));
+
+  it('should handle onNextTab and onPreviousTab', () => {
+    fixture.detectChanges();
+
+    component.componentConfigTabs = {selectedIndex: 0} as any;
+    component.totalInternalSteps = 3;
+
+    component.onNextTab();
+    expect(component.componentConfigTabs.selectedIndex).toBe(1);
+
+    component.onPreviousTab();
+    expect(component.componentConfigTabs.selectedIndex).toBe(0);
+  });
+
+  it('should navigate back from step 0 on onPreviousTab', () => {
+    fixture.detectChanges();
+    component.componentConfigTabs = {selectedIndex: 0} as any;
+
+    component.onPreviousTab();
+    expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith([
+      'installer', 'domain-configuration'
+    ]);
+  });
 });
