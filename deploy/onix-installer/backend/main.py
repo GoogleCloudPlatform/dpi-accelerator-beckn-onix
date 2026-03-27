@@ -16,10 +16,12 @@ import json
 import logging
 import sys
 from typing import Dict, Any
+import os
 import httpx
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from core.models import InfraDeploymentRequest, AppDeploymentRequest, ProxyRequest
 from services.gcp_resource_manager import list_google_cloud_projects, list_google_cloud_regions
@@ -44,10 +46,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/root")
 def read_root():
     logger.info("Root endpoint accessed.")
     return {"message": "FastAPI deployment server is running"}
+
 
 @app.get("/projects", response_model=list[str])
 async def get_projects():
@@ -70,6 +74,7 @@ async def get_projects():
             detail=f"An unexpected internal server error occurred: {e}"
         )
 
+
 @app.get("/regions", response_model=list[str])
 async def get_regions():
     """
@@ -89,6 +94,7 @@ async def get_regions():
             status_code=500,
             detail=f"An unexpected internal server error occurred: {e}"
         )
+
 
 @app.websocket("/ws/deployInfra")
 async def websocket_deploy_infra(websocket: WebSocket):
@@ -156,7 +162,8 @@ async def websocket_health_check(websocket: WebSocket):
     except WebSocketDisconnect:
         logger.info("Client disconnected from /ws/healthCheck.")
     except json.JSONDecodeError:
-        logger.error("Received invalid JSON from client for healthCheck. Expected a dictionary of serviceName: serviceUrl strings.")
+        logger.error(
+            "Received invalid JSON from client for healthCheck. Expected a dictionary of serviceName: serviceUrl strings.")
         await websocket.send_text(json.dumps({
             "type": "error",
             "message": "Invalid JSON received. Expected a dictionary of serviceName: serviceUrl strings."
@@ -170,7 +177,6 @@ async def websocket_health_check(websocket: WebSocket):
         if websocket.client_state == 1:
             await websocket.close()
         logger.info("WebSocket connection for /ws/healthCheck closed.")
-
 
 
 @app.post("/store/bulk", status_code=201)
@@ -245,3 +251,8 @@ async def dynamic_proxy(request: ProxyRequest) -> Any:
                 detail="An internal server error occurred."
             )
 
+# Mount the static files directory to serve the Angular frontend
+# This should come *after* all your API routes.
+# The `html=True` argument enables SPA routing, so any path that is not
+# an API route will serve the index.html file.
+app.mount("/", StaticFiles(directory="/app/static", html=True), name="static")
