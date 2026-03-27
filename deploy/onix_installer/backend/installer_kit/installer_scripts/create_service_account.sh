@@ -70,14 +70,54 @@ ROLES=(
   "roles/discoveryengine.admin"
 )
 
-# Assign each role to the service account
+# Function to check if a role is assigned to the service account
+function is_role_assigned() {
+  local role=$1
+  gcloud projects get-iam-policy "$PROJECT_ID" \
+    --flatten="bindings[].members" \
+    --format='value(bindings.role)' \
+    --filter="bindings.members:serviceAccount:$SA_EMAIL AND bindings.role='$role'" 2>/dev/null | grep -Fxq "$role"
+}
+
+# Assign each role to the service account with retry logic
+MAX_RETRIES=3
+
 echo "Assigning roles to $SA_EMAIL..." >&2
 for ROLE in "${ROLES[@]}"; do
-    echo "Assigning $ROLE..." >&2
-    gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-      --member="serviceAccount:$SA_EMAIL" \
-      --role="$ROLE" >/dev/null \
-      --condition=None
+    # Pre-assignment check
+    if is_role_assigned "$ROLE"; then
+        echo "✅ Role $ROLE is already assigned. Skipping." >&2
+        continue
+    fi
+
+    RETRY_COUNT=0
+    SUCCESS=false
+
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        echo ">> Assigning $ROLE (Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES)..." >&2
+        gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+          --member="serviceAccount:$SA_EMAIL" \
+          --role="$ROLE" >/dev/null \
+          --condition=None
+
+        # Verify if assignment was successful
+        if is_role_assigned "$ROLE"; then
+            echo "✅ Successfully assigned $ROLE." >&2
+            SUCCESS=true
+            break
+        else
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                echo "⚠️ Warning: Role $ROLE assignment verification failed. Retrying in 2 seconds..." >&2
+                sleep 2
+            fi
+        fi
+    done
+
+    if [ "$SUCCESS" = false ]; then
+        echo "❌ Error: Failed to assign role $ROLE after $MAX_RETRIES attempts." >&2
+        exit 1
+    fi
 done
 
 echo "Service Account $SA_EMAIL has been created and all roles have been assigned." >&2
