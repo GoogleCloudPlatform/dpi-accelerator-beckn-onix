@@ -1,31 +1,30 @@
 <div class="welcome-dashboard-container">
   <div class="top-bar">
     <span class="console-title">Onix Admin Console</span>
-    <span class="project-selector">Select a Project</span>
+
+    <button mat-stroked-button class="project-selector" [disabled]="true">
+      <span class="selector-text">
+        {{ selectedProjectId ? selectedProjectId : 'No Project Found' }}
+      </span>
+      <mat-icon iconPositionEnd>lock</mat-icon>
+    </button>
+
     <div class="user-avatar">R</div> 
   </div>
 
   <div class="dashboard-content">
-
+    <!-- TODO: Make an api request to backend to get the active user account to dispplay -->
     <div class="welcome-hero">
       <h1>Welcome, Rahul!</h1>
-      <p class="greeting-subtitle">
-        Create a deployment to start using the console.
-      </p>
-      <button 
-        mat-raised-button 
-        color="primary" 
-        class="create-deployment-btn" 
-        (click)="goToCreateDeployment()"> 
+      <p class="greeting-subtitle">Create a deployment to start using the console.</p>
+      <button mat-raised-button color="primary" class="create-deployment-btn" (click)="goToCreateDeployment()"> 
         Create a deployment to get started
       </button>
     </div>
 
     <div class="section active-deployments">
       <h2>Active Deployments</h2>
-      <p>
-        Create a deployment to view its status in the shared queue.
-      </p>
+      <p>Create a deployment to view its status in the shared queue.</p>
       <div class="deployment-list-placeholder"></div>
     </div>
 

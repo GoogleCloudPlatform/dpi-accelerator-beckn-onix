@@ -18,10 +18,9 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { InstallerComponent } from './installer.component';
-import { InstallerStepGuard } from '../core/guards/installer-step.guard';
 
 // Import the new step component
-import { StepWelcomeComponent } from './steps/step-welcome/step-welcome.component';
+import { WelcomeComponent } from './pages/welcome/welcome.component';
 import { StepGoalComponent } from './steps/step-goal/step-goal.component';
 import { StepPrerequisitesComponent } from './steps/step-prerequisites/step-prerequisites.component';
 import { StepGcpConnectionComponent } from './steps/step-gcp-connection/step-gcp-connection.component';
@@ -30,12 +29,16 @@ import { StepDomainConfigComponent } from './steps/step-domain-configuration/ste
 import { StepAppDeployComponent} from './steps/step-deploy-app/step-deploy-app.component';
 import { StepHealthCheck } from './steps/step-health-check/step-health-check';
 import { StepSubscribe } from './steps/step-subscribe/step-subscribe';
+
 const routes: Routes = [
   {
-    path: '',
-    component: InstallerComponent,
+    path: 'welcome',
+    component: WelcomeComponent, // new full-screen welcome page
+  },
+  {
+    path: 'steps',
+    component: InstallerComponent, // This component now only contains the steps
     children: [
-      { path: 'welcome', component: StepWelcomeComponent },
       { path: 'goal', component: StepGoalComponent},
       { path: 'prerequisites', component: StepPrerequisitesComponent},
       { path: 'gcp-connection', component: StepGcpConnectionComponent },
@@ -44,12 +47,11 @@ const routes: Routes = [
       { path: 'deploy-app', component: StepAppDeployComponent},
       { path: 'health-checks', component: StepHealthCheck },
       { path: 'subscribe', component: StepSubscribe },
-
-    //   { path: 'summary', component: undefined /* StepSummaryComponent */ /*, canActivate: [InstallerStepGuard] */ },
-      { path: '', redirectTo: 'welcome', pathMatch: 'full' }, // Redirect to welcome by default
-      { path: '**', redirectTo: 'welcome' } // Catch-all
+      { path: '', redirectTo: 'goal', pathMatch: 'full' }, // Redirect to the first step
     ]
-  }
+  },
+  { path: 'test', redirectTo: 'welcome', pathMatch: 'full' }, // Default to the new welcome page
+  { path: '**', redirectTo: 'welcome' } // Catch-all for any other route
 ];
 
 @NgModule({

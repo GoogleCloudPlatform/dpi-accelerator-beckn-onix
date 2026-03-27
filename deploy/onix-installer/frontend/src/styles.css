@@ -34,7 +34,7 @@ app-root {
   border-radius: 12px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
   overflow: hidden; 
-  max-width: 1000px; 
+  max-width: 100%; 
   width: 100%; 
   min-height: 550px; 
   height: 90vh; 

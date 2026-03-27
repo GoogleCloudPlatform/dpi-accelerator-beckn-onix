@@ -1,0 +1,93 @@
+<form [formGroup]="formGroup" class="goal-content">
+
+    <div class="scrollable-content">
+        <div class="header">
+            <h1>What is your goal today?</h1>
+            <p class="subtitle">Select an option to get started. The installer will set up the required components.</p>
+        </div>
+
+        <mat-radio-group formControlName="deploymentType" class="options-group">
+
+            <div class="option-card"
+                 [class.selected]="deploymentTypeControl.value === 'new'"
+                 (click)="deploymentTypeControl.setValue('new')">
+
+                <mat-radio-button value="new" class="card-radio-btn">
+                    <h3>Create & Deploy a New Network</h3>
+                </mat-radio-button>
+
+                <div class="description">
+                    Deploys a Registry, Gateway, and optionally a BAP/BPP adapter for a complete network setup.
+                </div>
+
+                <div class="checkbox-area-wrapper"
+                     [@expandCollapse]="deploymentTypeControl.value === 'new' ? 'expanded' : 'collapsed'">
+
+                    <div formGroupName="newNetworkComponents" class="component-checkboxes">
+                        <div class="checkbox-row label-row">
+                            <label>Select components to deploy</label>
+                        </div>
+
+                        <div class="checkbox-row">
+                            <mat-checkbox formControlName="registry" (change)="onIndividualChange(newNetworkComponentsGroup, newNetworkKeys)" (click)="$event.stopPropagation()">Registry</mat-checkbox>
+                            <mat-checkbox formControlName="gateway" (change)="onIndividualChange(newNetworkComponentsGroup, newNetworkKeys)" (click)="$event.stopPropagation()">Gateway</mat-checkbox>
+                            <mat-checkbox formControlName="bap" (change)="onIndividualChange(newNetworkComponentsGroup, newNetworkKeys)" (click)="$event.stopPropagation()">BAP</mat-checkbox>
+                            <mat-checkbox formControlName="bpp" (change)="onIndividualChange(newNetworkComponentsGroup, newNetworkKeys)" (click)="$event.stopPropagation()">BPP</mat-checkbox>
+                        </div>
+
+                        <div class="checkbox-row all-checkbox">
+                            <mat-checkbox formControlName="all" (click)="$event.stopPropagation()">All</mat-checkbox>
+                        </div>
+
+                        <mat-error *ngIf="newNetworkComponentsGroup.hasError('requireAtLeastOneCheckbox') && deploymentTypeControl.value === 'new'">
+                            Please select at least one component.
+                        </mat-error>
+                    </div>
+                </div>
+            </div>
+
+            <div class="option-card"
+                 [class.selected]="deploymentTypeControl.value === 'join'"
+                 (click)="deploymentTypeControl.setValue('join')">
+
+                <mat-radio-button value="join" class="card-radio-btn">
+                    <h3>Join an Existing Network</h3>
+                </mat-radio-button>
+
+                <div class="description">
+                    Deploys a BAP or BPP adapter to connect to an existing network.
+                </div>
+
+                <div class="checkbox-area-wrapper"
+                     [@expandCollapse]="deploymentTypeControl.value === 'join' ? 'expanded' : 'collapsed'">
+
+                    <div formGroupName="existingNetworkComponents" class="component-checkboxes">
+                        <div class="checkbox-row label-row">
+                            <label>Select components to deploy</label>
+                        </div>
+
+                        <div class="checkbox-row">
+                            <mat-checkbox formControlName="bap" (change)="onIndividualChange(existingNetworkComponentsGroup, existingNetworkKeys)" (click)="$event.stopPropagation()">BAP</mat-checkbox>
+                            <mat-checkbox formControlName="bpp" (change)="onIndividualChange(existingNetworkComponentsGroup, existingNetworkKeys)" (click)="$event.stopPropagation()">BPP</mat-checkbox>
+                        </div>
+
+                        <div class="checkbox-row all-checkbox">
+                            <mat-checkbox formControlName="all" (click)="$event.stopPropagation()">All</mat-checkbox>
+                        </div>
+
+                        <mat-error *ngIf="existingNetworkComponentsGroup.hasError('requireAtLeastOneCheckbox') && deploymentTypeControl.value === 'join'">
+                            Please select at least one component.
+                        </mat-error>
+                    </div>
+                </div>
+            </div>
+
+            <mat-error *ngIf="deploymentTypeControl.touched && deploymentTypeControl.hasError('required')">
+                Please select a deployment goal.
+            </mat-error>
+
+        </mat-radio-group>
+    </div>
+
+    <!-- REMOVED actions-footer -->
+</form>

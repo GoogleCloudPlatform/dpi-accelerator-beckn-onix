@@ -1,0 +1,89 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+}
+
+.identifiers-content {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-title {
+    font-size: 2.2em;
+    font-weight: 500;
+    margin-bottom: 10px;
+    color: #333;
+    text-align: center;
+}
+
+.description {
+    font-size: 1em;
+    color: #666;
+    margin-bottom: 30px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.full-width {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* Dynamic Tags Layout */
+.tags-list .compact-field {
+    margin-bottom: 8px !important;
+    width: 100%;
+}
+
+::ng-deep .compact-field .mat-mdc-form-field-subscript-wrapper {
+    height: 0;
+    overflow: visible;
+}
+
+::ng-deep .compact-field.ng-invalid.ng-touched .mat-mdc-form-field-subscript-wrapper {
+    height: auto;
+    display: block;
+    margin-top: 4px;
+    padding-bottom: 4px;
+}
+
+.tag-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* Add Button Container - NO negative margin here to avoid overlap */
+.add-more-container {
+    margin-top: 5px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.add-more-btn {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1a73e8;
+    text-transform: none;
+    padding: 0;
+    min-width: unset;
+    line-height: 1;
+    height: auto;
+    cursor: pointer;
+}
+
+.add-more-btn mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin-right: 4px;
+    vertical-align: middle;
+}

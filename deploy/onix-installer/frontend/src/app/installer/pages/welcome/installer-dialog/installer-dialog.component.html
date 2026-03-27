@@ -1,0 +1,58 @@
+<div class="dialog-wrapper">
+  <div class="installer-flex-container">
+    <div class="sidebar-panel">
+      <div class="stepper-title-container">
+        <span class="stepper-title">Onix 2.X Installer</span>
+        <span class="stepper-subtitle">Deploy Onix to your GCP project</span>
+      </div>
+      <div class="navigation-list">
+        <div *ngFor="let step of steps; let i = index" class="step-item"
+          [class.current]="i === currentStepIndex" [class.complete]="step.isComplete"
+          (click)="setCurrentStep(i)">
+          <div class="step-icon-wrapper">
+            <mat-icon *ngIf="step.isComplete && i !== currentStepIndex" class="complete-icon">done</mat-icon>
+            <span *ngIf="!step.isComplete || i === currentStepIndex" class="step-number">{{ i + 1 }}</span>
+          </div>
+          <span class="step-label">{{ step.label }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-panel">
+      <button mat-icon-button class="close-btn" (click)="closeDialog()"><mat-icon>close</mat-icon></button>
+
+      <div class="step-content-container" [class.no-footer-padding]="currentStepIndex === 0">
+        <div [ngSwitch]="currentStepIndex" class="switch-container">
+          <div *ngSwitchCase="0" class="step-content-wrapper welcome-wrapper">
+            <app-welcome-step [formGroup]="steps[0].form" (acknowledged)="onStepAcknowledged(0)"></app-welcome-step>
+          </div>
+          <div *ngSwitchCase="1" class="step-content-wrapper"><app-deployment-identifiers-step [formGroup]="steps[1].form"></app-deployment-identifiers-step></div>
+          <div *ngSwitchCase="2" class="step-content-wrapper"><app-goal-step [formGroup]="steps[2].form"></app-goal-step></div>
+          <div *ngSwitchCase="3" class="step-content-wrapper"><app-config-deploy-step [formGroup]="steps[3].form"></app-config-deploy-step></div>
+          <div *ngSwitchDefault class="step-content-wrapper"><h2>Placeholder</h2></div>
+        </div>
+      </div>
+
+      <div class="dialog-actions-footer step-4-footer" *ngIf="currentStepIndex === 3">
+        <div class="footer-left-info">
+          <div>App Name: {{ steps[1].form.get('appName')?.value }}</div>
+          <div>ID: {{ steps[1].form.get('appId')?.value }}</div>
+        </div>
+        <div class="footer-buttons">
+          <button mat-button class="save-btn" (click)="saveConfig()">Save</button>
+          <button mat-button class="back-btn-gray" (click)="goToPreviousStep()">Back</button>
+          <button mat-flat-button color="primary" class="provision-btn" [disabled]="!isCurrentStepValid" (click)="onStepAcknowledged(3)">
+            Provision Deployment
+          </button>
+        </div>
+      </div>
+
+      <div class="dialog-actions-footer" *ngIf="currentStepIndex > 0 && currentStepIndex !== 3">
+        <button mat-button class="back-btn" (click)="goToPreviousStep()">Back</button>
+        <button mat-raised-button color="primary" [disabled]="!isCurrentStepValid" (click)="onStepAcknowledged(currentStepIndex)">
+          {{ currentStepIndex === steps.length - 1 ? 'Finish' : 'Next' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

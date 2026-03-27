@@ -1,0 +1,234 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    --footer-height: 55px; /* Updated footer height */
+    --content-padding: 40px;
+}
+
+/* --- Dialog Container Overrides --- */
+::ng-deep .full-screen-dialog .mat-mdc-dialog-container {
+    padding: 0 !important;
+}
+
+.dialog-wrapper {
+    height: 100%;
+    width: 100%;
+    display: flex;
+}
+
+.installer-flex-container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    background-color: var(--mat-sys-surface, white);
+}
+
+/* --- LEFT PANEL: Sidebar Navigation --- */
+.sidebar-panel {
+    flex: 0 0 280px;
+    background-color: #f7f7f7;
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: hidden;
+}
+
+.stepper-title-container {
+    padding: 20px;
+    height: 100px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.stepper-title {
+    font-size: 1.2em;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.stepper-subtitle {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.navigation-list {
+    padding-top: 20px;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.step-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    transition: background-color 0.15s;
+    user-select: none;
+    font-size: 0.95em;
+    color: #666;
+}
+
+.step-item.clickable:hover {
+    background-color: #f0f0f0;
+    cursor: pointer;
+}
+
+.step-item.current {
+    background-color: #e6e6e6;
+    border-left: 3px solid #1a73e8;
+    color: #333;
+    font-weight: 500;
+    padding-left: 17px;
+}
+
+.step-icon-wrapper {
+    width: 24px;
+    height: 24px;
+    margin-right: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+
+.step-number {
+    font-size: 0.8em;
+    color: #666;
+    border: 1px solid #ccc;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.step-item.current .step-number {
+    background-color: #1a73e8;
+    color: white;
+    border-color: #1a73e8;
+}
+
+.complete-icon {
+    color: #3c9d40;
+    font-size: 20px;
+}
+
+/* --- RIGHT PANEL: Content Area --- */
+.content-panel {
+    flex-grow: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.close-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: #999;
+    z-index: 100;
+}
+
+.step-content-container {
+
+    flex: 1; /* Key: Makes container fill height between top and footer */
+
+    overflow-y: auto;
+
+    display: flex;
+
+    flex-direction: column;
+
+    padding: var(--content-padding);
+
+    /* Calculate bottom padding based on footer height */
+
+    padding-bottom: calc(var(--footer-height) + var(--content-padding));
+
+    box-sizing: border-box;
+
+}
+
+
+
+.step-content-container.no-footer-padding {
+
+    padding-bottom: var(--content-padding);
+
+}
+
+
+
+.switch-container {
+
+    flex: 1; /* Key: Fills the content container height */
+
+    display: flex;
+
+}
+
+
+
+.step-content-wrapper {
+
+    width: 100%;
+
+    display: flex;
+
+    flex-direction: column;
+
+}
+
+
+
+/* THE FIX: Specifically center Step 0 within the space available */
+
+.welcome-wrapper {
+
+    justify-content: center; 
+
+    align-items: center;
+
+}
+
+
+
+.dialog-actions-footer {
+
+    position: absolute;
+
+    bottom: 0;
+
+    left: 0;
+
+    right: 0;
+
+    display: flex;
+
+    justify-content: flex-end;
+
+    align-items: center;
+
+    padding: 0 var(--content-padding);
+
+    background-color: white;
+
+    border-top: 1px solid #e0e0e0;
+
+    height: var(--footer-height);
+
+    box-sizing: border-box;
+
+    z-index: 10;
+
+}

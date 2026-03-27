@@ -1,3 +1,9 @@
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
 /**
  * Copyright 2025 Google LLC
  *
@@ -21,6 +27,8 @@
   background-color: white;
   min-height: 100vh; /* Fill the viewport height */
   padding-bottom: 50px; /* Add some space at the bottom */
+  width: 100vw; /* Force the width to 100% of the viewport width */
+  box-sizing: border-box; /* Include padding in the width calculation */
 }
 
 /* --- Top Bar Styling (Admin Console Header) --- */
@@ -42,6 +50,7 @@
   color: #1a73e8; /* Blue link/action color */
   cursor: pointer;
   margin-right: auto; /* Push avatar to the right */
+  width: auto;
 }
 
 .user-avatar {
@@ -59,7 +68,7 @@
 
 /* --- Main Dashboard Content Area --- */
 .dashboard-content {
-  max-width: 1200px; /* Limit the width of the content */
+  /* max-width: 1200px; Limit the width of the content */
   margin: 0 auto; /* Center the content */
 }
 

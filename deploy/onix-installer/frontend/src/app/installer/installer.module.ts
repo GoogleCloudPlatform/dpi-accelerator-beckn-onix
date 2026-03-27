@@ -22,6 +22,7 @@ import { InstallerRoutingModule } from './installer-routing.module';
 import { InstallerComponent } from './installer.component';
 
 import { SharedModule } from '../shared/shared.module';
+import { WelcomeComponent } from './pages/welcome/welcome.component';
 
 @NgModule({
   declarations: [],
@@ -31,6 +32,7 @@ import { SharedModule } from '../shared/shared.module';
     InstallerRoutingModule,
     SharedModule,
     InstallerComponent,
+    WelcomeComponent
   ],
   providers: [],
 })

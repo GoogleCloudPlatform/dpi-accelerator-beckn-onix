@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,7 +33,15 @@ export class StepWelcomeComponent {
 
   constructor(private router: Router) { }
 
-  goToNextStep(): void {
-    this.router.navigate(['installer', 'goal']);
+  /**
+   * Navigates to the deployment creation flow or installer.
+   * Assuming the old 'goal' step is now the first step of the new deployment flow.
+   */
+  goToCreateDeployment(): void {
+    // Change the route to the start of the new process
+    // You might want to change 'installer/goal' to something like 'deployment/new'
+    this.router.navigate(['installer', 'goal']); 
+    // If you're removing the installer wizard entirely, ensure your main routing
+    // points the base path ('/') to this new component.
   }
 }

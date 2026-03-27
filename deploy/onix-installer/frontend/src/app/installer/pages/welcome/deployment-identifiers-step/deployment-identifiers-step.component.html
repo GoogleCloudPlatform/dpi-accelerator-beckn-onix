@@ -1,0 +1,50 @@
+<form [formGroup]="formGroup" class="identifiers-content">
+    
+    <h2 class="main-title">Deployment Context</h2>
+    <p class="description">
+        Provide essential identifiers for this deployment project
+    </p>
+
+    <mat-form-field appearance="outline" class="full-width">
+        <mat-label>App Name</mat-label>
+        <input matInput formControlName="appName" placeholder="e.g. My App">
+        <mat-error *ngIf="formGroup.get('appName')?.hasError('required')">App Name is required.</mat-error>
+        <mat-error *ngIf="formGroup.get('appName')?.hasError('minlength')">At least 3 characters.</mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+        <mat-label>App ID (Auto Generated)</mat-label>
+        <input matInput formControlName="appId">
+    </mat-form-field>
+
+    <div formArrayName="projectTags" class="tags-list">
+        <div *ngFor="let tag of projectTags.controls; let i = index" class="tag-row">
+            <mat-form-field appearance="outline" class="full-width compact-field" subscriptSizing="dynamic">
+                <mat-label>Project Group, Environment</mat-label>
+                <input matInput [formControlName]="i" placeholder="Agri Network, Staging">
+                
+                <button mat-icon-button matSuffix *ngIf="projectTags.length > 1" 
+                        (click)="removeTag(i)" color="warn" type="button" tabindex="-1">
+                    <mat-icon>delete_outline</mat-icon>
+                </button>
+                <mat-error *ngIf="tag.hasError('required')">Required</mat-error>
+            </mat-form-field>
+        </div>
+    </div>
+
+    <div class="add-more-container" *ngIf="canAddMoreTags()">
+        <button type="button" mat-button (click)="addTag()" class="add-more-btn">
+            <mat-icon>add</mat-icon>Add more Tags
+        </button>
+    </div>
+    
+    <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Project Region</mat-label>
+        <mat-select formControlName="projectRegion">
+            <mat-option *ngFor="let region of regions" [value]="region">
+                {{ region }}
+            </mat-option>
+        </mat-select>
+    </mat-form-field>
+
+</form>
