@@ -21,8 +21,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis/v2"
 	"github.com/beckn/beckn-onix/pkg/plugin/definition"
-	"github.com/go-redis/redismock/v9"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -105,28 +105,28 @@ func TestCacheProviderNewErrorFromRedisCacheNew(t *testing.T) {
 }
 
 func TestNewMockedRedisSuccess(t *testing.T) {
-	ctx := context.Background()
-	client, mock := redismock.NewClientMock()
-	originalRedisNewClient := redisNewClient
-	redisNewClient = func(opt *redis.Options) *redis.Client {
-		return client
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
 	}
-	defer func() { redisNewClient = originalRedisNewClient }()
+	defer s.Close()
+
+	ctx := context.Background()
+	client := redis.NewClient(&redis.Options{
+		Addr: s.Addr(),
+	})
 	c := &testCache{client: client}
 
-	mock.ExpectPing().SetVal("PONG")
-	err := c.GetClient().Ping(ctx).Err()
+	err = c.GetClient().Ping(ctx).Err()
 	if err != nil {
 		t.Errorf("Ping error: %v", err)
 	}
 
-	mock.ExpectSet("key", "value", 0*time.Second).SetVal("OK")
 	err = c.GetClient().Set(ctx, "key", "value", 0*time.Second).Err()
 	if err != nil {
 		t.Errorf("Set error: %v", err)
 	}
 
-	mock.ExpectGet("key").SetVal("value")
 	val, err := c.GetClient().Get(ctx, "key").Result()
 	if err != nil {
 		t.Errorf("Get error: %v", err)
@@ -135,13 +135,11 @@ func TestNewMockedRedisSuccess(t *testing.T) {
 		t.Errorf("Expected value 'value', got '%v'", val)
 	}
 
-	mock.ExpectDel("key").SetVal(1)
 	err = c.GetClient().Del(ctx, "key").Err()
 	if err != nil {
 		t.Errorf("Del error: %v", err)
 	}
 
-	mock.ExpectGet("nonexistent_key").RedisNil()
 	_, err = c.GetClient().Get(ctx, "nonexistent_key").Result()
 	if err != redis.Nil {
 		t.Errorf("Expected redis.Nil error, got %v", err)
@@ -149,24 +147,37 @@ func TestNewMockedRedisSuccess(t *testing.T) {
 }
 
 func TestNewMockedRedisError(t *testing.T) {
-	ctx := context.Background()
-	client, mock := redismock.NewClientMock()
-	c := &testCache{client: client}
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
 
-	mock.ExpectSet("errKey", "errValue", 0*time.Second).SetErr(redis.ErrClosed)
-	err := c.GetClient().Set(ctx, "errKey", "errValue", 0*time.Second).Err()
-	if err != redis.ErrClosed {
-		t.Errorf("Expected redis.ErrClosed error, got %v", err)
+	ctx := context.Background()
+	client := redis.NewClient(&redis.Options{
+		Addr: s.Addr(),
+	})
+	c := &testCache{client: client}
+	s.Close()
+
+	err = c.GetClient().Set(ctx, "errKey", "errValue", 0*time.Second).Err()
+	if err == nil {
+		t.Errorf("Expected an error when setting key on closed redis connection but got nil")
 	}
 }
 
 func TestNewCloseSuccess(t *testing.T) {
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer s.Close()
+
 	ctx := context.Background()
 	config := map[string]string{
-		"addr": "localhost:6379",
+		"addr": s.Addr(),
 	}
 
-	client, _ := redismock.NewClientMock()
+	client := redis.NewClient(&redis.Options{Addr: s.Addr()})
 	mockCache := &testCache{client: client}
 	mockProvider := &MockProvider{
 		MockCache:      mockCache,
@@ -200,12 +211,18 @@ func TestNewCloseSuccess(t *testing.T) {
 }
 
 func TestNewCloseError(t *testing.T) {
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer s.Close()
+
 	ctx := context.Background()
 	config := map[string]string{
-		"addr": "localhost:6379",
+		"addr": s.Addr(),
 	}
 
-	client, _ := redismock.NewClientMock()
+	client := redis.NewClient(&redis.Options{Addr: s.Addr()})
 	mockCache := &testCache{client: client}
 	mockProvider := &MockProvider{
 		MockCache:      mockCache,

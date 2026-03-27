@@ -29,7 +29,6 @@ var newKeyManager = func(ctx context.Context, cache plugin.Cache, registryLookup
 	return keymgr.New(ctx, cache, registryLookup, cfg)
 }
 
-
 // keyMgrProvider implements the KeyManagerProvider interface.
 type keyMgrProvider struct{}
 
@@ -86,3 +85,5 @@ func parseConfig(config map[string]string) (*keymgr.Config, error) {
 
 // Provider is the exported symbol that the plugin manager will look for.
 var Provider = keyMgrProvider{}
+
+func main() {}

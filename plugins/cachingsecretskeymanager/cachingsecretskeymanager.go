@@ -28,14 +28,15 @@ import (
 	"regexp"
 	"time"
 
+	
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
-	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
+	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 
 	"github.com/beckn/beckn-onix/pkg/model"
 	plugin "github.com/beckn/beckn-onix/pkg/plugin/definition" // Plugin definitions will be imported from here.
 
-	"github.com/google/uuid"
 	"github.com/googleapis/gax-go/v2"
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -56,12 +57,12 @@ type secretMgr interface {
 }
 
 type keyMgr struct {
-	projectID                 string
-	secretClient              secretMgr
-	registry                  plugin.RegistryLookup
-	cache                     plugin.Cache
-	subscriberKeysCache       bool
-	networkKeysCache          bool
+	projectID           string
+	secretClient        secretMgr
+	registry            plugin.RegistryLookup
+	cache               plugin.Cache
+	subscriberKeysCache bool
+	networkKeysCache    bool
 }
 
 // Constants for secret ID generation.
@@ -94,12 +95,12 @@ func newWithClient(cache plugin.Cache, registryLookup plugin.RegistryLookup, cfg
 	}
 
 	km := &keyMgr{
-		projectID:            cfg.ProjectID,
-		secretClient:         client,
-		registry:             registryLookup,
-		cache:                cache,
-		subscriberKeysCache:  cfg.SubscriberKeysCache,
-		networkKeysCache:     cfg.NetworkKeysCache,
+		projectID:           cfg.ProjectID,
+		secretClient:        client,
+		registry:            registryLookup,
+		cache:               cache,
+		subscriberKeysCache: cfg.SubscriberKeysCache,
+		networkKeysCache:    cfg.NetworkKeysCache,
 	}
 
 	return km, km.close, nil
@@ -390,4 +391,3 @@ var (
 	ErrEmptyKeyID         = errors.New("keyID cannot be empty")
 	ErrSubscriberNotFound = errors.New("no subscriber found with given credentials")
 )
-

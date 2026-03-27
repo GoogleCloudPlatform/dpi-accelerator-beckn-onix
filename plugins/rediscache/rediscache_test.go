@@ -21,12 +21,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-redis/redismock/v9"
+	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
 )
 
 func TestNewSuccess(t *testing.T) {
 	ctx := context.Background()
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer s.Close()
 
 	testCases := []struct {
 		name   string
@@ -35,22 +40,13 @@ func TestNewSuccess(t *testing.T) {
 		{
 			name: "success",
 			config: map[string]string{
-				"addr": "localhost:6379",
+				"addr": s.Addr(),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			client, mock := redismock.NewClientMock()
-			originalRedisNewClient := redisNewClient
-			redisNewClient = func(opt *redis.Options) *redis.Client {
-				return client
-			}
-			defer func() { redisNewClient = originalRedisNewClient }()
-
-			mock.ExpectPing().SetVal("PONG")
-
 			cache, _, err := New(ctx, tc.config)
 			if err != nil {
 				t.Fatalf("failed to create cache: %v", err)
@@ -58,10 +54,6 @@ func TestNewSuccess(t *testing.T) {
 
 			if cache == nil {
 				t.Errorf("expected non-nil cache")
-			}
-
-			if err := mock.ExpectationsWereMet(); err != nil {
-				t.Errorf("unfulfilled expectations: %v", err)
 			}
 		})
 	}
@@ -103,6 +95,11 @@ func TestNewError(t *testing.T) {
 
 func TestGetSuccess(t *testing.T) {
 	ctx := context.Background()
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer s.Close()
 
 	testCases := []struct {
 		name   string
@@ -113,7 +110,7 @@ func TestGetSuccess(t *testing.T) {
 		{
 			name: "success",
 			config: map[string]string{
-				"addr": "localhost:6379",
+				"addr": s.Addr(),
 			},
 			key:   "testKey",
 			value: "testValue",
@@ -122,15 +119,7 @@ func TestGetSuccess(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			client, mock := redismock.NewClientMock()
-			originalRedisNewClient := redisNewClient
-			redisNewClient = func(opt *redis.Options) *redis.Client {
-				return client
-			}
-			defer func() { redisNewClient = originalRedisNewClient }()
-
-			mock.ExpectPing().SetVal("PONG")
-			mock.ExpectGet(tc.key).SetVal(tc.value)
+			s.Set(tc.key, tc.value)
 
 			cache, _, err := New(ctx, tc.config)
 			if err != nil {
@@ -145,16 +134,17 @@ func TestGetSuccess(t *testing.T) {
 			if val != tc.value {
 				t.Errorf("expected value: %s, got: %s", tc.value, val)
 			}
-
-			if err := mock.ExpectationsWereMet(); err != nil {
-				t.Errorf("unfulfilled expectations: %v", err)
-			}
 		})
 	}
 }
 
 func TestGetError(t *testing.T) {
 	ctx := context.Background()
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer s.Close()
 
 	testCases := []struct {
 		name        string
@@ -165,37 +155,23 @@ func TestGetError(t *testing.T) {
 		{
 			name: "get error",
 			config: map[string]string{
-				"addr": "localhost:6379",
+				"addr": s.Addr(),
 			},
 			key:         "testKey",
-			expectedErr: errors.New("redis: nil"),
+			expectedErr: redis.Nil,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			client, mock := redismock.NewClientMock()
-			originalRedisNewClient := redisNewClient
-			redisNewClient = func(opt *redis.Options) *redis.Client {
-				return client
-			}
-			defer func() { redisNewClient = originalRedisNewClient }()
-
-			mock.ExpectPing().SetVal("PONG")
-			mock.ExpectGet(tc.key).SetErr(tc.expectedErr)
-
 			cache, _, err := New(ctx, tc.config)
 			if err != nil {
 				t.Fatalf("failed to create cache: %v", err)
 			}
 
 			_, err = cache.Get(ctx, tc.key)
-			if err == nil || err.Error() != tc.expectedErr.Error() {
+			if err == nil || err != tc.expectedErr {
 				t.Errorf("expected error: %v, got: %v", tc.expectedErr, err)
-			}
-
-			if err := mock.ExpectationsWereMet(); err != nil {
-				t.Errorf("unfulfilled expectations: %v", err)
 			}
 		})
 	}
@@ -203,6 +179,11 @@ func TestGetError(t *testing.T) {
 
 func TestSetSuccess(t *testing.T) {
 	ctx := context.Background()
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer s.Close()
 
 	testCases := []struct {
 		name   string
@@ -214,7 +195,7 @@ func TestSetSuccess(t *testing.T) {
 		{
 			name: "success",
 			config: map[string]string{
-				"addr": "localhost:6379",
+				"addr": s.Addr(),
 			},
 			key:   "testKey",
 			value: "testValue",
@@ -224,16 +205,6 @@ func TestSetSuccess(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			client, mock := redismock.NewClientMock()
-			originalRedisNewClient := redisNewClient
-			redisNewClient = func(opt *redis.Options) *redis.Client {
-				return client
-			}
-			defer func() { redisNewClient = originalRedisNewClient }()
-
-			mock.ExpectPing().SetVal("PONG")
-			mock.ExpectSet(tc.key, tc.value, tc.ttl).SetVal("OK")
-
 			cache, _, err := New(ctx, tc.config)
 			if err != nil {
 				t.Fatalf("failed to create cache: %v", err)
@@ -244,8 +215,15 @@ func TestSetSuccess(t *testing.T) {
 				t.Errorf("unexpected error: %v", err)
 			}
 
-			if err := mock.ExpectationsWereMet(); err != nil {
-				t.Errorf("unfulfilled expectations: %v", err)
+			got, err := s.Get(tc.key)
+			if err != nil {
+				t.Errorf("failed to get key from miniredis: %v", err)
+			}
+			if got != tc.value {
+				t.Errorf("value not set correctly in miniredis: expected %s, got %s", tc.value, got)
+			}
+			if s.TTL(tc.key) == 0 {
+				t.Errorf("TTL not set correctly in miniredis")
 			}
 		})
 	}
@@ -255,49 +233,38 @@ func TestSetError(t *testing.T) {
 	ctx := context.Background()
 
 	testCases := []struct {
-		name        string
-		config      map[string]string
-		key         string
-		value       string
-		ttl         time.Duration
-		expectedErr error
+		name  string
+		key   string
+		value string
+		ttl   time.Duration
 	}{
 		{
-			name: "set error",
-			config: map[string]string{
-				"addr": "localhost:6379",
-			},
-			key:         "testKey",
-			value:       "testValue",
-			ttl:         time.Second,
-			expectedErr: errors.New("redis: set failed"),
+			name:  "set error",
+			key:   "testKey",
+			value: "testValue",
+			ttl:   time.Second,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			client, mock := redismock.NewClientMock()
-			originalRedisNewClient := redisNewClient
-			redisNewClient = func(opt *redis.Options) *redis.Client {
-				return client
+			s, err := miniredis.Run()
+			if err != nil {
+				t.Fatalf("failed to start miniredis: %v", err)
 			}
-			defer func() { redisNewClient = originalRedisNewClient }()
 
-			mock.ExpectPing().SetVal("PONG")
-			mock.ExpectSet(tc.key, tc.value, tc.ttl).SetErr(tc.expectedErr)
-
-			cache, _, err := New(ctx, tc.config)
+			config := map[string]string{
+				"addr": s.Addr(),
+			}
+			cache, _, err := New(ctx, config)
 			if err != nil {
 				t.Fatalf("failed to create cache: %v", err)
 			}
 
+			s.Close()
 			err = cache.Set(ctx, tc.key, tc.value, tc.ttl)
-			if err == nil || err.Error() != tc.expectedErr.Error() {
-				t.Errorf("expected error: %v, got: %v", tc.expectedErr, err)
-			}
-
-			if err := mock.ExpectationsWereMet(); err != nil {
-				t.Errorf("unfulfilled expectations: %v", err)
+			if err == nil {
+				t.Errorf("expected error but got nil")
 			}
 		})
 	}
@@ -305,6 +272,11 @@ func TestSetError(t *testing.T) {
 
 func TestDeleteSuccess(t *testing.T) {
 	ctx := context.Background()
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer s.Close()
 
 	testCases := []struct {
 		name   string
@@ -314,7 +286,7 @@ func TestDeleteSuccess(t *testing.T) {
 		{
 			name: "success",
 			config: map[string]string{
-				"addr": "localhost:6379",
+				"addr": s.Addr(),
 			},
 			key: "testKey",
 		},
@@ -322,15 +294,7 @@ func TestDeleteSuccess(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			client, mock := redismock.NewClientMock()
-			originalRedisNewClient := redisNewClient
-			redisNewClient = func(opt *redis.Options) *redis.Client {
-				return client
-			}
-			defer func() { redisNewClient = originalRedisNewClient }()
-
-			mock.ExpectPing().SetVal("PONG")
-			mock.ExpectDel(tc.key).SetVal(1)
+			s.Set(tc.key, "some_value")
 
 			cache, _, err := New(ctx, tc.config)
 			if err != nil {
@@ -342,8 +306,8 @@ func TestDeleteSuccess(t *testing.T) {
 				t.Errorf("unexpected error: %v", err)
 			}
 
-			if err := mock.ExpectationsWereMet(); err != nil {
-				t.Errorf("unfulfilled expectations: %v", err)
+			if s.Exists(tc.key) {
+				t.Errorf("key %s should have been deleted but it exists", tc.key)
 			}
 		})
 	}
@@ -353,45 +317,34 @@ func TestDeleteError(t *testing.T) {
 	ctx := context.Background()
 
 	testCases := []struct {
-		name        string
-		config      map[string]string
-		key         string
-		expectedErr error
+		name string
+		key  string
 	}{
 		{
 			name: "delete error",
-			config: map[string]string{
-				"addr": "localhost:6379",
-			},
-			key:         "testKey",
-			expectedErr: errors.New("redis: delete failed"),
+			key:  "testKey",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			client, mock := redismock.NewClientMock()
-			originalRedisNewClient := redisNewClient
-			redisNewClient = func(opt *redis.Options) *redis.Client {
-				return client
+			s, err := miniredis.Run()
+			if err != nil {
+				t.Fatalf("failed to start miniredis: %v", err)
 			}
-			defer func() { redisNewClient = originalRedisNewClient }()
 
-			mock.ExpectPing().SetVal("PONG")
-			mock.ExpectDel(tc.key).SetErr(tc.expectedErr)
-
-			cache, _, err := New(ctx, tc.config)
+			config := map[string]string{
+				"addr": s.Addr(),
+			}
+			cache, _, err := New(ctx, config)
 			if err != nil {
 				t.Fatalf("failed to create cache: %v", err)
 			}
 
+			s.Close()
 			err = cache.Delete(ctx, tc.key)
-			if err == nil || err.Error() != tc.expectedErr.Error() {
-				t.Errorf("expected error: %v, got: %v", tc.expectedErr, err)
-			}
-
-			if err := mock.ExpectationsWereMet(); err != nil {
-				t.Errorf("unfulfilled expectations: %v", err)
+			if err == nil {
+				t.Errorf("expected error but got nil")
 			}
 		})
 	}
@@ -399,6 +352,11 @@ func TestDeleteError(t *testing.T) {
 
 func TestClearSuccess(t *testing.T) {
 	ctx := context.Background()
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer s.Close()
 
 	testCases := []struct {
 		name   string
@@ -407,22 +365,15 @@ func TestClearSuccess(t *testing.T) {
 		{
 			name: "success",
 			config: map[string]string{
-				"addr": "localhost:6379",
+				"addr": s.Addr(),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			client, mock := redismock.NewClientMock()
-			originalRedisNewClient := redisNewClient
-			redisNewClient = func(opt *redis.Options) *redis.Client {
-				return client
-			}
-			defer func() { redisNewClient = originalRedisNewClient }()
-
-			mock.ExpectPing().SetVal("PONG")
-			mock.ExpectFlushDB().SetVal("OK")
+			s.Set("key1", "val1")
+			s.Set("key2", "val2")
 
 			cache, _, err := New(ctx, tc.config)
 			if err != nil {
@@ -433,8 +384,8 @@ func TestClearSuccess(t *testing.T) {
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 			}
-			if err := mock.ExpectationsWereMet(); err != nil {
-				t.Errorf("unfulfilled expectations: %v", err)
+			if len(s.Keys()) > 0 {
+				t.Errorf("expected cache to be cleared, but keys still exist: %v", s.Keys())
 			}
 		})
 	}
@@ -444,42 +395,32 @@ func TestClearError(t *testing.T) {
 	ctx := context.Background()
 
 	testCases := []struct {
-		name        string
-		config      map[string]string
-		expectedErr error
+		name string
 	}{
 		{
 			name: "clear error",
-			config: map[string]string{
-				"addr": "localhost:6379",
-			},
-			expectedErr: errors.New("flush failed"),
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			client, mock := redismock.NewClientMock()
-			originalRedisNewClient := redisNewClient
-			redisNewClient = func(opt *redis.Options) *redis.Client {
-				return client
+			s, err := miniredis.Run()
+			if err != nil {
+				t.Fatalf("failed to start miniredis: %v", err)
 			}
-			defer func() { redisNewClient = originalRedisNewClient }()
 
-			mock.ExpectPing().SetVal("PONG")
-			mock.ExpectFlushDB().SetErr(tc.expectedErr)
-
-			cache, _, err := New(ctx, tc.config)
+			config := map[string]string{
+				"addr": s.Addr(),
+			}
+			cache, _, err := New(ctx, config)
 			if err != nil {
 				t.Fatalf("failed to create cache: %v", err)
 			}
 
+			s.Close()
 			err = cache.Clear(ctx)
-			if err == nil || err.Error() != tc.expectedErr.Error() {
-				t.Errorf("expected error: %v, got: %v", tc.expectedErr, err)
-			}
-			if err := mock.ExpectationsWereMet(); err != nil {
-				t.Errorf("unfulfilled expectations: %v", err)
+			if err == nil {
+				t.Errorf("expected error but got nil")
 			}
 		})
 	}
@@ -487,6 +428,11 @@ func TestClearError(t *testing.T) {
 
 func TestCloseSuccess(t *testing.T) {
 	ctx := context.Background()
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer s.Close()
 
 	testCases := []struct {
 		name   string
@@ -495,22 +441,13 @@ func TestCloseSuccess(t *testing.T) {
 		{
 			name: "success",
 			config: map[string]string{
-				"addr": "localhost:6379",
+				"addr": s.Addr(),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			client, mock := redismock.NewClientMock()
-			originalRedisNewClient := redisNewClient
-			redisNewClient = func(opt *redis.Options) *redis.Client {
-				return client
-			}
-			defer func() { redisNewClient = originalRedisNewClient }()
-
-			mock.ExpectPing().SetVal("PONG")
-
 			var closeCalled bool
 
 			_, closeFunc, err := New(ctx, tc.config)
@@ -531,16 +468,17 @@ func TestCloseSuccess(t *testing.T) {
 			if !closeCalled {
 				t.Errorf("Close() was not called")
 			}
-
-			if err := mock.ExpectationsWereMet(); err != nil {
-				t.Errorf("unfulfilled expectations: %v", err)
-			}
 		})
 	}
 }
 
 func TestCloseError(t *testing.T) {
 	ctx := context.Background()
+	s, err := miniredis.Run()
+	if err != nil {
+		t.Fatalf("failed to start miniredis: %v", err)
+	}
+	defer s.Close()
 
 	testCases := []struct {
 		name        string
@@ -549,7 +487,7 @@ func TestCloseError(t *testing.T) {
 	}{{
 		name: "close error",
 		config: map[string]string{
-			"addr": "localhost:6379",
+			"addr": s.Addr(),
 		},
 		expectedErr: errors.New("close failed"),
 	},
@@ -557,15 +495,6 @@ func TestCloseError(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			client, mock := redismock.NewClientMock()
-			originalRedisNewClient := redisNewClient
-			redisNewClient = func(opt *redis.Options) *redis.Client {
-				return client
-			}
-			defer func() { redisNewClient = originalRedisNewClient }()
-
-			mock.ExpectPing().SetVal("PONG")
-
 			cache, closeFunc, err := New(ctx, tc.config)
 			if err != nil {
 				t.Fatalf("failed to create cache: %v", err)
@@ -580,10 +509,6 @@ func TestCloseError(t *testing.T) {
 			err = wrappedCloseFunc()
 			if err == nil || err.Error() != tc.expectedErr.Error() {
 				t.Errorf("expected error: %v, got: %v", tc.expectedErr, err)
-			}
-
-			if err := mock.ExpectationsWereMet(); err != nil {
-				t.Errorf("unfulfilled expectations: %v", err)
 			}
 		})
 	}
