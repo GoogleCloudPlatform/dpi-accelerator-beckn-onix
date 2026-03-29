@@ -31,7 +31,7 @@ type Builder struct {
 }
 
 type CommandRunner interface {
-    Run(cmd *exec.Cmd) error
+	Run(cmd *exec.Cmd) error
 }
 
 type OSCommandRunner struct{}
@@ -107,7 +107,7 @@ func (b *Builder) buildPluginsInDocker() error {
 	}
 
 	cmd := exec.Command("docker", "run", "--rm",
-	    "--platform", "linux/amd64",
+		"--platform", "linux/amd64",
 		"-v", fmt.Sprintf("%s:/workspace", b.workspacePath),
 		"-w", "/workspace",
 		fmt.Sprintf("golang:%s-bullseye", b.config.GoVersion),
