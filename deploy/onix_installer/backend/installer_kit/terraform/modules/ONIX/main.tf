@@ -138,7 +138,7 @@ module "nginx_ingress" {
   count           = var.enable_onix ? 1 : 0
   helm_name       = var.nginix_ingress_release_name
   helm_repository = var.nginix_ingress_repository
-  helm_namespace  = var.nginix_namespace_name
+  helm_namespace  = module.nginx_namepsace[0].namespace_name
   helm_chart      = var.nginix_ingress_chart
   helm_values     = [templatefile("${path.module}/../CONFIG_FILES/nginx.conf.tpl", { neg_name = local.neg_name })]
   depends_on      = [module.gke, module.gke_node_pool, module.http_rule, module.http_firewall_rule, module.https-firewall-rule]

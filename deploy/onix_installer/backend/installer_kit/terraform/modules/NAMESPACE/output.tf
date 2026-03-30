@@ -13,5 +13,5 @@
 # limitations under the License.
 
 output "namespace_name" {
-  value = kubernetes_namespace.namespace.metadata[0].name
+  value = kubernetes_namespace_v1.namespace.metadata[0].name
 }
