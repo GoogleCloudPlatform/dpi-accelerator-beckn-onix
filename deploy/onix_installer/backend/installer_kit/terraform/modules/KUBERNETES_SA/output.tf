@@ -13,5 +13,5 @@
 # limitations under the License.
 
 output "ksa_name" {
-  value = kubernetes_service_account.service_account.metadata[0].name
+  value = kubernetes_service_account_v1.service_account.metadata[0].name
 }
