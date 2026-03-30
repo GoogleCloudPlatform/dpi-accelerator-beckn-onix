@@ -32,6 +32,22 @@ from typing import Any
 
 import dotenv
 
+# Remove reserved and deployment-time variables from the
+# agent's runtime environment to reduce environment variable count
+EXCLUDED_RUNTIME_VARS: tuple[str, ...] = (
+    "GOOGLE_CLOUD_PROJECT",
+    "REGION",
+    "STAGING_BUCKET",
+    "AGENT_SA_EMAIL",
+    "APP_NAME",
+    "MIN_INSTANCES",
+    "MAX_INSTANCES",
+    "CONTAINER_CONCURRENCY",
+    "CPU_LIMIT",
+    "MEMORY_LIMIT",
+    "PYTHON_VERSION",
+    "GCS_DIR_NAME",
+)
 # The user clones the repo into
 # 'dpi_agent_blueprint' within the agent_pack directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -133,10 +149,11 @@ def build_agent_config(
       "gcs_dir_name": env_vars.get("GCS_DIR_NAME", "agent-engine-artifacts"),
       "min_instances": int(env_vars.get("MIN_INSTANCES", "1")),
       "max_instances": int(env_vars.get("MAX_INSTANCES", "10")),
-      "container_concurrency": int(env_vars.get("CONTAINER_CONCURRENCY", "3")),
+      "container_concurrency":
+          int(env_vars.get("CONTAINER_CONCURRENCY", "4")),
       "resource_limits": {
-          "cpu": str(env_vars.get("CPU_LIMIT", "1")),
-          "memory": str(env_vars.get("MEMORY_LIMIT", "4Gi")),
+          "cpu": str(env_vars.get("CPU_LIMIT", "4")),
+          "memory": str(env_vars.get("MEMORY_LIMIT", "16Gi")),
       },
       "python_version": env_vars.get("PYTHON_VERSION", args.python_version),
       "requirements": os.path.join(dpi_agent_blueprint_repo, "requirements.txt"),
@@ -242,16 +259,10 @@ def main():
     sys.exit(1)
 
   # Remove reserved deployment-time variables from the
-  # agent's runtime environment
-  for reserved_env_var in [
-      "GOOGLE_CLOUD_PROJECT",
-      "REGION",
-      "STAGING_BUCKET",
-      "AGENT_SA_EMAIL",
-      "APP_NAME",
-  ]:
-    if reserved_env_var in env_vars:
-      del env_vars[reserved_env_var]
+  # agent's runtime environment to reduce environment variable count
+  for env_key in EXCLUDED_RUNTIME_VARS:
+    if env_key in env_vars:
+      del env_vars[env_key]
 
   try:
     vertexai.init(project=project, location=location)
