@@ -46,7 +46,7 @@ func NewRouter(sh subscriberHandler) *chi.Mux {
 	})
 
 	router.Post("/subscribe", sh.CreateSubscription)
-	router.Patch("/subscribe", sh.UpdateSubscription) 
+	router.Patch("/subscribe", sh.UpdateSubscription)
 	router.Post("/updateStatus", sh.StatusUpdate)
 
 	// Catch-all for POST requests to paths ending in /on_subscribe
