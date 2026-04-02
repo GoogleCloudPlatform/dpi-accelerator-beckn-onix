@@ -18,6 +18,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -162,11 +163,6 @@ func TestSetup_Success_Stdout(t *testing.T) {
 }
 
 func TestSetup_Success_File(t *testing.T) {
-	logFilePath := "app.log" // Default path used by Setup
-	cleanupLogFile := func() {
-		os.Remove(logFilePath)
-	}
-
 	tests := []struct {
 		name          string
 		cfg           *Config
@@ -190,7 +186,8 @@ func TestSetup_Success_File(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			defer saveAndRestoreDefaultSlog(t)()
-			cleanupLogFile() // Clean up before test
+			logFilePath := filepath.Join(t.TempDir(), "app.log")
+			tt.cfg.FilePath = logFilePath
 
 			err := Setup(tt.cfg)
 			if err != nil {
@@ -210,7 +207,6 @@ func TestSetup_Success_File(t *testing.T) {
 			if _, err := os.Stat(logFilePath); os.IsNotExist(err) {
 				t.Errorf("Setup() with Target FILE did not create log file: %s", logFilePath)
 			}
-			cleanupLogFile() // Clean up after test
 		})
 	}
 }

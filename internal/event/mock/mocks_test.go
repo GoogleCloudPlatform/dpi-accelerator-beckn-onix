@@ -89,7 +89,7 @@ func TestEventPublisher_PublishSubscriptionRequestApprovedEvent(t *testing.T) {
 
 func TestEventPublisher_PublishSubscriptionRequestRejectedEvent(t *testing.T) {
 	ctx := context.Background()
-	req := &model.LRO{} 
+	req := &model.LRO{}
 	expectedMsgID := "test-msg-id"
 	expectedErr := errors.New("test error")
 

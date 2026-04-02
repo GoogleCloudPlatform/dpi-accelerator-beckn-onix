@@ -22,7 +22,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/google/dpi-accelerator-beckn-onix/internal/repository" // Import the new service package
+	"github.com/google/dpi-accelerator-beckn-onix/internal/repository"
 	"github.com/google/dpi-accelerator-beckn-onix/internal/service"
 	"github.com/google/dpi-accelerator-beckn-onix/pkg/model"
 )
