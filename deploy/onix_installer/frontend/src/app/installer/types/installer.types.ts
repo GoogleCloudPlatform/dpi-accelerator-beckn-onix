@@ -176,6 +176,8 @@ export interface InstallerState {
   appDeployAdapterConfig: AppDeployAdapterConfig | null;
   appDeploySecurityConfig: AppDeploySecurityConfig | null;
   lastDeployedAppPayload: BackendAppDeploymentRequest;
+  enableCloudArmor: boolean;
+  cloudArmorRateLimit: number;
 }
 
 
@@ -194,6 +196,8 @@ export interface GcpConnectionFormValue {
 export interface DeployInfraFormValue {
   appName: string;
   deploymentSize: DeploymentSize;
+  enableCloudArmor: boolean;
+  cloudArmorRateLimit: number;
 }
 
 

@@ -30,6 +30,7 @@ import {finalize} from 'rxjs/operators';
 
 import {ApiService} from '../../../core/services/api.service';
 import {InstallerStateService} from '../../../core/services/installer-state.service';
+import {sanitizeFormValues} from '../../../shared/utils';
 import {jsonValidator} from '../../../shared/validators/custom-validators';
 
 
@@ -130,13 +131,14 @@ export class StepSubscribe implements OnInit {
     this.cdr.detectChanges();
   }
 
+
   onSubscriptionSubmit(): void {
     this.subscriptionForm.markAllAsTouched();
     if (this.subscriptionForm.invalid) {
       return;
     }
 
-    const formValue = this.subscriptionForm.value;
+    const formValue = sanitizeFormValues(this.subscriptionForm.value);
 
     const subscrptionPayload = {
       subscriber_id: formValue.subscriberId,

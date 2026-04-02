@@ -83,7 +83,9 @@ const initialMockState: InstallerState = {
   appDeploymentStatus: 'completed',
   servicesDeployed: [],
   logsExplorerUrls: {},
-  lastDeployedAppPayload: null as any
+  lastDeployedAppPayload: null as any,
+  enableCloudArmor: false,
+  cloudArmorRateLimit: 100
 };
 
 class MockInstallerStateService {

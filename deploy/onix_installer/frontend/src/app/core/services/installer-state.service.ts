@@ -80,7 +80,9 @@ export class InstallerStateService {
       jwksFileContent: '',
       audOverrides: ''
     },
-    lastDeployedAppPayload: null as any
+    lastDeployedAppPayload: null as any,
+    enableCloudArmor: false,
+    cloudArmorRateLimit: 100
   };
 
   private isDeployingSubject = new BehaviorSubject<boolean>(false);
@@ -214,8 +216,15 @@ export class InstallerStateService {
     this.updateState({ gcpConfiguration: config });
   }
 
-  updateAppNameAndSize(appName: string, deploymentSize: DeploymentSize): void {
-    this.updateState({ appName: appName, deploymentSize: deploymentSize });
+  updateAppInfraConfig(
+      appName: string, deploymentSize: DeploymentSize,
+      enableCloudArmor: boolean, cloudArmorRateLimit: number): void {
+    this.updateState({
+      appName: appName,
+      deploymentSize: deploymentSize,
+      enableCloudArmor: enableCloudArmor,
+      cloudArmorRateLimit: cloudArmorRateLimit
+    });
   }
 
   setInfraDetails(details: InfraDetails): void {

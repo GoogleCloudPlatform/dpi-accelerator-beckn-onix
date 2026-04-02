@@ -14,26 +14,25 @@
  * limitations under the License.
  */
 
-import { Component, OnInit, OnDestroy, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule, AbstractControl } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatRadioModule } from '@angular/material/radio';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatCheckboxModule } from '@angular/material/checkbox';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatTabChangeEvent } from '@angular/material/tabs';
+import {CommonModule} from '@angular/common';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, OnDestroy, OnInit, Output} from '@angular/core';
+import {AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCheckboxModule} from '@angular/material/checkbox';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIconModule} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
+import {MatRadioModule} from '@angular/material/radio';
+import {MatSelectModule} from '@angular/material/select';
+import {MatTabChangeEvent, MatTabsModule} from '@angular/material/tabs';
+import {MatTooltipModule} from '@angular/material/tooltip';
+import {Router} from '@angular/router';
+import {Subject} from 'rxjs';
+import {debounceTime, distinctUntilChanged, takeUntil} from 'rxjs/operators';
 
-import { Subject } from 'rxjs';
-import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
-import { Router } from '@angular/router';
-
-import { InstallerStateService } from '../../../core/services/installer-state.service';
-import { InstallerState, DomainProvider, DomainConfig, ComponentSubdomainPrefix, ComponentDomainKey, SubdomainConfig } from '../../types/installer.types';
+import {InstallerStateService} from '../../../core/services/installer-state.service';
+import {sanitizeFormValues} from '../../../shared/utils';
+import {ComponentDomainKey, ComponentSubdomainPrefix, DomainConfig, DomainProvider, InstallerState, SubdomainConfig} from '../../types/installer.types';
 
 
 @Component({
@@ -110,6 +109,7 @@ export class StepDomainConfigComponent implements OnInit, OnDestroy {
     this.unsubscribe$.next();
     this.unsubscribe$.complete();
   }
+
 
   get componentPrefixes(): FormArray {
     return this.domainConfigForm.get('componentPrefixes') as FormArray;
@@ -255,7 +255,8 @@ export class StepDomainConfigComponent implements OnInit, OnDestroy {
         }
 
         setTimeout(() => {
-          this.installerStateService.updateComponentSubdomainPrefixes(this.componentPrefixes.value);
+          this.installerStateService.updateComponentSubdomainPrefixes(
+              sanitizeFormValues(this.componentPrefixes.value));
         }, 0);
         break;
 
@@ -268,7 +269,9 @@ export class StepDomainConfigComponent implements OnInit, OnDestroy {
         }
         // Update state after UI transition to reduce glitching
         setTimeout(() => {
-          const currentGlobalDomainDetails = this.domainConfigForm.get('globalDomainDetails')?.value as DomainConfig;
+          const currentGlobalDomainDetails = sanitizeFormValues(
+              this.domainConfigForm.get('globalDomainDetails')?.value as
+              DomainConfig);
           this.installerStateService.updateGlobalDomainConfig(currentGlobalDomainDetails);
         }, 0);
         break;
@@ -281,12 +284,14 @@ export class StepDomainConfigComponent implements OnInit, OnDestroy {
           console.error('Domain details are invalid or action not acknowledged.');
           return;
         }
-        const finalGlobalDomainDetails: DomainConfig = globalDomainDetailsGroup.value;
+        const finalGlobalDomainDetails: DomainConfig =
+            sanitizeFormValues(globalDomainDetailsGroup.value);
         const appExternalIp = this.installerState.appExternalIp;
 
         const finalSubdomainConfigs: SubdomainConfig[] = [];
         this.componentPrefixes.controls.forEach((control: AbstractControl) => {
-          const componentPrefixData = control.value as ComponentSubdomainPrefix;
+          const componentPrefixData =
+              sanitizeFormValues(control.value as ComponentSubdomainPrefix);
           const baseDomain = finalGlobalDomainDetails.domainType === 'google_domain' ? finalGlobalDomainDetails.baseDomain : (this.installerState.globalDomainConfig?.baseDomain || '');
 
           const fullDomainName = `${componentPrefixData.subdomainPrefix}`;

@@ -113,7 +113,9 @@ const initialMockState: InstallerState = {
   dockerImageConfigs: [],
   appSpecificConfigs: [],
   componentSubdomainPrefixes: [],
-  lastDeployedAppPayload: null as any
+  lastDeployedAppPayload: null as any,
+  enableCloudArmor: false,
+  cloudArmorRateLimit: 100
 };
 
 class MockInstallerStateService {
@@ -512,5 +514,16 @@ describe('StepAppConfigComponent', () => {
     expect(TestBed.inject(Router).navigate).toHaveBeenCalledWith([
       'installer', 'domain-configuration'
     ]);
+  });
+
+  it('should consider URLs with leading/trailing spaces as valid', () => {
+    fixture.detectChanges();
+    const registryUrlCtrl = component.registryConfigForm.get('registryUrl');
+
+    registryUrlCtrl?.setValue('  http://example.com  ');
+    fixture.detectChanges();
+
+    expect(registryUrlCtrl?.valid).toBeTrue();
+    expect(registryUrlCtrl?.hasError('pattern')).toBeFalse();
   });
 });

@@ -79,7 +79,9 @@ const initialMockState: InstallerState = {
   appDeploymentStatus: 'pending',
   servicesDeployed: [],
   logsExplorerUrls: {},
-  lastDeployedAppPayload: null as any
+  lastDeployedAppPayload: null as any,
+  enableCloudArmor: false,
+  cloudArmorRateLimit: 100
 };
 
 class MockInstallerStateService {
