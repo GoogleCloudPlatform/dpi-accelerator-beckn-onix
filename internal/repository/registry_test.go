@@ -29,11 +29,11 @@ import (
 
 	"github.com/google/dpi-accelerator-beckn-onix/pkg/model"
 
-	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/doug-martin/goqu/v9"
-	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 	"github.com/google/go-cmp/cmp"
+	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
+	"github.com/doug-martin/goqu/v9"
 	"github.com/lib/pq"
+	"github.com/DATA-DOG/go-sqlmock"
 
 	"cloud.google.com/go/cloudsqlconn"
 )

@@ -106,22 +106,22 @@ func TestRouter_Routes(t *testing.T) {
 	router := NewRouter(sh, lh, lroh)
 
 	tests := []struct {
-		name           string
-		method         string
-		path           string
-		expectedStatus int
-		expectedBody   string // Optional, for routes with fixed bodies like /health
+		name            string
+		method          string
+		path            string
+		expectedStatus  int
+		expectedBody    string // Optional, for routes with fixed bodies like /health
 		expectedHeaders http.Header
-		handlerCheck   func(t *testing.T)
+		handlerCheck    func(t *testing.T)
 	}{
 		{
-			name:           "HealthCheck",
-			method:         http.MethodGet,
-			path:           "/health",
-			expectedStatus: http.StatusOK,
-			expectedBody:   `{"status":"ok"}`,
+			name:            "HealthCheck",
+			method:          http.MethodGet,
+			path:            "/health",
+			expectedStatus:  http.StatusOK,
+			expectedBody:    `{"status":"ok"}`,
 			expectedHeaders: http.Header{"Content-Type": []string{"application/json"}},
-			handlerCheck:   func(t *testing.T) { /* No specific handler mock to check */ },
+			handlerCheck:    func(t *testing.T) { /* No specific handler mock to check */ },
 		},
 		{
 			name:           "SubscribeCreate",

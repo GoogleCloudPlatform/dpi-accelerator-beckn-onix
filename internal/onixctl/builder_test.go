@@ -15,7 +15,6 @@
 package onixctl
 
 import (
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -88,15 +87,9 @@ func TestZipAndCopyPlugins_NoPlugins(t *testing.T) {
 
 func TestNewBuilder(t *testing.T) {
 	config := &Config{
-		Output: "./test-output",
+		Output: t.TempDir(),
 	}
 	wsPath := t.TempDir()
-	defer func() {
-		if err := os.RemoveAll(config.Output); err != nil {
-			// Replace 'log.Printf' with your actual project's logger if needed
-			log.Printf("Error cleaning up output directory %s: %v", config.Output, err)
-		}
-	}()
 
 	builder, err := NewBuilder(config, wsPath)
 	require.NoError(t, err)
@@ -395,17 +388,10 @@ func TestBuild_ZipFail(t *testing.T) {
 
 func TestNewBuilder_OutputDirCreationFail(t *testing.T) {
 	// 1. Setup
-	outPath := "./test-output"
+	outPath := filepath.Join(t.TempDir(), "test-output")
 	// Create a file where the directory should be
 	_, err := os.Create(outPath)
 	require.NoError(t, err)
-
-	defer func() {
-		if err := os.RemoveAll(outPath); err != nil {
-			// Replace 'log.Printf' with your actual project's logger if needed
-			log.Printf("Error cleaning up output directory %s: %v", outPath, err)
-		}
-	}()
 
 	config := &Config{
 		Output: outPath,

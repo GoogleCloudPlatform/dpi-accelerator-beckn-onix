@@ -1,14 +1,123 @@
 name: Onix CI
 
+
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: write # Needed to push lockfile updates
+  pages: write
+  id-token: write
+
 jobs:
+  # ------------------------------------------------------------------
+  # JOB 1: CHECK AND UPDATE LOCKFILES (Runs First)
+  # ------------------------------------------------------------------
+  # ------------------------------------------------------------------
+  # JOB 1: CHECK AND UPDATE LOCKFILES (Runs First)
+  # ------------------------------------------------------------------
+  update-lockfiles:
+    name: Sync Lockfiles
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.PAT_TOKEN }}
+
+      # --- NEW STEP: CHECK IF FILES CHANGED ---
+      - name: Check for Config Changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            dependencies:
+              - '**/requirements.in'
+              - '**/package.json'
+              - '**/go.mod'
+
+      # --- SETUP (Always needed for the "if" checks below) ---
+        
+      - name: Setup Node
+        if: steps.filter.outputs.dependencies == 'true'
+        uses: actions/setup-node@v4
+        with: { node-version: 'lts/*' }
+        
+      - name: Setup Go
+        if: steps.filter.outputs.dependencies == 'true'
+        uses: actions/setup-go@v5
+        with: { go-version: '1.24' }
+      
+      # --- UPDATE TASKS (Conditional) ---
+
+      - name: Update Node Locks
+        if: steps.filter.outputs.dependencies == 'true'
+        run: |
+          find . -name "package.json" -not -path "*/node_modules/*" -print0 | while IFS= read -r -d '' file; do
+            dir=$(dirname "$file")
+            cd "$dir"
+            npm install --package-lock-only || exit 1
+            cd - > /dev/null
+          done
+
+      - name: Update Go Locks
+        if: steps.filter.outputs.dependencies == 'true'
+        run: |
+          find . -name "go.mod" -print0 | while IFS= read -r -d '' file; do
+            dir=$(dirname "$file")
+            cd "$dir"
+            go mod tidy || exit 1
+            cd - > /dev/null
+          done
+
+      # --- PUSH OR PASS ---
+      - name: Check for changes and Push
+        id: auto_commit
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: auto-sync dependency lockfiles [skip ci]"
+          # -------------------------------------------------------
+          # FIX FOR CLA ERROR:
+          # Attribute the commit to the user who triggered the workflow.
+          # Since you have signed the CLA, this commit will pass.
+          # -------------------------------------------------------
+          commit_user_name: ${{ github.actor }}
+          commit_user_email: ${{ github.actor }}@users.noreply.github.com
+          commit_author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+  
+  tidy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to push changes back to the repo
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24' # Specify your project's Go version
+
+      - name: Run go mod tidy
+        run: go mod tidy
+
+      - name: Auto-commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "ci: Auto tidy go.mod and go.sum"
+          file_pattern: "go.mod go.sum"
+          commit_user_name: "GitHub Actions"
+          commit_user_email: "<REDACTED_PII>"
+          commit_author: "GitHub Actions <<REDACTED_PII>>"
+
   test-go:
     name: Test Go Microservices
+    needs: update-lockfiles
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -80,6 +189,7 @@ jobs:
 
   build-python-installer:
     name: Build Python Installer Backend
+    needs: update-lockfiles
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -94,26 +204,27 @@ jobs:
       run: |
           python -m pip install --upgrade pip
           pip install coverage
-          pip install -r deploy/onix-installer/backend/requirements.txt --require-hashes
+          pip install -r deploy/onix_installer/backend/requirements.txt --require-hashes
 
     - name: Run Python Tests with Coverage
       run: |
-          cd deploy/onix-installer/backend
+          cd deploy/onix_installer/backend
           coverage run -m unittest discover tests
 
     - name: Generate Python coverage report
       run: |
-          cd deploy/onix-installer/backend
+          cd deploy/onix_installer/backend
           coverage html -d htmlcov
 
     - name: Upload Python coverage report
       uses: actions/upload-artifact@v4
       with:
           name: python-coverage
-          path: deploy/onix-installer/backend/htmlcov
+          path: deploy/onix_installer/backend/htmlcov
 
   build-frontend-installer:
     name: Build Angular Installer Frontend
+    needs: update-lockfiles
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -126,23 +237,23 @@ jobs:
 
     - name: Install Dependencies
       run: |
-        cd deploy/onix-installer/frontend
+        cd deploy/onix_installer/frontend
         npm install
    
     - name: Run Tests with Coverage
       run: |
-        cd deploy/onix-installer/frontend
+        cd deploy/onix_installer/frontend
         npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
 
     - name: Upload Frontend coverage report
       uses: actions/upload-artifact@v4
       with:
           name: frontend-coverage
-          path: deploy/onix-installer/frontend/coverage
+          path: deploy/onix_installer/frontend/coverage
 
     - name: Build Frontend
       run: |
-        cd deploy/onix-installer/frontend
+        cd deploy/onix_installer/frontend
         npm run build -- --configuration production
   
   deploy-pages:
@@ -208,4 +319,4 @@ jobs:
 
       - name: 'Build and Run onixctl'
         run: |
-          go build ./cmd/onixctl && ./onixctl --config deploy/onix-installer/adapter_artifacts/source.yaml
+          go build ./cmd/onixctl && ./onixctl --config deploy/onix_installer/adapter_artifacts/source.yaml

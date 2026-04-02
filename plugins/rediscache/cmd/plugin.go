@@ -34,3 +34,5 @@ func (cp cacheProvider) New(ctx context.Context, config map[string]string) (defi
 }
 
 var Provider = cacheProvider{}
+
+func main() {}
