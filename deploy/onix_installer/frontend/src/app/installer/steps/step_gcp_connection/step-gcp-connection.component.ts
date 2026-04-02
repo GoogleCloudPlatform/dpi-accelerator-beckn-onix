@@ -14,24 +14,25 @@
  * limitations under the License.
  */
 
-import { Component, OnInit, Output, EventEmitter, ChangeDetectionStrategy, ChangeDetectorRef, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, FormControl } from '@angular/forms';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatSelectModule } from '@angular/material/select';
-import { MatIconModule } from '@angular/material/icon';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { Router } from '@angular/router';
+import {CommonModule} from '@angular/common';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, OnDestroy, OnInit, Output} from '@angular/core';
+import {FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators} from '@angular/forms';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {MatButtonModule} from '@angular/material/button';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatIconModule} from '@angular/material/icon';
+import {MatInputModule} from '@angular/material/input';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatSelectModule} from '@angular/material/select';
+import {MatTooltipModule} from '@angular/material/tooltip';
+import {Router} from '@angular/router';
+import {BehaviorSubject, EMPTY, Subject} from 'rxjs';
+import {catchError, debounceTime, distinctUntilChanged, takeUntil} from 'rxjs/operators';
 
-import { InstallerStateService } from '../../../core/services/installer-state.service';
-import { GcpConfiguration } from '../../types/installer.types';
-import { BehaviorSubject, EMPTY, Subject } from 'rxjs';
-import { catchError, debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
-import { ApiService } from '../../../core/services/api.service';
+import {ApiService} from '../../../core/services/api.service';
+import {InstallerStateService} from '../../../core/services/installer-state.service';
+import {sanitizeFormValues} from '../../../shared/utils';
+import {GcpConfiguration} from '../../types/installer.types';
 
 @Component({
   selector: 'app-step-gcp-connection',
@@ -150,12 +151,14 @@ export class StepGcpConnectionComponent implements OnInit, OnDestroy {
     this.unsubscribe$.complete();
   }
 
+
   private updateGcpConnectionState(): void {
     const gcpConfig: GcpConfiguration = {
       projectId: this.gcpConnectionForm.get('projectId')?.value,
       region: this.gcpConnectionForm.get('region')?.value
     };
-    this.installerStateService.updateGcpConfiguration(gcpConfig);
+    this.installerStateService.updateGcpConfiguration(
+        sanitizeFormValues(gcpConfig));
     this.cdr.detectChanges();
   }
 

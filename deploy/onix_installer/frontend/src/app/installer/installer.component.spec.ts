@@ -63,6 +63,8 @@ const mockInitialState: InstallerState = {
   appDeployAdapterConfig: null,
   appDeploySecurityConfig: null,
   lastDeployedAppPayload: null as any,
+  enableCloudArmor: false,
+  cloudArmorRateLimit: 100,
 };
 
 // A mock InstallerStateService to control the component's state during tests.

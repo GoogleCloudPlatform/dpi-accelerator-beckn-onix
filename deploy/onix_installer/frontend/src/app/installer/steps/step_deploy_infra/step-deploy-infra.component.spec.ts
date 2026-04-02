@@ -79,7 +79,9 @@ const initialMockState: InstallerState = {
   appDeploymentStatus: 'pending',
   servicesDeployed: [],
   logsExplorerUrls: {},
-  lastDeployedAppPayload: null as any
+  lastDeployedAppPayload: null as any,
+  enableCloudArmor: false,
+  cloudArmorRateLimit: 100
 };
 
 
@@ -89,7 +91,7 @@ class MockInstallerStateService {
   installerState$ = this.state.asObservable();
 
   getCurrentState = () => this.state.getValue();
-  updateAppNameAndSize = jasmine.createSpy('updateAppNameAndSize');
+  updateAppInfraConfig = jasmine.createSpy('updateAppInfraConfig');
   updateDeploymentStatus =
       jasmine.createSpy('updateDeploymentStatus')
           .and.callFake((status: DeploymentStatus) => {
@@ -176,8 +178,8 @@ describe('StepDeployInfraComponent', () => {
        component.deployInfraForm.patchValue(
            {appName: 'onix', deploymentSize: 'medium'});
        tick(300);  // Wait for debounceTime
-       expect(installerStateService.updateAppNameAndSize)
-           .toHaveBeenCalledWith('onix', 'medium');
+       expect(installerStateService.updateAppInfraConfig)
+           .toHaveBeenCalledWith('onix', 'medium', false, 100);
      }));
 
   describe('onDeployInfra', () => {
@@ -244,11 +246,8 @@ describe('StepDeployInfraComponent', () => {
        });
 
     it('should use provided rate limit count in payload', () => {
-      component.deployInfraForm.patchValue({
-        appName: 'onix',
-        deploymentSize: 'small',
-        cloudArmorRateLimit: '500'
-      });
+      component.deployInfraForm.patchValue(
+          {appName: 'onix', deploymentSize: 'small', cloudArmorRateLimit: 500});
       component.onDeployInfra();
 
       const expectedPayload = jasmine.objectContaining({rate_limit_count: 500});
@@ -362,17 +361,64 @@ describe('StepDeployInfraComponent', () => {
       expect(component.deploymentFailed).toBeTrue();
     });
 
-    it('should check for app name max length error', () => {
-      component.deployInfraForm.get('appName')?.setValue('verylongname');
-      expect(component.hasAppNameMaxLengthError()).toBeTrue();
+    it('should check for app name validation errors', () => {
+      const appNameCtrl = component.deployInfraForm.get('appName');
 
-      component.deployInfraForm.get('appName')?.setValue('short');
-      expect(component.hasAppNameMaxLengthError()).toBeFalse();
+      // Too long
+      appNameCtrl?.setValue('verylongname');
+      appNameCtrl?.markAsDirty();
+      expect(component.hasAppNameError()).toBeTrue();
+
+      // Internal space
+      appNameCtrl?.setValue('on ix');
+      appNameCtrl?.markAsDirty();
+      expect(component.hasAppNameError()).toBeTrue();
+
+      // Leading/trailing space (valid)
+      appNameCtrl?.setValue('  onix  ');
+      appNameCtrl?.markAsDirty();
+      expect(component.hasAppNameError()).toBeFalse();
+
+      // Exactly 6 chars (valid)
+      appNameCtrl?.setValue('123456');
+      appNameCtrl?.markAsDirty();
+      expect(component.hasAppNameError()).toBeFalse();
     });
 
     it('should track by log index', () => {
       expect(component.trackByLog(1, 'log')).toBe(1);
     });
+
+    it('should check for rate limit errors', () => {
+      component.deployInfraForm.get('enableCloudArmor')?.setValue(true);
+      const rateLimitCtrl =
+          component.deployInfraForm.get('cloudArmorRateLimit');
+
+      // Required error
+      rateLimitCtrl?.setValue('');
+      rateLimitCtrl?.markAsTouched();
+      expect(component.hasRateLimitError()).toBeTrue();
+      expect(rateLimitCtrl?.hasError('required')).toBeTrue();
+
+      // Min error
+      rateLimitCtrl?.setValue(-1);
+      expect(component.hasRateLimitError()).toBeTrue();
+      expect(rateLimitCtrl?.hasError('min')).toBeTrue();
+
+      // Valid value
+      rateLimitCtrl?.setValue(100);
+      expect(component.hasRateLimitError()).toBeFalse();
+    });
+
+    it('should NOT call connect if cloudArmorRateLimit is invalid (e.g. negative)',
+       () => {
+         component.deployInfraForm.get('enableCloudArmor')?.setValue(true);
+         component.deployInfraForm.get('cloudArmorRateLimit')?.setValue(-5);
+         fixture.detectChanges();
+
+         component.onDeployInfra();
+         expect(webSocketService.connect).not.toHaveBeenCalled();
+       });
   });
 
   describe('Navigation', () => {

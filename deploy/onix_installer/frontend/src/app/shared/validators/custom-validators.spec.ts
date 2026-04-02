@@ -17,11 +17,12 @@
 import {getTestBed} from '@angular/core/testing';
 import {AbstractControl, FormArray, FormControl} from '@angular/forms';
 
-import {allControlsTrue, jsonValidator} from './custom-validators';
+import {allControlsTrue, appNameValidator, jsonValidator} from './custom-validators';
 
 // Prevent js_scrub from stripping the imports
 const _dummyAllControlsTrue = allControlsTrue;
 const _dummyJsonValidator = jsonValidator;
+const _dummyAppNameValidator = appNameValidator;
 
 describe('CustomValidators', () => {
   describe('allControlsTrue', () => {
@@ -78,6 +79,47 @@ describe('CustomValidators', () => {
     it('should return error if value is invalid JSON', () => {
       const control = new FormControl('{"key": "value"');  // Missing brace
       expect(validator(control)).toEqual({jsonInvalid: true});
+    });
+  });
+
+  describe('appNameValidator', () => {
+    const max = 6;
+    const validator = appNameValidator(max);
+
+    it('should return null if value is null', () => {
+      const control = new FormControl(null);
+      expect(validator(control)).toBeNull();
+    });
+
+    it('should return null for valid app name', () => {
+      const control = new FormControl('onix12');
+      expect(validator(control)).toBeNull();
+    });
+
+    it('should return null for valid app name with leading/trailing spaces',
+       () => {
+         const control = new FormControl('  onix  ');
+         expect(validator(control)).toBeNull();
+       });
+
+    it('should return error for app name with internal spaces', () => {
+      const control = new FormControl('on ix');
+      expect(validator(control)).toEqual({invalidAppName: true});
+    });
+
+    it('should return error for app name exceeding max length', () => {
+      const control = new FormControl('toolongname');
+      expect(validator(control)).toEqual({invalidAppName: true});
+    });
+
+    it('should return error for whitespace-only app name', () => {
+      const control = new FormControl('   ');
+      expect(validator(control)).toEqual({invalidAppName: true});
+    });
+
+    it('should return error for empty string after trimming', () => {
+      const control = new FormControl(' ');
+      expect(validator(control)).toEqual({invalidAppName: true});
     });
   });
 });

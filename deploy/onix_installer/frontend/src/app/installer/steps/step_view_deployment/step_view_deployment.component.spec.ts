@@ -111,6 +111,8 @@ describe('StepViewDeployment', () => {
         allowedValues: '',
       },
       lastDeployedAppPayload: null,
+      enableCloudArmor: false,
+      cloudArmorRateLimit: 100,
     } as unknown as InstallerState;
 
     installerStateServiceSpy.getCurrentState.and.returnValue(mockState);
