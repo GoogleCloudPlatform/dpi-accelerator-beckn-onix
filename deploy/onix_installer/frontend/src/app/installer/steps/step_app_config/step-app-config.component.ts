@@ -36,7 +36,7 @@ import {takeUntil} from 'rxjs/operators';
 
 import {ApiService} from '../../../core/services/api.service';
 import {InstallerStateService} from '../../../core/services/installer-state.service';
-import {removeEmptyValues} from '../../../shared/utils';
+import {removeEmptyValues, sanitizeFormValues} from '../../../shared/utils';
 import {AppDeployAdapterConfig, AppDeployGatewayConfig, AppDeployImageConfig, AppDeployRegistryConfig, AppDeploySecurityConfig, DeploymentGoal, InstallerState} from '../../types/installer.types';
 
 // Custom async validator for JWKS file content
@@ -112,7 +112,7 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
   installerState!: InstallerState;
   private unsubscribe$ = new Subject<void>();
 
-  private readonly URL_REGEX = /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i;
+  private readonly URL_REGEX = /^\s*(https?|ftp):\/\/[^\s/$.?#].[^\s]*\s*$/i;
 
   currentInternalStep: number = 0;
   totalInternalSteps: number = 0;
@@ -180,6 +180,7 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
           audOverridesCtrl?.updateValueAndValidity();
         });
   }
+
 
   ngOnDestroy(): void {
     this.unsubscribe$.next();
@@ -559,17 +560,21 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
     if (formToSave) {
       formToSave.markAllAsTouched();
       if (formToSave.valid) {
+        const sanitizedValue = sanitizeFormValues(formToSave.getRawValue());
         if (formToSave === this.imageConfigForm) {
-          this.installerStateService.updateAppDeployImageConfig(formToSave.getRawValue());
+          this.installerStateService.updateAppDeployImageConfig(sanitizedValue);
         } else if (formToSave === this.registryConfigForm) {
-          this.installerStateService.updateAppDeployRegistryConfig(formToSave.getRawValue());
+          this.installerStateService.updateAppDeployRegistryConfig(
+              sanitizedValue);
         } else if (formToSave === this.gatewayConfigForm) {
-          this.installerStateService.updateAppDeployGatewayConfig(formToSave.getRawValue());
+          this.installerStateService.updateAppDeployGatewayConfig(
+              sanitizedValue);
         } else if (formToSave === this.adapterConfigForm) {
-          this.installerStateService.updateAppDeployAdapterConfig(formToSave.getRawValue());
+          this.installerStateService.updateAppDeployAdapterConfig(
+              sanitizedValue);
         } else if (formToSave === this.securityConfigForm) {
           this.installerStateService.updateAppDeploySecurityConfig(
-              formToSave.getRawValue());
+              sanitizedValue);
         }
       }
     }
@@ -600,16 +605,21 @@ export class StepAppConfigComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.installerStateService.updateAppDeployImageConfig(this.imageConfigForm.getRawValue());
-    this.installerStateService.updateAppDeployRegistryConfig(this.registryConfigForm.getRawValue());
+    this.installerStateService.updateAppDeployImageConfig(
+        sanitizeFormValues(this.imageConfigForm.getRawValue()));
+    this.installerStateService.updateAppDeployRegistryConfig(
+        sanitizeFormValues(this.registryConfigForm.getRawValue()));
     if (this.showGatewayTab) {
-      this.installerStateService.updateAppDeployGatewayConfig(this.gatewayConfigForm.getRawValue());
+      this.installerStateService.updateAppDeployGatewayConfig(
+          sanitizeFormValues(this.gatewayConfigForm.getRawValue()));
     }
     if (this.showAdapterTab) {
-      this.installerStateService.updateAppDeployAdapterConfig(this.adapterConfigForm.getRawValue());
+      this.installerStateService.updateAppDeployAdapterConfig(
+          sanitizeFormValues(this.adapterConfigForm.getRawValue()));
     }
 
-    const securityConfigRaw = this.securityConfigForm.getRawValue();
+    const securityConfigRaw =
+        sanitizeFormValues(this.securityConfigForm.getRawValue());
     let jwksContent = '';
 
     if (securityConfigRaw.enableInBoundAuth) {

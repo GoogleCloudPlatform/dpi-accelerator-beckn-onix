@@ -31,6 +31,8 @@ import {catchError, debounceTime, distinctUntilChanged, finalize, takeUntil} fro
 import {ApiService} from '../../../core/services/api.service';
 import {InstallerStateService} from '../../../core/services/installer-state.service';
 import {WebSocketService} from '../../../core/services/websocket.service';
+import {sanitizeFormValues} from '../../../shared/utils';
+import {appNameValidator} from '../../../shared/validators/custom-validators';
 import {DeployInfraFormValue, DeploymentSize, InfraDeploymentRequestPayload, InfraDetails, InstallerState} from '../../types/installer.types';
 
 @Component({
@@ -69,12 +71,16 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
     const currentState = this.installerStateService.getCurrentState();
     this.deployInfraForm = this.fb.group({
       appName: [
-        currentState.appName || '',
-        [Validators.required, Validators.maxLength(6)]
+        currentState.appName || '', [Validators.required, appNameValidator(6)]
       ],
       deploymentSize: [currentState.deploymentSize || '', Validators.required],
-      enableCloudArmor: [false],
-      cloudArmorRateLimit: ['']
+      enableCloudArmor: [currentState.enableCloudArmor || false],
+      cloudArmorRateLimit: [
+        currentState.cloudArmorRateLimit || 100,
+        currentState.enableCloudArmor ?
+            [Validators.required, Validators.min(1)] :
+            []
+      ]
     });
 
     this.deployInfraForm.get('enableCloudArmor')?.valueChanges
@@ -83,7 +89,8 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
         const rateLimitCtrl = this.deployInfraForm.get('cloudArmorRateLimit');
 
         if (enabled) {
-          rateLimitCtrl?.setValidators([Validators.required]);
+          rateLimitCtrl?.setValidators(
+              [Validators.required, Validators.min(1)]);
         } else {
           rateLimitCtrl?.clearValidators();
         }
@@ -96,6 +103,15 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
         this.installerState = state;
         if (state.isConfigLocked) {
           this.deployInfraForm.get('appName')?.disable({emitEvent: false});
+          this.deployInfraForm.get('enableCloudArmor')?.disable({
+            emitEvent: false
+          });
+          this.deployInfraForm.get('cloudArmorRateLimit')?.disable({
+            emitEvent: false
+          });
+          this.deployInfraForm.get('deploymentSize')?.disable({
+            emitEvent: false
+          });
         }
         this.cdr.detectChanges();
         this.scrollToBottom();
@@ -108,9 +124,11 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
                 (prev: DeployInfraFormValue, curr: DeployInfraFormValue) =>
                     JSON.stringify(prev) === JSON.stringify(curr)))
         .subscribe(() => {
-          const rawValue = this.deployInfraForm.getRawValue();
-          this.installerStateService.updateAppNameAndSize(
-              rawValue.appName, rawValue.deploymentSize);
+          const rawValue =
+              sanitizeFormValues(this.deployInfraForm.getRawValue());
+          this.installerStateService.updateAppInfraConfig(
+              rawValue.appName, rawValue.deploymentSize,
+              rawValue.enableCloudArmor, Number(rawValue.cloudArmorRateLimit));
         });
   }
 
@@ -124,9 +142,7 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
     this.deployInfraForm.markAllAsTouched();
     if (this.deployInfraForm.invalid &&
         !this.deployInfraForm.get('appName')?.disabled) {
-      console.log(this.deployInfraForm);
-      console.log(this.deployInfraForm.errors);
-      console.error('Deploy Infra form is invalid.');
+      console.warn('Deploy Infra form is invalid. Submission halted.');
       return;
     }
 
@@ -151,11 +167,13 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
     this.installerStateService.addDeploymentLog('Initiating infrastructure deployment...');
     this.cdr.detectChanges();
 
+    const formValues = sanitizeFormValues(this.deployInfraForm.getRawValue());
+
     const deployPayload: InfraDeploymentRequestPayload = {
       project_id: gcpConfiguration.projectId,
       region: gcpConfiguration.region,
-      app_name: this.deployInfraForm.get('appName')?.value,
-      type: this.deployInfraForm.get('deploymentSize')?.value,
+      app_name: formValues.appName,
+      type: formValues.deploymentSize,
       components: {
         gateway: this.installerState.deploymentGoal.gateway ||
             this.installerState.deploymentGoal.all || false,
@@ -166,15 +184,8 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
         bpp: this.installerState.deploymentGoal.bpp ||
             this.installerState.deploymentGoal.all || false
       },
-      enable_cloud_armor:
-          this.deployInfraForm.get('enableCloudArmor')?.value || false,
-      rate_limit_count:
-          (this.deployInfraForm.get('cloudArmorRateLimit')?.value !== null &&
-           this.deployInfraForm.get('cloudArmorRateLimit')?.value !==
-               undefined &&
-           this.deployInfraForm.get('cloudArmorRateLimit')?.value !== '') ?
-          parseInt(this.deployInfraForm.get('cloudArmorRateLimit')?.value, 10) :
-          100
+      enable_cloud_armor: formValues.enableCloudArmor || false,
+      rate_limit_count: Number(formValues.cloudArmorRateLimit) || 100
     };
 
     console.log('Final Infrastructure Deployment Payload:', deployPayload);
@@ -217,9 +228,17 @@ export class StepDeployInfraComponent implements OnInit, OnDestroy {
     this.webSocketService.sendMessage(deployPayload);
   }
 
-  public hasAppNameMaxLengthError(): boolean {
-  return this.deployInfraForm.get('appName')?.hasError('maxlength') ?? false;
-}
+  public hasAppNameError(): boolean {
+    const ctrl = this.deployInfraForm.get('appName');
+    return (ctrl?.hasError('invalidAppName') &&
+            (ctrl?.touched || ctrl?.dirty)) ??
+        false;
+  }
+
+  public hasRateLimitError(): boolean {
+    const ctrl = this.deployInfraForm.get('cloudArmorRateLimit');
+    return (ctrl?.invalid && (ctrl?.touched || ctrl?.dirty)) ?? false;
+  }
 
 
   private handleWebSocketMessage(message: any): void {

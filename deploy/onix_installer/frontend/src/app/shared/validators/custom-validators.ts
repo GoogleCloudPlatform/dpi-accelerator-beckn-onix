@@ -49,3 +49,30 @@ export function jsonValidator(): ValidatorFn {
     return null;
   };
 }
+
+/**
+ * Validator for the application name.
+ * 1. Trims leading and trailing whitespace.
+ * 2. Checks if trimmed length > max.
+ * 3. Checks for any spaces inside the trimmed string.
+ */
+export function appNameValidator(max: number): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors|null => {
+    if (!control.value) {
+      return null;
+    }
+    const value = String(control.value);
+    const trimmed = value.trim();
+
+    // Check length and content
+    const isTooLong = trimmed.length > max;
+    const isEmpty = trimmed.length === 0;
+    // Check for internal spaces: if the trimmed string contains any whitespace
+    const hasInternalSpaces = /\s/.test(trimmed);
+
+    if (isTooLong || isEmpty || hasInternalSpaces) {
+      return {invalidAppName: true};
+    }
+    return null;
+  };
+}

@@ -70,6 +70,8 @@ describe('StepViewConfigComponent', () => {
         idclaim: '',
         allowedValues: '',
       },
+      enableCloudArmor: false,
+      cloudArmorRateLimit: 100,
     } as InstallerState);
 
     await TestBed

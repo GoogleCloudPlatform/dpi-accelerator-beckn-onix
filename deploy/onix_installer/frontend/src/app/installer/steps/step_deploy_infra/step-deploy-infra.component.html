@@ -28,9 +28,9 @@
           *ngIf="deployInfraForm.get('appName')?.hasError('required') && deployInfraForm.get('appName')?.touched">
           App Name is required.
         </mat-error>
-         <mat-error
-        *ngIf="hasAppNameMaxLengthError()">
-        App Name can not be more than 6 characters.
+        <mat-error
+          *ngIf="hasAppNameError()">
+          App Name should not have spaces in between and must be 6 characters or less.
         </mat-error>
       </mat-form-field>
 
@@ -73,6 +73,12 @@
                     type="number"
                     formControlName="cloudArmorRateLimit" 
                     placeholder="e.g. 100">
+              <mat-error *ngIf="deployInfraForm.get('cloudArmorRateLimit')?.hasError('required')">
+                Rate limit is required when Cloud Armor is enabled.
+              </mat-error>
+              <mat-error *ngIf="deployInfraForm.get('cloudArmorRateLimit')?.hasError('min')">
+                Rate limit must be at least 1.
+              </mat-error>
             </mat-form-field>
           </div>
 
@@ -116,6 +122,7 @@
       <div class="deployment-summary">
         <p><strong>App Name:</strong> {{ installerState.appName }}</p>
         <p><strong>Deployment Size:</strong> {{ getDeploymentTypeDisplay(installerState.deploymentSize) }}</p>
+        <p><strong>Cloud Armor:</strong> {{ installerState.enableCloudArmor ? 'Enabled (Rate Limit: ' + installerState.cloudArmorRateLimit + ')' : 'Disabled' }}</p>
       </div>
       <hr class="summary-divider">
       <h4>Infrastructure Deployed Successfully!</h4>
