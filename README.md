@@ -19,6 +19,13 @@ It consists following:
 -   **Extensible Architecture**: A plugin-based system for adapters allows for custom logic and integrations.
 -   **Cloud Native**: Designed to run on Google Cloud, leveraging services like GKE, Cloud SQL, and Pub/Sub.
 
+### Security Features (Cloud Armor & Outbound Proxy)
+The installer supports advanced security configurations for the runtime environment:
+
+-   **Google Cloud Armor Integration** : Optional security policies for IP Rate Limiting, and OWASP Top 10 evaluation.
+-   **(Recommended) Outbound OIDC Auth** : To secure all BECKN requests from the ONIX-Adapter (deployed in GKE) to client applications. 
+-   **(Recommended) Inbound Auth** : To secure all API calls from client services to ONIX.
+
 ## Getting Started
 
 The recommended way to deploy Onix is through the UI-based Onix installer. For detailed prerequisites and instructions, please refer to the **[Onix Installer README](./deploy/onix_installer/README.md)**.
@@ -84,7 +91,7 @@ The Gateway exposes endpoints for Beckn actions. The specific action is determin
 | Method | Path         | Description                                                                                                                                                           |
 | :----- | :----------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `POST` | `/search`    | Handles the initial discovery request from a BAP.                                                                                                                     |
-| `POST` | `/on_search` | Receives `on_search` responses from BPPs and forwards them to the originating BAP.                                                                                      |
+| `POST` | `/on_search` | Receives `on_search` responses from BPPs and forwards them to the originating BAP.                                                                                    |
 | `GET`  | `/health`    | Returns the health status of the service.                                                                                                                             |
 
 ### 2. Registry
@@ -111,6 +118,15 @@ This service is the brain behind the participant lifecycle management. It operat
 | :----- | :------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `POST` | `/operations/action` | An internal-facing endpoint, triggered by a Pub/Sub event. It processes subscription LROs, sending challenges and updating participant status in the Registry.             |
 | `GET`  | `/health`            | Returns the health status of the service.                                                                                                                                |
+
+**Request Body for `/operations/action`:**
+```json
+{
+  "action": "APPROVE_SUBSCRIPTION" | "REJECT_SUBSCRIPTION",
+  "operation_id": "string",
+  "reason": "string" // Required for REJECT_SUBSCRIPTION
+}
+```
 
 ### 4. Subscriber
 
@@ -171,6 +187,245 @@ The entire Onix suite is deployed using this UI-based installer that automates a
 
 For detailed prerequisites and step-by-step instructions, please refer to the **[Installer README](./deploy/onix_installer/README.md)**.
 
+
+## Security and Authentication
+
+This section provides code snippets for integrating with DPI Beckn-ONIX authentication mechanisms (Inbound and Outbound).
+
+### Inbound Authentication (Calling Adapter or Subscriber)
+
+When Inbound Auth is enabled in the installer configuration, clients calling the ONIX Adapter or Subscriber must include a Google-signed OIDC ID Token in the `Authorization` header:
+
+`Authorization: Bearer <ID_TOKEN>`
+
+#### Protected APIs
+
+The following non-BECKN APIs are protected with Inbound Authentication:
+
+- **Registry Admin APIs**: To approve or reject incoming subscription requests.
+- **Subscriber Service APIs**: To manage Network Participant (NP) subscriptions.
+- **Adapter Caller APIs**: To invoke the Adapter from a client application (BAP/BPP).
+
+#### Target Audience Values
+
+When generating an ID token (via Workload Identity Federation (WIF) or Impersonation), you must use the correct audience for the target service:
+
+| Service | Target Audience | Used For |
+| :--- | :--- | :--- |
+| **Registry Admin Service** | `https://<registry-admin-domain>/api` | Client calls to approve/reject subscriptions |
+| **Subscriber Service** | `https://<subscriber-domain>/api` | Client calls to manage subscriptions |
+| **Adapter Service** | `https://<adapter-domain>/caller/api` | BAP/BPP client calls to invoke Adapter |
+
+*Note: Replace `<...-domain>` with the respective FQDN configured during installation.*
+
+#### Client-Side Token Generation
+
+##### 1. Calling from GCP (or other clouds via Workload Identity Federation)
+
+If your workload runs on GCP, or if it runs on any public cloud and you have configured a Workload Identity Pool, the Google Cloud client libraries can automatically load the credentials if the `GOOGLE_APPLICATION_CREDENTIALS` environment variable is set to your WIF configuration file.
+
+###### Go
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+
+    "golang.org/x/oauth2/google"
+    "google.golang.org/api/idtoken"
+    "google.golang.org/api/option"
+)
+
+func main() {
+    ctx := context.Background()
+    // The audience for the ID token, e.g., the URL of the service you are calling
+    audience := "https://your-adapter-url.com"
+
+    // Automatically finds credentials via GOOGLE_APPLICATION_CREDENTIALS
+    creds, err := google.FindDefaultCredentials(ctx)
+    if err != nil {
+        log.Fatalf("Failed to find default credentials: %v", err)
+    }
+
+    ts, err := idtoken.NewTokenSource(ctx, audience, option.WithCredentials(creds))
+    if err != nil {
+        log.Fatalf("Failed to create NewTokenSource: %v", err)
+    }
+
+    token, err := ts.Token()
+    if err != nil {
+        log.Fatalf("Failed to retrieve token: %v", err)
+    }
+
+    fmt.Printf("Bearer %s\n", token.AccessToken) // Use in Authorization header
+}
+```
+
+###### Python
+
+```python
+from google.auth import default
+from google.auth.transport.requests import Request
+from google.oauth2 import id_token
+
+# Automatically loads from GOOGLE_APPLICATION_CREDENTIALS or Metadata Server
+credentials, _ = default()
+
+# Generate ID token for specific audience
+target_audience = "https://your-adapter-url.com"
+
+# Create a request object to communicate with the auth server
+request = Request()
+
+# Fetch the ID token
+token = id_token.fetch_id_token(request, target_audience)
+
+print(f"Bearer {token}")
+```
+
+###### Java
+
+```java
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.IdTokenCredentials;
+import java.io.IOException;
+
+public class GenerateIdToken {
+    public static void main(String[] args) throws IOException {
+        String audience = "https://your-adapter-url.com";
+
+        GoogleCredentials credentials = GoogleCredentials.getApplicationDefault();
+
+        if (!(credentials instanceof IdTokenCredentials.Provider)) {
+            System.err.println("Credentials do not support ID tokens.");
+            return;
+        }
+
+        IdTokenCredentials idTokenCredentials = IdTokenCredentials.newBuilder()
+                .setIdTokenProvider((IdTokenCredentials.Provider) credentials)
+                .setTargetAudience(audience)
+                .build();
+
+        idTokenCredentials.refresh();
+        System.out.println("Bearer " + idTokenCredentials.getIdToken().getTokenValue());
+    }
+}
+```
+
+##### 2. Service Account Impersonation
+
+If you need to impersonate a service account to generate an ID token (as seen in the ONIX Proxy setup):
+
+> [!IMPORTANT]
+> When using service account impersonation to generate an ID token for ONIX, both
+> the **target audience** and **including the service account email (e.g.,
+> `include_email=True` in Python or equivalent options in Go/Java)** are **always
+> mandatory** regardless of the language used to ensure the token contains the
+> necessary identity claims for authorization.
+
+###### Python
+
+```python
+import google.auth
+from google.auth.impersonated_credentials import Credentials, IDTokenCredentials
+
+source_creds, _ = google.auth.default()
+target_sa = "target-sa@YOUR_PROJECT.iam.gserviceaccount.com"
+audience = "https://your-adapter-url.com"
+
+target_creds = Credentials(
+    source_credentials=source_creds,
+    target_principal=target_sa,
+    target_scopes=["https://www.googleapis.com/auth/cloud-platform"],
+)
+
+impersonated_creds = IDTokenCredentials(
+    target_creds,
+    target_audience=audience,
+    include_email=True,
+)
+
+impersonated_creds.refresh()
+print(f"Bearer {impersonated_creds.token}")
+```
+
+---
+
+### Outbound Authentication (Validating Calls from ONIX)
+
+When Outbound Auth is enabled, the ONIX Adapter calls your application with a Google-signed OIDC ID token. Your server **must** validate this token.
+
+#### Server-Side Token Validation
+
+###### Go
+
+```go
+import "google.golang.org/api/idtoken"
+
+func validateToken(ctx context.Context, idTokenString string) {
+    aud := "https://your-client-app-url.com" // Your app's audience
+    payload, err := idtoken.Validate(ctx, idTokenString, aud)
+    if err != nil {
+        log.Fatalf("Invalid token: %v", err)
+    }
+    fmt.Printf("Validated token for: %s\n", payload.Claims["email"])
+}
+```
+
+###### Python
+
+```python
+from google.oauth2 import id_token
+from google.auth.transport import requests
+
+audience = "https://your-client-app-url.com"
+
+try:
+    idinfo = id_token.verify_oauth2_token(
+        id_token_string, requests.Request(), audience
+    )
+    userid = idinfo['sub']
+    print(f"Token valid for user: {userid}")
+except ValueError as e:
+    print(f"Invalid token: {e}")
+```
+
+###### Java
+
+```java
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
+import java.util.Collections;
+
+public class VerifyToken {
+    public static void main(String[] args) {
+        String webClientId = "https://your-client-app-url.com";
+        String idTokenString = "TOKEN_FROM_HEADER";
+
+        GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), GsonFactory.getDefaultInstance())
+                .setAudience(Collections.singletonList(webClientId))
+                .build();
+
+        try {
+            GoogleIdToken idToken = verifier.verify(idTokenString);
+            if (idToken != null) {
+                System.out.println("Valid token for: " + idToken.getPayload().getSubject());
+            } else {
+                System.out.println("Invalid token.");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+---
 
 ## Data Protection and Privacy
 
