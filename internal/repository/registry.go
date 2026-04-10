@@ -1,4 +1,4 @@
-// Copyright 2025 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import (
 
 	"cloud.google.com/go/cloudsqlconn"
 	"cloud.google.com/go/cloudsqlconn/postgres/pgxv5"
+
 	// Import postgres dialect for goqu.
 	_ "github.com/doug-martin/goqu/v9/dialect/postgres"
 	"github.com/doug-martin/goqu/v9"
