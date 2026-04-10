@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 #--------------------------------------------- Secret Management ---------------------------------------------#
 
 resource "random_password" "db_password" {
@@ -76,10 +77,23 @@ resource "google_secret_manager_secret_iam_member" "agent_secret_access" {
   member    = "serviceAccount:${module.agent_service_account.service_account_email}"
 }
 
+# Google managed service account for Vertex AI
+resource "google_project_service_identity" "ai_platform_identity" {
+  provider = google-beta
+  project  = var.project_id
+  service  = "aiplatform.googleapis.com"
+}
+
+resource "time_sleep" "wait_for_ai_platform_service_identity" {
+  depends_on      = [google_project_service_identity.ai_platform_identity]
+  create_duration = "30s"
+}
+
 resource "google_project_iam_member" "vertex_permissions" {
   project = var.project_id
   role    = "roles/compute.networkAdmin"
-  member  = "serviceAccount:service-${var.project_number}@gcp-sa-aiplatform.iam.gserviceaccount.com"
+  member  = "serviceAccount:${google_project_service_identity.ai_platform_identity.email}"
+  depends_on = [time_sleep.wait_for_ai_platform_service_identity]
 }
 
 resource "time_sleep" "wait_for_iam_propagation" {

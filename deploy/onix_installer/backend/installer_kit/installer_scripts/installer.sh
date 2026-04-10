@@ -45,9 +45,9 @@ validate_prerequisites() {
 
     if [ ${#missing_prereqs[@]} -ne 0 ]; then
         echo "Warning: The following required tools are not installed: ${missing_prereqs[*]}"
-        read -p "Press 'Y' to attempt installation or 'N' to exit. (y/N) " -n 1 -r
+        read -p "Press 'Y' to attempt installation or 'N' to exit. (Y/n) " -n 1 -r
         echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
+        if [[ $REPLY =~ ^[Yy]?$ ]]; then
             if [ -f "$prereq_script_path" ]; then
                 echo "Running installation script from $prereq_script_path..."
                 bash "$prereq_script_path"
@@ -168,7 +168,7 @@ SA_EMAIL=""
 read -p "Do you already have a service account with the required permissions? (Y/n) " -n 1 -r
 echo # Move to a new line
 
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+if [[ $REPLY =~ ^[Yy]?$ ]]; then
     # User has an existing service account
     while [ -z "$SA_EMAIL" ]; do
         read -p "Enter the email of the service account to use: " SA_EMAIL

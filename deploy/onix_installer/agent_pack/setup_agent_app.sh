@@ -163,7 +163,7 @@ SA_EMAIL=""
 read -p "Do you already have a service account with the required permissions? (Y/n) " -n 1 -r
 echo
 
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+if [[ $REPLY =~ ^[Yy]?$ ]]; then
     while [ -z "$SA_EMAIL" ]; do
         read -p "Enter the email of the service account to use: " SA_EMAIL
         if [ -z "$SA_EMAIL" ]; then

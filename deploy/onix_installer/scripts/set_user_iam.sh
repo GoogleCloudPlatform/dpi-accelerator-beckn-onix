@@ -97,4 +97,3 @@ done
 
 echo "--------------------------------------------------------"
 echo "✅ Success: All required IAM roles have been assigned to $USER_EMAIL." >&2
-echo "ℹ️ You can now proceed to Step 2: Create and Configure the Installer Service Account." >&2
