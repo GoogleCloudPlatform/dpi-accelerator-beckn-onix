@@ -141,36 +141,13 @@ echo "✅ Configuration loaded."
 # 2.5 Verify Blueprint Repository
 echo ">> Verifying Agent Blueprint Repository..."
 
-# Check if environment variables for cloning are set
-AGENT_BLUEPRINT_REPO=$(extract_env "AGENT_BLUEPRINT_REPO" "$ENV_FILE")
-AGENT_BLUEPRINT_TAG=$(extract_env "AGENT_BLUEPRINT_TAG" "$ENV_FILE")
-
 if [ ! -d "$SCRIPT_DIR/dpi_agent_blueprint" ]; then
-    if [ -n "$AGENT_BLUEPRINT_REPO" ]; then
-        echo ">> 'dpi_agent_blueprint' not found locally. Cloning from $AGENT_BLUEPRINT_REPO..."
-
-        CLONE_CMD="git clone"
-        if [ -n "$AGENT_BLUEPRINT_TAG" ]; then
-            CLONE_CMD="$CLONE_CMD --branch $AGENT_BLUEPRINT_TAG"
-        fi
-        CLONE_CMD="$CLONE_CMD $AGENT_BLUEPRINT_REPO $SCRIPT_DIR/dpi_agent_blueprint"
-
-        if $CLONE_CMD; then
-            echo "✅ Successfully cloned blueprint repository."
-        else
-            echo "❌ Error: Failed to clone blueprint repository."
-            exit 1
-        fi
-    else
-        echo "❌ Error: 'dpi_agent_blueprint' directory not found in agent_pack."
-        echo "Please ensure you have cloned the 'dpi_agent_blueprint' repository into:"
-        echo "$SCRIPT_DIR/dpi_agent_blueprint"
-        echo "Or provide AGENT_BLUEPRINT_REPO in your agent_config.env."
-        exit 1
-    fi
-else
-    echo "✅ Blueprint Repository found locally."
+    echo "❌ Error: 'dpi_agent_blueprint' directory not found in agent_pack."
+    echo "Please ensure you have cloned the 'dpi_agent_blueprint' repository into:"
+    echo "$SCRIPT_DIR/dpi_agent_blueprint"
+    exit 1
 fi
+echo "✅ Agent Blueprint Repository found."
 
 # 3. Authentication
 echo ">> Authenticating with Google Cloud..."
