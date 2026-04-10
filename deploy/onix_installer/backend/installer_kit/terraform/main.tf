@@ -318,7 +318,6 @@ module "agent" {
 
   # Core Inputs
   project_id   = var.project_id
-  project_number = data.google_project.project.number
   region       = var.region
   app_name     = var.app_name
 
