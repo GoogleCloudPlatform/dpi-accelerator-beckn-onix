@@ -595,9 +595,9 @@ python-dotenv==1.1.1 \
     --hash=sha256:31f23644fe2602f88ff55e1f5c79ba497e01224ee7737937930c448e4d0e24dc \
     --hash=sha256:a8a6399716257f45be6a007360200409fce5cda2661e3dec71d23dc15f6189ab
     # via uvicorn
-python-multipart==0.0.18 \
-    --hash=sha256:7a68db60c8bfb82e460637fa4750727b45af1d5e2ed215593f917f64694d34fe \
-    --hash=sha256:efe91480f485f6a361427a541db4796f9e1591afc0fb8e7a4ba06bfbc6708996
+python-multipart==0.0.26 \
+    --hash=sha256:08fadc45918cd615e26846437f50c5d6d23304da32c341f289a617127b081f17 \
+    --hash=sha256:c0b169f8c4484c13b0dcf2ef0ec3a4adb255c4b7d18d8e420477d2b1dd03f185
     # via
     #   -r requirements.in
     #   fastapi
