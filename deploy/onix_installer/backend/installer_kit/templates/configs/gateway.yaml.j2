@@ -31,7 +31,7 @@ registry:
   maxConnsPerHost: 0 # 0 means no limit
   idleConnTimeout: 300s
 keyManagerCacheTTL:
-  privateKeysSeconds: 5
+  privateKeysSeconds: 300
   publicKeysSeconds: 3600
 redisAddr: {{ redis_instance_ip }}:6379
 maxConcurrentFanoutTasks: 50
