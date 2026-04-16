@@ -263,6 +263,7 @@ agent_sa_account_id   = "dpi-{{ app_name }}-agent-sa"
 agent_sa_display_name = "Beckn Agent Service Account"
 agent_sa_description  = "Service Account for Beckn Agent Application"
 agent_sa_roles = [
+  "roles/discoveryengine.viewer",
   "roles/aiplatform.user",
   "roles/cloudsql.client",
   "roles/cloudsql.instanceUser",
