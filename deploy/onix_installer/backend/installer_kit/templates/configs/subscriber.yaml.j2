@@ -27,7 +27,7 @@ registry:
   baseURL: {{ registry_url }}
   timeout: 10s
 keyManagerCacheTTL:
-  privateKeysSeconds: 5
+  privateKeysSeconds: 300
   publicKeysSeconds: 3600
 redisAddr: {{ redis_instance_ip }}:6379
 regID: {{ registry.subscriber_id }}
