@@ -35,7 +35,7 @@ validate_prerequisites() {
     echo "--- Checking prerequisites ---"
     local missing_prereqs=()
     local prereq_script_path="./backend/installer_kit/installer_scripts/install_preqreqs.sh"
-    local prereqs=("gcloud" "terraform" "helm" "kubectl" "gsutil" "jq" "gke-gcloud-auth-plugin" "psql" "python3" "node" "ng")
+    local prereqs=("gcloud" "terraform" "helm" "kubectl" "jq" "gke-gcloud-auth-plugin" "psql" "python3" "node" "ng")
 
     for prereq in "${prereqs[@]}"; do
         if ! check_command "$prereq"; then
