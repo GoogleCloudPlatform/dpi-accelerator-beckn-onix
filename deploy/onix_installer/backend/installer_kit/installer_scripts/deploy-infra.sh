@@ -82,15 +82,16 @@ if [ -n "$APP_NAME" ] && [ -n "$PROJECT_ID" ]; then
     echo ">> Configuring Remote Terraform State in GCS..."
 
     # Check/Create Bucket (Idempotent-ish)
-    if gsutil ls -b "gs://${BUCKET_NAME}" >/dev/null 2>&1; then
+    if gcloud storage buckets describe "gs://${BUCKET_NAME}" --project="$PROJECT_ID" >/dev/null 2>&1; then
         echo "✅ Bucket gs://${BUCKET_NAME} exists."
     else
         echo "Bucket does not exist. Creating gs://${BUCKET_NAME}..."
-        if gsutil mb -p "$PROJECT_ID" -l "$TARGET_REGION" "gs://${BUCKET_NAME}"; then
-             gsutil versioning set on "gs://${BUCKET_NAME}"
-             echo "✅ Bucket created."
+        if gcloud storage buckets create "gs://${BUCKET_NAME}" --project="$PROJECT_ID" --location="$TARGET_REGION"; then
+            gcloud storage buckets update "gs://${BUCKET_NAME}" --versioning --project="$PROJECT_ID"
+            echo "✅ Bucket created successfully."
         else
-             echo "⚠️ Warning: Failed to create bucket. Usage may fail if state is not local."
+            echo "❌ Error: Failed to create GCS bucket gs://${BUCKET_NAME}."
+            exit 1
         fi
     fi
 
