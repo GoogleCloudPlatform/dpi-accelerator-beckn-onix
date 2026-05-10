@@ -17,7 +17,7 @@ data "google_project" "project" {
 }
 
 # ---------------------------------------------------------
-# DLQ Topic for the Push Subscription
+# Dead Letter Queue Topic for the Push Subscription
 # ---------------------------------------------------------
 resource "google_pubsub_topic" "agent_dlq_topic" {
   count   = var.enable_adapter_integration ? 1 : 0
@@ -25,12 +25,20 @@ resource "google_pubsub_topic" "agent_dlq_topic" {
   project = var.project_id
 }
 
-# Grant Pub/Sub Service Agent publishing rights to the DLQ
+# Grant Pub/Sub Service Agent publishing rights to the Dead Letter Queue
 resource "google_pubsub_topic_iam_member" "pubsub_dlq_publisher" {
   count   = var.enable_adapter_integration ? 1 : 0
   topic   = google_pubsub_topic.agent_dlq_topic[0].id
   role    = "roles/pubsub.publisher"
   member  = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
+}
+
+# Grant Pub/Sub Service Agent subscriber rights to the Subscription for Dead Letter Queue
+resource "google_pubsub_subscription_iam_member" "pubsub_subscriber" {
+  count        = var.enable_adapter_integration ? 1 : 0
+  subscription = google_pubsub_subscription.agent_push_subscription[0].id
+  role         = "roles/pubsub.subscriber"
+  member       = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-pubsub.iam.gserviceaccount.com"
 }
 
 # Grant Pub/Sub Service Agent rights to mint OIDC tokens as the Agent Invoker SA
