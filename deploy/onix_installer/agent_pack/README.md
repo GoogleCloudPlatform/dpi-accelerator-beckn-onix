@@ -99,8 +99,8 @@ Override base models and variances for routing vs domain agents:
 
 | Variable | Explanation | Default |
 | :--- | :--- | :--- |
-| `ROOT_AGENT_LLM_MODEL` | The main routing node LLM (Standard Text session). | `gemini-3.1-flash-lite-preview` |
-| `ROOT_AGENT_LIVE_LLM_MODEL` | Real-time voice routing LLM. | `gemini-live-2.5-flash` |
+| `ROOT_AGENT_LLM_MODEL` | The main routing node LLM (Standard Text session). | `gemini-3.1-flash-lite` |
+| `ROOT_AGENT_LIVE_LLM_MODEL` | Real-time voice routing LLM. | `gemini-3.1-flash-live-preview-04-2026` |
 | `ROOT_AGENT_LLM_TEMPERATURE` | Generation randomness. | `0.1` (deterministic/factual). |
 | `MAX_LLM_CALLS_PER_QUERY` | Protect loops from running forever over multiple tools. | `20` |
 | `AGENT_THINKING_LEVEL` | Controls internal reasoning depth for Gemini 3 and newer models (Permitted: `MINIMAL`, `LOW`, `MEDIUM`, `HIGH`). See [documentation](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/start/get-started-with-gemini-3#thinking-level). | `LOW` |
