@@ -13,6 +13,9 @@ on Vertex AI Reasoning Engines.
 
 ## Prerequisites and Initial Setup
 
+> [!IMPORTANT]
+> The default live model `gemini-3.1-flash-live-preview-04-2026` (used for voice/live mode) is in preview and requires Google Cloud project allowlisting. Contact [dpi-in-a-box@google.com](mailto:dpi-in-a-box@google.com) and we'll get it set up for your project.
+
 Before running the deployment, ensure your local environment has the following
 CLI tools installed:
 
