@@ -229,19 +229,17 @@ TARGET_REGION="${REGION:-asia-south1}"
 echo ">> Configuring Remote Terraform State in GCS..."
 echo "Checking if bucket gs://${BUCKET_NAME} exists..."
 
-if gsutil ls -b "gs://${BUCKET_NAME}" >/dev/null 2>&1; then
+if gcloud storage buckets describe "gs://${BUCKET_NAME}" --project="$GOOGLE_CLOUD_PROJECT" >/dev/null 2>&1; then
     echo "✅ Bucket gs://${BUCKET_NAME} already exists."
 else
     echo "Bucket does not exist. Creating gs://${BUCKET_NAME} in ${TARGET_REGION}..."
-    if gsutil mb -p "$GOOGLE_CLOUD_PROJECT" -l "$TARGET_REGION" "gs://${BUCKET_NAME}"; then
+    if gcloud storage buckets create "gs://${BUCKET_NAME}" --project="$GOOGLE_CLOUD_PROJECT" --location="$TARGET_REGION"; then
+        gcloud storage buckets update "gs://${BUCKET_NAME}" --versioning --project="$GOOGLE_CLOUD_PROJECT"
         echo "✅ Bucket created successfully."
     else
         echo "❌ Error: Failed to create GCS bucket gs://${BUCKET_NAME}."
         exit 1
     fi
-
-    # Enable versioning for state safety
-    gsutil versioning set on "gs://${BUCKET_NAME}"
 fi
 
 cat <<EOF > backend.tf
