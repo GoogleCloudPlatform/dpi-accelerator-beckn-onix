@@ -1,3 +1,6 @@
+> [!WARNING]
+> **DEPRECATED / ARCHIVED:** This repository (`dpi-accelerator-beckn-onix` and `onix_installer`) is deprecated, no longer maintained, and no longer in use. Do not deploy or use this code in production.
+
 # DPI Accelerator - BECKN-ONIX
 
 This suite of open-source software accelerates the adoption of Digital Public Infrastructure (DPI). It provides a "DPI-as-a-Service" (DaaS) model with pre-packaged, cloud-ready components that allow nations to rapidly launch DPI pilots and bypass lengthy and costly traditional procurement and build cycles. The suite includes products like the Beckn Onix open network accelerator (GA) and ADK-based conversational agents (in private preview). Each deployment is an application layer innovation built on GCP stack, driving consumption of core infrastructure, data services, and advanced AI capabilities.
